@@ -1,0 +1,11 @@
+useDynLib(qiprng, .registration = TRUE)
+importFrom(Rcpp, sourceCpp)
+importFrom(utils, modifyList)
+importFrom(stats, fft, ks.test, sd)
+importFrom(R6, R6Class)
+importFrom(moments, moment)
+
+export(createPRNG)
+export(updatePRNG)
+export(generatePRNG)
+export(reseedPRNG)

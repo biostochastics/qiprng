@@ -1,0 +1,40 @@
+#!/bin/sh
+
+# Check for pkg-config
+if [ ! -x "$(command -v pkg-config)" ]; then
+    echo "Error: pkg-config not found"
+    exit 1
+fi
+
+# Check for MPFR and GMP
+MPFR_PREFIX="/opt/homebrew/opt/mpfr"
+GMP_PREFIX="/opt/homebrew/opt/gmp"
+SODIUM_PREFIX="/opt/homebrew/opt/libsodium"
+
+if [ ! -d "$MPFR_PREFIX" ]; then
+    echo "Error: MPFR library not found in $MPFR_PREFIX"
+    exit 1
+fi
+if [ ! -d "$GMP_PREFIX" ]; then
+    echo "Error: GMP library not found in $GMP_PREFIX"
+    exit 1
+fi
+if [ ! -d "$SODIUM_PREFIX" ]; then
+    echo "Error: libsodium not found in $SODIUM_PREFIX"
+    exit 1
+fi
+
+# Check for OpenSSL
+if ! pkg-config --exists openssl; then
+    echo "Error: OpenSSL development files not found"
+    exit 1
+fi
+
+# Create src/Makevars
+cat << EOF > src/Makevars
+PKG_CPPFLAGS = -I${MPFR_PREFIX}/include -I${GMP_PREFIX}/include -I${SODIUM_PREFIX}/include $(pkg-config --cflags openssl) -DUSE_MPFR
+PKG_LIBS = -L${MPFR_PREFIX}/lib -L${GMP_PREFIX}/lib -L${SODIUM_PREFIX}/lib -lmpfr -lgmp -lsodium $(pkg-config --libs openssl)
+CXX_STD = CXX14
+EOF
+
+chmod 755 src/Makevars

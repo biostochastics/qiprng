@@ -1,0 +1,25 @@
+Package: qiprng
+Type: Package
+Title: Quadratic Irrational PRNG
+Version: 0.1.0
+Authors@R: person("Sergey", "Kornilov", email = "sergey.kornilov@biostochastics.com", role = c("aut", "cre"))
+Description: Implements a high-quality pseudo-random number generator based on quadratic irrationals.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
+Imports:
+    Rcpp (>= 1.0.5),
+    parallel,
+    moments,
+    stats,
+    utils
+Suggests:
+    testthat (>= 3.1.0)
+LinkingTo: 
+    Rcpp
+SystemRequirements: 
+    OpenSSL (>= 1.0),
+    libsodium (>= 1.0.11)
+BugReports: https://github.com/biostochastics/qiprng/issues
