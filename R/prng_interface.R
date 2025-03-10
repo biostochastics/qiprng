@@ -21,7 +21,7 @@ default_config <- list(
     # With a=2, b=5, c=-2: b^2 - 4ac = 25 - 4(2)(-2) = 25 + 16 = 41 > 0
     a = 2L,
     b = 5L,
-    c = -2L,  # Changed from -1 to -2 to ensure positive discriminant
+    c = -2L,  
     mpfr_precision = 53L,  # Default double precision
     buffer_size = 1024L,
     distribution = "uniform_01",
@@ -31,7 +31,7 @@ default_config <- list(
     normal_sd = 1,
     exponential_lambda = 1,
     use_crypto_mixing = FALSE,
-    reseed_interval = 0L,
+    reseed_interval = 1000L,  # Default to 1000 iterations between reseeds
     debug = FALSE
 )
 
@@ -54,7 +54,7 @@ validate_config <- function(config) {
     }
     
     # Check MPFR precision (53-bit is standard double precision)
-    # MPFR requires precision to be between 1 and (2^31 - 1 - 256)
+    # MPFR requires precision to be between 2 and (2^31 - 1 - 256)
     mpfr_precision <- as.integer(config$mpfr_precision)
     if (mpfr_precision < 2 || mpfr_precision > 2147483391L) {  # 2^31 - 1 - 256
         stop("Invalid MPFR precision: must be between 2 and 2147483391")
@@ -86,6 +86,12 @@ validate_config <- function(config) {
     buffer_size <- as.integer(config$buffer_size)
     if (buffer_size < 1) {
         stop("Invalid buffer size: must be positive")
+    }
+    
+    # Check reseed interval
+    reseed_interval <- as.integer(config$reseed_interval)
+    if (reseed_interval < 1) {
+        stop("Invalid reseed interval: must be positive")
     }
     
     TRUE
@@ -125,8 +131,11 @@ updatePRNG <- function(config) {
         stop("Configuration parameter is required")
     }
     
-    # Merge with current config (stored in C++)
-    config <- modifyList(default_config, config)
+    # Get current config from C++
+    current_config <- .getPRNGConfig_()
+    
+    # Merge with current config
+    config <- modifyList(current_config, config)
     
     # Basic validation
     validate_config(config)

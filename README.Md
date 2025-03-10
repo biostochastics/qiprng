@@ -1,4 +1,4 @@
-# qiprng: Quadratic Irrational Pseudo-Random Number Generator
+# qiprng: Quadratic Irrational Pseudo-Random Number Generator for R
 
 ## Overview
 

@@ -1,41 +1,75 @@
 \name{createPRNG}
 \alias{createPRNG}
-\title{Create and Initialize the Enhanced PRNG}
+\title{Create a New PRNG Instance}
 \description{
-This function creates and initializes the PRNG with the given configuration.
+Creates a new global PRNG instance with the specified configuration.
+The PRNG uses quadratic irrational numbers with optional cryptographic mixing
+and supports multiple probability distributions.
 }
 \usage{
-createPRNG(cfg = list())
+createPRNG(config = default_config)
 }
 \arguments{
-\item{cfg}{A named list of configuration parameters:
-\itemize{
-  \item a: Quadratic coefficient (default: 2)
-  \item b: Linear coefficient (default: 1)
-  \item c: Constant term (default: -1)
-  \item mpfr_precision: MPFR precision in bits (default: 53)
-  \item use_crypto_mixing: Whether to use AES-CTR mixing (default: TRUE)
-  \item buffer_size: Number of random values to buffer (default: 1024)
-  \item distribution: Distribution type (default: "uniform_01")
-  \item range_min: Lower bound for uniform_range distribution (default: 0)
-  \item range_max: Upper bound for uniform_range distribution (default: 1)
-  \item normal_mean: Mean for normal distribution (default: 0)
-  \item normal_sd: Standard deviation for normal distribution (default: 1)
-  \item exponential_lambda: Rate for exponential distribution (default: 1)
-}}
+\item{config}{A list of configuration parameters:
+  \itemize{
+    \item \code{a}, \code{b}, \code{c}: Integer coefficients for quadratic equation (ax^2 + bx + c). Must satisfy b^2 - 4ac > 0
+    \item \code{mpfr_precision}: Integer, MPFR precision in bits (2 to 2147483391)
+    \item \code{buffer_size}: Integer > 0, size of internal buffer for random numbers
+    \item \code{distribution}: String, one of "uniform_01", "uniform_range", "normal", "exponential"
+    \item \code{range_min}, \code{range_max}: Numeric, range for uniform distribution
+    \item \code{normal_mean}, \code{normal_sd}: Numeric, parameters for normal distribution (sd > 0)
+    \item \code{exponential_lambda}: Numeric > 0, rate parameter for exponential distribution
+    \item \code{use_crypto_mixing}: Logical, whether to apply cryptographic mixing
+    \item \code{reseed_interval}: Integer > 0, number of samples before automatic reseed
+    \item \code{debug}: Logical, enable debug output
+  }
+}
 }
 \value{
-NULL invisibly
+NULL invisibly. Creates a global PRNG instance protected by a mutex.
+}
+\details{
+The PRNG uses high-precision arithmetic via MPFR and can optionally apply
+cryptographic mixing for enhanced security. The implementation is thread-safe,
+using mutex locks for all operations.
+
+For parallel workloads, it's recommended to create separate PRNG instances
+in each thread rather than sharing a single instance.
+
+The quadratic parameters (a, b, c) must satisfy b^2 - 4ac > 0 to ensure
+the quadratic irrational exists and has the desired properties for random
+number generation.
 }
 \examples{
-# Create a PRNG with default settings
+# Create PRNG with default settings
+createPRNG()
+
+# Create PRNG for normal distribution
 cfg <- list(
-  a = 1L,
-  b = 5L,
-  c = -1L,
-  mpfr_precision = 53L,
-  use_crypto_mixing = TRUE,
-  buffer_size = 1024L
+  distribution = "normal",
+  normal_mean = 0,
+  normal_sd = 1,
+  use_crypto_mixing = TRUE
 )
 createPRNG(cfg)
+
+# Create PRNG for exponential distribution
+cfg <- list(
+  distribution = "exponential",
+  exponential_lambda = 0.5,
+  reseed_interval = 5000
+)
+createPRNG(cfg)
+
+# Create PRNG for custom uniform range
+cfg <- list(
+  distribution = "uniform_range",
+  range_min = -10,
+  range_max = 10,
+  buffer_size = 2048
+)
+createPRNG(cfg)
+}
+\seealso{
+\code{\link{updatePRNG}}, \code{\link{generatePRNG}}, \code{\link{reseedPRNG}}
 }
