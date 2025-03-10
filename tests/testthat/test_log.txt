@@ -1,0 +1,794 @@
+✔ | F W  S  OK | Context
+⠏ |          0 | advanced                                                       ⠏ |          0 | Advanced PRNG Testing                                          ⠴ | 2 3      1 | Advanced PRNG Testing                                          ⠏ | 10 8     12 | Advanced PRNG Testing                                         ⠴ | 25 14     17 | Advanced PRNG Testing                                        ✖ | 28 15     20 | Advanced PRNG Testing
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-advanced.R:26:3'): Crypto Mixing
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_gt(stats::ks.test(x1, "punif")$p.value, 0.01) at test-advanced.R:26:3
+ 2. │ └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. ├─stats::ks.test(x1, "punif")
+ 5. └─stats:::ks.test.default(x1, "punif")
+
+Failure ('test-advanced.R:26:3'): Crypto Mixing
+stats::ks.test(x1, "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Warning ('test-advanced.R:27:3'): Crypto Mixing
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_gt(stats::ks.test(x2, "punif")$p.value, 0.01) at test-advanced.R:27:3
+ 2. │ └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. ├─stats::ks.test(x2, "punif")
+ 5. └─stats:::ks.test.default(x2, "punif")
+
+Failure ('test-advanced.R:27:3'): Crypto Mixing
+stats::ks.test(x2, "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Warning ('test-advanced.R:51:3'): Reseeding Behavior
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_gt(stats::ks.test(x1, "punif")$p.value, 0.01) at test-advanced.R:51:3
+ 2. │ └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. ├─stats::ks.test(x1, "punif")
+ 5. └─stats:::ks.test.default(x1, "punif")
+
+Failure ('test-advanced.R:51:3'): Reseeding Behavior
+stats::ks.test(x1, "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Warning ('test-advanced.R:52:3'): Reseeding Behavior
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_gt(stats::ks.test(x2, "punif")$p.value, 0.01) at test-advanced.R:52:3
+ 2. │ └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. ├─stats::ks.test(x2, "punif")
+ 5. └─stats:::ks.test.default(x2, "punif")
+
+Failure ('test-advanced.R:52:3'): Reseeding Behavior
+stats::ks.test(x2, "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Warning ('test-advanced.R:69:3'): Different Distributions
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_gt(stats::ks.test(x1, "punif")$p.value, 0.01) at test-advanced.R:69:3
+ 2. │ └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. ├─stats::ks.test(x1, "punif")
+ 5. └─stats:::ks.test.default(x1, "punif")
+
+Failure ('test-advanced.R:69:3'): Different Distributions
+stats::ks.test(x1, "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Warning ('test-advanced.R:79:3'): Different Distributions
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_gt(...) at test-advanced.R:79:3
+ 2. │ └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. ├─stats::ks.test((x2 + 10)/20, "punif")
+ 5. └─stats:::ks.test.default((x2 + 10)/20, "punif")
+
+Failure ('test-advanced.R:79:3'): Different Distributions
+stats::ks.test((x2 + 10)/20, "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Warning ('test-advanced.R:88:3'): Different Distributions
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_gt(stats::ks.test(x3, "pnorm")$p.value, 0.01) at test-advanced.R:88:3
+ 2. │ └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. ├─stats::ks.test(x3, "pnorm")
+ 5. └─stats:::ks.test.default(x3, "pnorm")
+
+Failure ('test-advanced.R:88:3'): Different Distributions
+stats::ks.test(x3, "pnorm")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Warning ('test-advanced.R:97:3'): Different Distributions
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_gt(stats::ks.test(x4, "pexp")$p.value, 0.01) at test-advanced.R:97:3
+ 2. │ └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. ├─stats::ks.test(x4, "pexp")
+ 5. └─stats:::ks.test.default(x4, "pexp")
+
+Failure ('test-advanced.R:97:3'): Different Distributions
+stats::ks.test(x4, "pexp")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Failure ('test-advanced.R:158:3'): PRNG maintains state correctly
+identical(x1, x2) is not FALSE
+
+`actual`:   TRUE 
+`expected`: FALSE
+
+Failure ('test-advanced.R:190:7'): Thread safety works correctly
+identical(nums[, i], nums[, j]) is not FALSE
+
+`actual`:   TRUE 
+`expected`: FALSE
+
+Failure ('test-advanced.R:190:7'): Thread safety works correctly
+identical(nums[, i], nums[, j]) is not FALSE
+
+`actual`:   TRUE 
+`expected`: FALSE
+
+Failure ('test-advanced.R:190:7'): Thread safety works correctly
+identical(nums[, i], nums[, j]) is not FALSE
+
+`actual`:   TRUE 
+`expected`: FALSE
+
+Failure ('test-advanced.R:190:7'): Thread safety works correctly
+identical(nums[, i], nums[, j]) is not FALSE
+
+`actual`:   TRUE 
+`expected`: FALSE
+
+Failure ('test-advanced.R:190:7'): Thread safety works correctly
+identical(nums[, i], nums[, j]) is not FALSE
+
+`actual`:   TRUE 
+`expected`: FALSE
+
+Failure ('test-advanced.R:190:7'): Thread safety works correctly
+identical(nums[, i], nums[, j]) is not FALSE
+
+`actual`:   TRUE 
+`expected`: FALSE
+
+Warning ('test-advanced.R:197:5'): Thread safety works correctly
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_gt(...) at test-advanced.R:197:5
+ 2. │ └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. ├─stats::ks.test(nums[, i], "punif")
+ 5. └─stats:::ks.test.default(nums[, i], "punif")
+
+Failure ('test-advanced.R:197:5'): Thread safety works correctly
+stats::ks.test(nums[, i], "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Warning ('test-advanced.R:197:5'): Thread safety works correctly
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_gt(...) at test-advanced.R:197:5
+ 2. │ └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. ├─stats::ks.test(nums[, i], "punif")
+ 5. └─stats:::ks.test.default(nums[, i], "punif")
+
+Failure ('test-advanced.R:197:5'): Thread safety works correctly
+stats::ks.test(nums[, i], "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Warning ('test-advanced.R:197:5'): Thread safety works correctly
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_gt(...) at test-advanced.R:197:5
+ 2. │ └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. ├─stats::ks.test(nums[, i], "punif")
+ 5. └─stats:::ks.test.default(nums[, i], "punif")
+
+Failure ('test-advanced.R:197:5'): Thread safety works correctly
+stats::ks.test(nums[, i], "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Warning ('test-advanced.R:197:5'): Thread safety works correctly
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_gt(...) at test-advanced.R:197:5
+ 2. │ └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. ├─stats::ks.test(nums[, i], "punif")
+ 5. └─stats:::ks.test.default(nums[, i], "punif")
+
+Failure ('test-advanced.R:197:5'): Thread safety works correctly
+stats::ks.test(nums[, i], "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Failure ('test-advanced.R:216:3'): PRNG handles multiple instances
+identical(x1, x2) is not FALSE
+
+`actual`:   TRUE 
+`expected`: FALSE
+
+Warning ('test-advanced.R:219:3'): PRNG handles multiple instances
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_gt(stats::ks.test(x1, "punif")$p.value, 0.01) at test-advanced.R:219:3
+ 2. │ └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. ├─stats::ks.test(x1, "punif")
+ 5. └─stats:::ks.test.default(x1, "punif")
+
+Failure ('test-advanced.R:219:3'): PRNG handles multiple instances
+stats::ks.test(x1, "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Warning ('test-advanced.R:220:3'): PRNG handles multiple instances
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_gt(stats::ks.test(x2, "punif")$p.value, 0.01) at test-advanced.R:220:3
+ 2. │ └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. ├─stats::ks.test(x2, "punif")
+ 5. └─stats:::ks.test.default(x2, "punif")
+
+Failure ('test-advanced.R:220:3'): PRNG handles multiple instances
+stats::ks.test(x2, "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Failure ('test-advanced.R:236:3'): Normal distribution generation is correct
+mean(samples) not equal to 0.
+1/1 mismatches
+[1] 5.26 - 0 == 5.26
+
+Failure ('test-advanced.R:237:3'): Normal distribution generation is correct
+sd(samples) not equal to 1.
+1/1 mismatches
+[1] 0 - 1 == -1
+
+Error ('test-advanced.R:241:3'): Normal distribution generation is correct
+Error in `shapiro.test(samples[1:5000])`: all 'x' values are identical
+Backtrace:
+    ▆
+ 1. └─stats::shapiro.test(samples[1:5000]) at test-advanced.R:241:3
+
+Failure ('test-advanced.R:270:3'): Distribution transforms are applied correctly
+mean(exp_samples) not equal to 1/lambda.
+1/1 mismatches
+[1] 5e-13 - 0.5 == -0.5
+
+Failure ('test-advanced.R:283:3'): Crypto mixing preserves uniformity
+mean(crypto_samples) not equal to 0.5.
+1/1 mismatches
+[1] 0.237 - 0.5 == -0.263
+
+Warning ('test-advanced.R:286:3'): Crypto mixing preserves uniformity
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. ├─stats::ks.test(crypto_samples, "punif") at test-advanced.R:286:3
+ 2. └─stats:::ks.test.default(crypto_samples, "punif")
+
+Failure ('test-advanced.R:287:3'): Crypto mixing preserves uniformity
+ks_test$p.value is not strictly more than 0.05. Difference: -0.05
+────────────────────────────────────────────────────────────────────────────────
+⠏ |          0 | basic                                                          ⠏ |          0 | Basic PRNG Tests                                               ✖ | 2 1      3 | Basic PRNG Tests
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-basic.R:44:3'): PRNG update works
+abs(mean(x) - 5) < 0.5 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Warning ('test-basic.R:59:3'): Statistical tests work
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. ├─stats::ks.test(x, "punif") at test-basic.R:59:3
+ 2. └─stats:::ks.test.default(x, "punif")
+
+Failure ('test-basic.R:60:3'): Statistical tests work
+ks$p.value is not strictly more than 0.01. Difference: -0.01
+────────────────────────────────────────────────────────────────────────────────
+⠏ |          0 | config                                                         ⠏ |          0 | Configuration tests                                            ✔ |          8 | Configuration tests
+⠏ |          0 | distributions                                                  ⠏ |          0 | Distribution Tests                                             ✖ | 14        2 | Distribution Tests
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-distributions.R:18:3'): Normal distribution properties
+abs(mean(nums)) < 0.2 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-distributions.R:19:3'): Normal distribution properties
+abs(sd(nums) - 1) < 0.2 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-distributions.R:22:3'): Normal distribution properties
+mean(abs(nums) <= 1.96) > 0.85 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-distributions.R:23:3'): Normal distribution properties
+mean(abs(nums) <= 2.58) > 0.95 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Error ('test-distributions.R:26:3'): Normal distribution properties
+Error in `shapiro.test(nums[1:5000])`: all 'x' values are identical
+Backtrace:
+    ▆
+ 1. └─stats::shapiro.test(nums[1:5000]) at test-distributions.R:26:3
+
+Failure ('test-distributions.R:55:3'): Uniform range properties
+abs(mean(nums)) < 0.1 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-distributions.R:56:3'): Uniform range properties
+abs(sd(nums) - sqrt(1/3)) < 0.1 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-distributions.R:60:3'): Uniform range properties
+abs(q[1] + 0.5) < 0.1 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-distributions.R:61:3'): Uniform range properties
+abs(q[2]) < 0.1 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-distributions.R:62:3'): Uniform range properties
+abs(q[3] - 0.5) < 0.1 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-distributions.R:83:3'): Exponential distribution properties
+abs(mean(nums) - 1) < 0.2 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-distributions.R:84:3'): Exponential distribution properties
+abs(sd(nums) - 1) < 0.3 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-distributions.R:88:3'): Exponential distribution properties
+abs(q[2] - log(2)) < 0.2 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-distributions.R:96:3'): Exponential distribution properties
+max_diff < 0.15 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+────────────────────────────────────────────────────────────────────────────────
+⠏ |          0 | prng                                                           ⠏ |          0 | PRNG functionality                                             ✖ | 7        5 | PRNG functionality
+────────────────────────────────────────────────────────────────────────────────
+Error ('test-prng.R:23:3'): PRNG generates expected distributions
+Error in `shapiro.test(nums)`: all 'x' values are identical
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_gt(shapiro.test(nums)$p.value, 0.05) at test-prng.R:23:3
+ 2. │ └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. └─stats::shapiro.test(nums)
+
+Failure ('test-prng.R:46:3'): Configuration updates work
+abs(mean(nums)) < 0.1 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-prng.R:47:3'): Configuration updates work
+abs(sd(nums) - 1) < 0.1 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-prng.R:50:3'): Configuration updates work
+mean(abs(nums) <= 1.96) > 0.9 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-prng.R:51:3'): Configuration updates work
+mean(abs(nums) <= 2.58) > 0.98 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-prng.R:58:3'): Configuration updates work
+abs(skewness) < 0.2 is not TRUE
+
+`actual`:   <NA>
+`expected`: TRUE
+
+Failure ('test-prng.R:59:3'): Configuration updates work
+abs(kurtosis) < 0.5 is not TRUE
+
+`actual`:   <NA>
+`expected`: TRUE
+────────────────────────────────────────────────────────────────────────────────
+⠏ |          0 | qiprng                                                         ✖ | 5        2 | qiprng
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-qiprng.R:14:3'): PRNG initialization works
+Expected `createPRNG(cfg)` to run without any errors.
+ℹ Actually got a <std::runtime_error> with text:
+  Invalid quadratic parameters: discriminant must be positive
+
+Failure ('test-qiprng.R:20:3'): Invalid configurations are caught
+`createPRNG(list(distribution = "invalid"))` threw an error with unexpected message.
+Expected match: "Invalid distribution type"
+Actual message: "Invalid distribution: must be one of 'uniform_01', 'uniform_range', 'normal', 'exponential'"
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-qiprng.R:20:3
+ 2. │ └─testthat:::quasi_capture(...)
+ 3. │   ├─testthat (local) .capture(...)
+ 4. │   │ └─base::withCallingHandlers(...)
+ 5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 6. └─qiprng::createPRNG(list(distribution = "invalid"))
+ 7.   └─qiprng:::validate_config(config) at qiprng/R/prng_interface.R:108:5
+
+Error ('test-qiprng.R:33:3'): PRNG generates valid uniform numbers
+<std::runtime_error/C++Error/error/condition>
+Error: Invalid quadratic parameters: discriminant must be positive
+Backtrace:
+    ▆
+ 1. └─qiprng::createPRNG(cfg) at test-qiprng.R:33:3
+ 2.   └─qiprng:::.createPRNG_(config) at qiprng/R/prng_interface.R:111:5
+
+Error ('test-qiprng.R:70:3'): PRNG generates valid normal numbers
+<std::runtime_error/C++Error/error/condition>
+Error: Invalid quadratic parameters: discriminant must be positive
+Backtrace:
+    ▆
+ 1. └─qiprng::createPRNG(cfg) at test-qiprng.R:70:3
+ 2.   └─qiprng:::.createPRNG_(config) at qiprng/R/prng_interface.R:111:5
+
+Error ('test-qiprng.R:94:3'): PRNG config updates work
+<std::runtime_error/C++Error/error/condition>
+Error: Invalid quadratic parameters: discriminant must be positive
+Backtrace:
+    ▆
+ 1. └─qiprng::createPRNG(cfg) at test-qiprng.R:94:3
+ 2.   └─qiprng:::.createPRNG_(config) at qiprng/R/prng_interface.R:111:5
+────────────────────────────────────────────────────────────────────────────────
+⠏ |          0 | reporter                                                       ⠏ |          0 | threading                                                      ⠏ |          0 | Threading tests                                                ⠋ | 1        0 | Threading tests                                                ✖ | 1        0 | Threading tests
+────────────────────────────────────────────────────────────────────────────────
+Error ('test-threading.R:12:3'): Thread safety works
+Error in `checkForRemoteErrors(val)`: 2 nodes produced errors; first error: PRNG not created yet. Call createPRNG(...) first.
+Backtrace:
+    ▆
+ 1. └─parallel::parLapply(...) at test-threading.R:12:3
+ 2.   ├─base::do.call(...)
+ 3.   └─parallel::clusterApply(...)
+ 4.     └─parallel:::staticClusterApply(cl, fun, length(x), argfun)
+ 5.       └─parallel:::checkForRemoteErrors(val)
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 1.3 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-advanced.R:26:3'): Crypto Mixing
+stats::ks.test(x1, "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Failure ('test-advanced.R:27:3'): Crypto Mixing
+stats::ks.test(x2, "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Failure ('test-advanced.R:51:3'): Reseeding Behavior
+stats::ks.test(x1, "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Failure ('test-advanced.R:52:3'): Reseeding Behavior
+stats::ks.test(x2, "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Failure ('test-advanced.R:69:3'): Different Distributions
+stats::ks.test(x1, "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Failure ('test-advanced.R:79:3'): Different Distributions
+stats::ks.test((x2 + 10)/20, "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Failure ('test-advanced.R:88:3'): Different Distributions
+stats::ks.test(x3, "pnorm")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Failure ('test-advanced.R:97:3'): Different Distributions
+stats::ks.test(x4, "pexp")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Failure ('test-advanced.R:158:3'): PRNG maintains state correctly
+identical(x1, x2) is not FALSE
+
+`actual`:   TRUE 
+`expected`: FALSE
+
+Failure ('test-advanced.R:190:7'): Thread safety works correctly
+identical(nums[, i], nums[, j]) is not FALSE
+
+`actual`:   TRUE 
+`expected`: FALSE
+
+Failure ('test-advanced.R:190:7'): Thread safety works correctly
+identical(nums[, i], nums[, j]) is not FALSE
+
+`actual`:   TRUE 
+`expected`: FALSE
+
+Failure ('test-advanced.R:190:7'): Thread safety works correctly
+identical(nums[, i], nums[, j]) is not FALSE
+
+`actual`:   TRUE 
+`expected`: FALSE
+
+Failure ('test-advanced.R:190:7'): Thread safety works correctly
+identical(nums[, i], nums[, j]) is not FALSE
+
+`actual`:   TRUE 
+`expected`: FALSE
+
+Failure ('test-advanced.R:190:7'): Thread safety works correctly
+identical(nums[, i], nums[, j]) is not FALSE
+
+`actual`:   TRUE 
+`expected`: FALSE
+
+Failure ('test-advanced.R:190:7'): Thread safety works correctly
+identical(nums[, i], nums[, j]) is not FALSE
+
+`actual`:   TRUE 
+`expected`: FALSE
+
+Failure ('test-advanced.R:197:5'): Thread safety works correctly
+stats::ks.test(nums[, i], "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Failure ('test-advanced.R:197:5'): Thread safety works correctly
+stats::ks.test(nums[, i], "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Failure ('test-advanced.R:197:5'): Thread safety works correctly
+stats::ks.test(nums[, i], "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Failure ('test-advanced.R:197:5'): Thread safety works correctly
+stats::ks.test(nums[, i], "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Failure ('test-advanced.R:216:3'): PRNG handles multiple instances
+identical(x1, x2) is not FALSE
+
+`actual`:   TRUE 
+`expected`: FALSE
+
+Failure ('test-advanced.R:219:3'): PRNG handles multiple instances
+stats::ks.test(x1, "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Failure ('test-advanced.R:220:3'): PRNG handles multiple instances
+stats::ks.test(x2, "punif")$p.value is not strictly more than 0.01. Difference: -0.01
+
+Failure ('test-advanced.R:236:3'): Normal distribution generation is correct
+mean(samples) not equal to 0.
+1/1 mismatches
+[1] 5.26 - 0 == 5.26
+
+Failure ('test-advanced.R:237:3'): Normal distribution generation is correct
+sd(samples) not equal to 1.
+1/1 mismatches
+[1] 0 - 1 == -1
+
+Error ('test-advanced.R:241:3'): Normal distribution generation is correct
+Error in `shapiro.test(samples[1:5000])`: all 'x' values are identical
+Backtrace:
+    ▆
+ 1. └─stats::shapiro.test(samples[1:5000]) at test-advanced.R:241:3
+
+Failure ('test-advanced.R:270:3'): Distribution transforms are applied correctly
+mean(exp_samples) not equal to 1/lambda.
+1/1 mismatches
+[1] 5e-13 - 0.5 == -0.5
+
+Failure ('test-advanced.R:283:3'): Crypto mixing preserves uniformity
+mean(crypto_samples) not equal to 0.5.
+1/1 mismatches
+[1] 0.237 - 0.5 == -0.263
+
+Failure ('test-advanced.R:287:3'): Crypto mixing preserves uniformity
+ks_test$p.value is not strictly more than 0.05. Difference: -0.05
+
+Failure ('test-basic.R:44:3'): PRNG update works
+abs(mean(x) - 5) < 0.5 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-basic.R:60:3'): Statistical tests work
+ks$p.value is not strictly more than 0.01. Difference: -0.01
+
+Failure ('test-distributions.R:18:3'): Normal distribution properties
+abs(mean(nums)) < 0.2 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-distributions.R:19:3'): Normal distribution properties
+abs(sd(nums) - 1) < 0.2 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-distributions.R:22:3'): Normal distribution properties
+mean(abs(nums) <= 1.96) > 0.85 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-distributions.R:23:3'): Normal distribution properties
+mean(abs(nums) <= 2.58) > 0.95 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Error ('test-distributions.R:26:3'): Normal distribution properties
+Error in `shapiro.test(nums[1:5000])`: all 'x' values are identical
+Backtrace:
+    ▆
+ 1. └─stats::shapiro.test(nums[1:5000]) at test-distributions.R:26:3
+
+Failure ('test-distributions.R:55:3'): Uniform range properties
+abs(mean(nums)) < 0.1 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-distributions.R:56:3'): Uniform range properties
+abs(sd(nums) - sqrt(1/3)) < 0.1 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-distributions.R:60:3'): Uniform range properties
+abs(q[1] + 0.5) < 0.1 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-distributions.R:61:3'): Uniform range properties
+abs(q[2]) < 0.1 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-distributions.R:62:3'): Uniform range properties
+abs(q[3] - 0.5) < 0.1 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-distributions.R:83:3'): Exponential distribution properties
+abs(mean(nums) - 1) < 0.2 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-distributions.R:84:3'): Exponential distribution properties
+abs(sd(nums) - 1) < 0.3 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-distributions.R:88:3'): Exponential distribution properties
+abs(q[2] - log(2)) < 0.2 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-distributions.R:96:3'): Exponential distribution properties
+max_diff < 0.15 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Error ('test-prng.R:23:3'): PRNG generates expected distributions
+Error in `shapiro.test(nums)`: all 'x' values are identical
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_gt(shapiro.test(nums)$p.value, 0.05) at test-prng.R:23:3
+ 2. │ └─testthat::quasi_label(enquo(object), label, arg = "object")
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. └─stats::shapiro.test(nums)
+
+Failure ('test-prng.R:46:3'): Configuration updates work
+abs(mean(nums)) < 0.1 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-prng.R:47:3'): Configuration updates work
+abs(sd(nums) - 1) < 0.1 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-prng.R:50:3'): Configuration updates work
+mean(abs(nums) <= 1.96) > 0.9 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-prng.R:51:3'): Configuration updates work
+mean(abs(nums) <= 2.58) > 0.98 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-prng.R:58:3'): Configuration updates work
+abs(skewness) < 0.2 is not TRUE
+
+`actual`:   <NA>
+`expected`: TRUE
+
+Failure ('test-prng.R:59:3'): Configuration updates work
+abs(kurtosis) < 0.5 is not TRUE
+
+`actual`:   <NA>
+`expected`: TRUE
+
+Failure ('test-qiprng.R:14:3'): PRNG initialization works
+Expected `createPRNG(cfg)` to run without any errors.
+ℹ Actually got a <std::runtime_error> with text:
+  Invalid quadratic parameters: discriminant must be positive
+
+Failure ('test-qiprng.R:20:3'): Invalid configurations are caught
+`createPRNG(list(distribution = "invalid"))` threw an error with unexpected message.
+Expected match: "Invalid distribution type"
+Actual message: "Invalid distribution: must be one of 'uniform_01', 'uniform_range', 'normal', 'exponential'"
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-qiprng.R:20:3
+ 2. │ └─testthat:::quasi_capture(...)
+ 3. │   ├─testthat (local) .capture(...)
+ 4. │   │ └─base::withCallingHandlers(...)
+ 5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 6. └─qiprng::createPRNG(list(distribution = "invalid"))
+ 7.   └─qiprng:::validate_config(config) at qiprng/R/prng_interface.R:108:5
+
+Error ('test-qiprng.R:33:3'): PRNG generates valid uniform numbers
+<std::runtime_error/C++Error/error/condition>
+Error: Invalid quadratic parameters: discriminant must be positive
+Backtrace:
+    ▆
+ 1. └─qiprng::createPRNG(cfg) at test-qiprng.R:33:3
+ 2.   └─qiprng:::.createPRNG_(config) at qiprng/R/prng_interface.R:111:5
+
+Error ('test-qiprng.R:70:3'): PRNG generates valid normal numbers
+<std::runtime_error/C++Error/error/condition>
+Error: Invalid quadratic parameters: discriminant must be positive
+Backtrace:
+    ▆
+ 1. └─qiprng::createPRNG(cfg) at test-qiprng.R:70:3
+ 2.   └─qiprng:::.createPRNG_(config) at qiprng/R/prng_interface.R:111:5
+
+Error ('test-qiprng.R:94:3'): PRNG config updates work
+<std::runtime_error/C++Error/error/condition>
+Error: Invalid quadratic parameters: discriminant must be positive
+Backtrace:
+    ▆
+ 1. └─qiprng::createPRNG(cfg) at test-qiprng.R:94:3
+ 2.   └─qiprng:::.createPRNG_(config) at qiprng/R/prng_interface.R:111:5
+
+Error ('test-threading.R:12:3'): Thread safety works
+Error in `checkForRemoteErrors(val)`: 2 nodes produced errors; first error: PRNG not created yet. Call createPRNG(...) first.
+Backtrace:
+    ▆
+ 1. └─parallel::parLapply(...) at test-threading.R:12:3
+ 2.   ├─base::do.call(...)
+ 3.   └─parallel::clusterApply(...)
+ 4.     └─parallel:::staticClusterApply(cl, fun, length(x), argfun)
+ 5.       └─parallel:::checkForRemoteErrors(val)
+
+[ FAIL 57 | WARN 16 | SKIP 0 | PASS 40 ]

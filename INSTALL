@@ -61,10 +61,10 @@ From the command line:
     R CMD build .
 
     # Check the package
-    R CMD check qiprng_0.1.0.tar.gz
+    R CMD check qiprng_0.2.0.tar.gz
 
     # Install the package
-    R CMD INSTALL qiprng_0.1.0.tar.gz
+    R CMD INSTALL qiprng_0.2.0.tar.gz
 
 Testing
 -------
@@ -131,8 +131,9 @@ Run basic benchmarks:
 
 Security Notes
 ------------
-1. This package is for demonstration purposes
-2. For production use:
+1. This package is for educational and demonstration purposes
+2. For production use I strongly recommend:
+   - Not using this package
    - Conduct thorough security audits
    - Consider hardware RNG sources
    - Follow cryptographic best practices
@@ -147,5 +148,5 @@ For issues and questions:
 
 Version Information
 -----------------
-This guide is for qiprng version 0.1.0
-Last updated: 2025-02-20 
+This guide is for qiprng version 0.2.0
+Last updated: 2025-03-10 

@@ -30,6 +30,7 @@ class MPFRWrapper {
 public:
     explicit MPFRWrapper(mpfr_prec_t prec) {
         mpfr_init2(value, prec);
+        mpfr_set_zero(value, 1);  // Initialize to +0
     }
 
     ~MPFRWrapper() {
@@ -48,14 +49,14 @@ public:
     MPFRWrapper(MPFRWrapper&& other) noexcept {
         mpfr_init2(value, mpfr_get_prec(other.value));
         mpfr_set(value, other.value, MPFR_RNDN);
-        mpfr_set_nan(other.value);  // Invalidate source
+        mpfr_set_zero(other.value, 1);  // Invalidate source with +0
     }
 
     MPFRWrapper& operator=(MPFRWrapper&& other) noexcept {
         if (this != &other) {
             mpfr_set_prec(value, mpfr_get_prec(other.value));
             mpfr_set(value, other.value, MPFR_RNDN);
-            mpfr_set_nan(other.value);  // Invalidate source
+            mpfr_set_zero(other.value, 1);  // Invalidate source with +0
         }
         return *this;
     }
@@ -94,6 +95,15 @@ public:
         clear();
         data_.resize(new_size);
     }
+
+    T& operator[](size_t i) { return data_[i]; }
+    const T& operator[](size_t i) const { return data_[i]; }
+
+    // Iterator support
+    typename std::vector<T>::iterator begin() { return data_.begin(); }
+    typename std::vector<T>::iterator end() { return data_.end(); }
+    typename std::vector<T>::const_iterator begin() const { return data_.begin(); }
+    typename std::vector<T>::const_iterator end() const { return data_.end(); }
 };
 
 } // namespace qiprng

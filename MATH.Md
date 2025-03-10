@@ -1,8 +1,8 @@
 # Technical Documentation for the Quadratic Irrational PRNG
 
-> **Attribution Note**: The mathematical foundation and core algorithm design presented in this document is based on amazing work of Vincent Granville (2024), specifically his research on military-grade random number generators using quadratic irrationals. While Granville provided the original Python implementation, this document describes our independent R/C++ implementation developed for educational purposes.
->
-> **Reference**: Granville, V. (2024). Synthetic Data and Generative AI 1st Edition. https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/
+ **Attribution Note**: The mathematical foundation and core algorithm design presented in this document is based on amazing work of the illustruous Vincent Granville (2024), specifically his research on military-grade random number generators using quadratic irrationals that I ran into in the dead of night after having way too much coffee. While Granville provided the original Python implementation, this doc describes my R/C++ implementation developed primarily for educational purposes. Cool if you find it useful. Even better if you find a bug! 
+
+ **Reference**: Granville, V. (2024). Synthetic Data and Generative AI 1st Edition. https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/
 
 ## 1. Mathematical Foundation: The Quadratic Map
 
@@ -98,20 +98,20 @@ While the quadratic irrational generator produces sequences with good statistica
 2. **Cryptographic security**: Makes the output suitable for cryptographic applications
 3. **Defense against analysis**: Prevents potential mathematical analysis of the underlying sequence
 
-### 3.2 AES-256-CTR Implementation
+### 3.2 ChaCha20 Implementation
 
-The package uses AES-256 in Counter Mode (CTR) for cryptographic mixing:
+The package uses ChaCha20 for cryptographic mixing:
 
 1. **Process**:
    - Generate raw values using the quadratic map
    - Convert to binary representation
-   - Apply AES-256-CTR encryption
+   - Apply ChaCha20 stream cipher
    - Convert back to uniform values in [0,1]
 
 2. **Security features**:
-   - 256-bit key generated from a hardware RNG or secure source
+   - Generated key and nonce from secure cryptographic random source
    - Automatic key rotation during reseeding
-   - Counter mode ensures no patterns are introduced during encryption
+   - Stream cipher ensures no patterns are introduced during encryption
 
 ### 3.3 Integration with Core Generator
 
@@ -124,11 +124,10 @@ The cryptographic mixing integrates with the core generator in several ways:
 2. **Reseeding mechanism**:
    - Both the quadratic parameters and the encryption key are replaced during reseeding
    - Reseeding can occur automatically after a specified number of generated values
-   - Hardware RNG can be used for reseeding when available
 
 3. **Careful handling of sensitive data**:
    - Encryption keys are stored in secure memory
-   - Keys are properly zeroed when no longer needed
+   - Keys are properly zeroed when no longer needed using sodium_memzero
    - Side-channel mitigation techniques are employed
 
 ## 4. Distribution Transformations
@@ -152,7 +151,7 @@ x = mean + sd * r*cos(θ)
 y = mean + sd * r*sin(θ)
 ```
 
-Where u1 and u2 are independent uniform [0,1] values.
+Where u1 and u2 are independent uniform [0,1] values. The implementation optimizes this by storing the second value (y) for the next call, effectively using both random numbers generated from each pair of uniform draws.
 
 ### 4.3 Exponential Distribution
 
@@ -197,161 +196,137 @@ With sufficient precision, the period length of the generator is extremely long:
 - Separate buffers prevent race conditions
 - In multi-threaded environments, each thread gets independent random sequences
 
-### 6.2 Hardware RNG Integration
+### 6.2 Error Handling
 
-- Attempts to use hardware RNG (RDRAND/RDSEED) when available
-- Falls back to high-quality software RNG (libsodium)
-- User can configure whether to prioritize hardware RNG
+The implementation includes comprehensive error handling:
 
-### 6.3 Automatic Reseeding
+1. **Parameter validation**: 
+   - All parameters are validated before use
+   - Invalid parameters throw clear exception messages
+   - No silent fallbacks to default values
 
-- Configurable reseeding interval
-- Resets quadratic parameters using secure entropy
-- Regenerates cryptographic keys
-- Mitigates theoretical concerns about cycle finding
+2. **Numerical checks**:
+   - Edge cases like values ≤ 0 or ≥ 1 are detected and corrected
+   - Special handling for potential floating-point anomalies
 
-## 7. Statistical Testing and Quality Assurance
+3. **Error reporting**:
+   - In R mode: Errors are properly reported via R's error mechanisms
+   - Debug mode provides additional diagnostics when enabled
 
-The QIPRNG implementation has been validated using various statistical tests:
+## 7. Statistical Properties
 
-- Kolmogorov-Smirnov test for uniformity
-- Runs test for independence
-- FFT test for periodic patterns
-- Distribution-specific tests for transformed outputs
+### 7.1 Uniformity
 
-For all supported distributions, the package ensures that outputs pass rigorous statistical tests to confirm their adherence to the expected probability distributions.
+The raw sequence from the quadratic map has excellent uniformity properties:
 
-## 8. Mathematical Foundations of Quadratic Irrational PRNG
+1. **Empirical distribution**: 
+   - Closely approximates a uniform distribution in [0,1]
+   - Passes standard statistical tests for uniformity
 
-### 8.1 Core Algorithm
+2. **Independence**:
+   - Low serial correlation between consecutive values
+   - No detectable patterns in the sequence
 
-The PRNG is based on the iteration of a quadratic map in the interval [0,1):
+### 7.2 Long-Range Behavior
 
-x_{n+1} = ax_n² + bx_n + c (mod 1)
+The long-range behavior of the sequence is also favorable:
 
-where:
-- a, b, c are integer parameters
-- x_n is the nth iterate in [0,1)
-- The operation (mod 1) takes the fractional part
-
-### 8.2 Requirements for Chaotic Behavior
-
-1. **Discriminant Condition**:
-   The quadratic equation must have irrational roots to ensure non-periodic behavior.
-   - Discriminant D = b² - 4ac must be positive
-   - √D must be irrational
-
-2. **Parameter Constraints**:
-   - a > 0: Ensures quadratic behavior
-   - c < 0: Required for proper mapping to [0,1)
-   - |b| chosen to satisfy discriminant condition
-
-### 8.3 Mathematical Properties
-
-1. **Ergodicity**:
-   The map is ergodic on [0,1) when parameters satisfy above conditions.
-   This ensures:
-   - Uniform distribution of iterates
-   - No periodic orbits
-   - Sensitive dependence on initial conditions
-
-2. **Mixing Property**:
-   The quadratic nature provides strong mixing:
-   - Adjacent points diverge exponentially
-   - Correlation between successive iterates decays exponentially
-
-3. **Period Length**:
+1. **Cycle length**:
    - Theoretically infinite due to irrational roots
    - Practical period limited by floating-point precision
    - MPFR implementation allows arbitrary precision
 
-## 9. Distribution Transformations
+2. **Ergodicity**:
+   - The sequence effectively "explores" the entire [0,1] interval
+   - Long-term frequency distribution matches theoretical uniform distribution
 
-### 9.1 Uniform [0,1)
-Direct output of quadratic map, no transformation needed.
+### 7.3 With Cryptographic Mixing
 
-### 9.2 Normal Distribution (Box-Muller)
-For u₁, u₂ ~ Uniform[0,1):
-```
-r = √(-2 ln u₁)
-θ = 2π u₂
-x = r cos θ
-y = r sin θ
-```
-Then x, y ~ N(0,1)
+When cryptographic mixing is enabled:
 
-Numerical Considerations:
-- u₁ > ε where ε = std::numeric_limits<double>::epsilon()
-- Handle edge cases near 0 to avoid log(0)
+1. **Enhanced randomness**:
+   - Any subtle patterns in the raw sequence are eliminated
+   - Statistical quality increases to cryptographic levels
 
-### 9.3 Exponential Distribution
-For u ~ Uniform[0,1):
-```
-x = -ln(1-u)/λ
-```
-where λ is the rate parameter.
+2. **Non-predictability**:
+   - Forward and backward prediction become computationally infeasible
+   - Side-channel protection through secure memory handling
 
-### 9.4 Uniform Range [a,b]
-Linear transformation:
-```
-x = a + u(b-a)
-```
-where u ~ Uniform[0,1)
+## 8. Performance Considerations
 
-## 10. Cryptographic Enhancement
+### 8.1 Computational Efficiency
 
-The raw output of the quadratic map is enhanced using:
+The implementation balances statistical quality with performance:
 
-1. **AES-256-CTR Mode**:
-   - Applies cryptographic mixing to blocks of generated numbers
-   - Preserves uniform distribution
-   - Adds cryptographic strength to statistical randomness
+1. **Buffer-based generation**:
+   - Values are generated in chunks to amortize overhead
+   - User-configurable buffer size allows tuning based on memory/speed tradeoffs
 
-2. **Key Management**:
-   - 256-bit keys generated using system CSPRNG
-   - Regular reseeding based on sample count
-   - Secure key and IV storage using sodium_memzero
+2. **Predictable memory usage**:
+   - Memory requirements scale linearly with buffer size and precision
+   - No unbounded growth or leaks during long-running simulations
 
-## 11. Statistical Properties
+### 8.2 Optimizations
 
-1. **Uniformity**:
-   - Theoretically perfect due to ergodicity
-   - Practically verified using:
-     * Kolmogorov-Smirnov test
-     * Chi-square test
-     * Spectral test
+Several optimizations are included:
 
-2. **Independence**:
-   - Successive values show no correlation
-   - Verified using:
-     * Serial correlation test
-     * Runs test
-     * Lag-k autocorrelation
+1. **Box-Muller efficiency**:
+   - Normal distribution generation uses both values from the Box-Muller transform
+   - Reduces computational cost by using the "spare" normal variate
 
-3. **Period Length**:
-   - Depends on MPFR precision setting
-   - Default 53-bit precision gives ~2⁵³ unique values
-   - Can be increased for longer periods
+2. **Configuration parsing**:
+   - Direct parsing of configuration lists avoids redundant object creation
+   - Streamlined parameter validation
 
-## 12. Implementation Notes
+### 8.3 Memory Safety
 
-1. **Precision Management**:
-   - MPFR used for arbitrary-precision arithmetic
-   - Default precision matches IEEE double (53 bits)
-   - Higher precision available but impacts performance
+The implementation prioritizes memory safety:
 
-2. **Buffer Management**:
-   - Numbers generated in blocks for efficiency
-   - Crypto mixing applied to entire blocks
-   - Thread-safe access via mutex
+1. **Secure buffers**:
+   - Sensitive data is zeroed before deallocation
+   - Uses libsodium's secure memory wiping functions
 
-3. **Performance Considerations**:
-   - MPFR operations are the main performance bottleneck
-   - Crypto mixing has minimal impact due to block processing
-   - Buffer size tunable for performance vs. memory trade-off
+2. **Resource management**:
+   - RAII pattern ensures proper cleanup of resources
+   - No memory leaks in error cases
 
-## 13. References
+## 9. Practical Usage Guidelines
 
-1. Knuth, D. E. "The Art of Computer Programming, Volume 2: Seminumerical Algorithms"
-2. L'Ecuyer, P. "Random Number Generation"
-3. NIST Special Publication 800-90A: "Recommendation for Random Number Generation"
+### 9.1 Selecting Parameters
+
+Guidelines for selecting optimal parameters:
+
+1. **Quadratic coefficients**:
+   - Use moderate values (e.g., 1-10) for a, b, and c
+   - Ensure the discriminant b² - 4ac is positive
+   - Prefer values that are coprime to each other
+
+2. **Precision settings**:
+   - Default (53 bits) is sufficient for most applications
+   - Increase for extremely long sequences or specialized applications
+   - Higher precision increases memory usage and reduces performance
+
+### 9.2 Distribution Settings
+
+Tips for working with different distributions:
+
+1. **Normal distribution**:
+   - Set appropriate mean and standard deviation
+   - Be aware that extreme values are possible (though rare)
+
+2. **Exponential distribution**:
+   - Lambda parameter controls the rate of decay
+   - Higher lambda values concentrate more probability mass near zero
+
+### 9.3 Cryptographic Usage
+
+For cryptographic applications:
+
+1. **Always enable cryptographic mixing**:
+   - Set `use_crypto_mixing = TRUE`
+   - Consider periodic reseeding for long-running applications
+
+2. **Conservative usage**:
+   - While the implementation follows best practices, it has not undergone formal cryptographic review which duh
+   - Please, please, please use established cryptographic libraries for critical security applications. I ain't your momma, no.
+

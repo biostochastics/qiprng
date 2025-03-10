@@ -16,22 +16,15 @@
 // For MPFR high-precision
 #include <mpfr.h>
 
-// For SHA-256 (OpenSSL) or AES
-#include <openssl/evp.h>
-#include <openssl/sha.h>
-
-// libsodium for randombytes
+// For crypto operations
 #include <sodium.h>
-
-// For AES CTR
-#include <openssl/aes.h>
-#include <openssl/evp.h>
 
 #include <random>
 #include <chrono>
-#include <fstream>
 
 #include "prng_common.hpp"
+
+using namespace qiprng;
 
 // ---------------------------------------------------------------------
 // SecureVector for sensitive data handling
@@ -95,59 +88,14 @@ struct PRNGConfig {
 
     // Crypto parameters
     bool use_crypto_mixing = false;
-    bool use_hardware_rng = false;
-    bool use_threading = false;
     unsigned long reseed_interval = 0;
-    std::string hash_algorithm = "sha256";
-    int key_size = 256;
+
+    // Debug flag
+    bool debug = false;
 };
 
 // Forward declarations
 class QuadraticIrrational;
-
-// ---------------------------------------------------------------------
-// Minimal hardware RNG detection code
-class HardwareRNG {
-private:
-    std::ifstream urandom;
-    bool is_open;
-
-public:
-    HardwareRNG() : is_open(false) {
-        #if defined(__linux__) || defined(__APPLE__)
-        urandom.open("/dev/urandom", std::ios::in | std::ios::binary);
-        is_open = urandom.good();
-        #endif
-    }
-
-    ~HardwareRNG() {
-        if (is_open) {
-            urandom.close();
-        }
-    }
-
-    bool available() const {
-        return is_open;
-    }
-
-    bool generate(uint64_t* value) {
-        if (!is_open) {
-            return false;
-        }
-
-        unsigned char buffer[8];
-        urandom.read(reinterpret_cast<char*>(buffer), sizeof(buffer));
-        if (!urandom.good()) {
-            return false;
-        }
-
-        *value = 0;
-        for (int i = 0; i < 8; i++) {
-            *value |= static_cast<uint64_t>(buffer[i]) << (i * 8);
-        }
-        return true;
-    }
-};
 
 // Standardized discriminant check function
 bool has_positive_discriminant(long a, long b, long c) {
@@ -158,62 +106,52 @@ bool has_positive_discriminant(long a, long b, long c) {
 // Improved CryptoMixer with proper buffer management
 class CryptoMixer {
 private:
-    EVP_CIPHER_CTX* ctx;
     std::vector<unsigned char> key;
-    std::vector<unsigned char> iv;
+    std::vector<unsigned char> nonce;
     
     void secure_random(unsigned char* buf, size_t len) {
-        if (RAND_bytes(buf, len) != 1) {
-            throw std::runtime_error("Failed to generate secure random bytes");
-        }
+        randombytes_buf(buf, len);
     }
 
 public:
-    CryptoMixer() : ctx(EVP_CIPHER_CTX_new()) {
-        if (!ctx) {
-            throw std::runtime_error("Failed to create cipher context");
+    CryptoMixer() {
+        if (sodium_init() < 0) {
+            throw std::runtime_error("Failed to initialize libsodium");
         }
         
-        // Initialize with secure key and IV
-        key.resize(32);  // AES-256 key size
-        iv.resize(16);   // AES block size
+        // Initialize with secure key and nonce
+        key.resize(crypto_stream_chacha20_KEYBYTES);
+        nonce.resize(crypto_stream_chacha20_NONCEBYTES);
         reseed();
     }
     
     ~CryptoMixer() {
-        if (ctx) {
-            EVP_CIPHER_CTX_free(ctx);
-        }
         // Secure zeroing of sensitive data
         if (!key.empty()) sodium_memzero(key.data(), key.size());
-        if (!iv.empty()) sodium_memzero(iv.data(), iv.size());
+        if (!nonce.empty()) sodium_memzero(nonce.data(), nonce.size());
     }
     
     void reseed() {
         secure_random(key.data(), key.size());
-        secure_random(iv.data(), iv.size());
-        
-        if (EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), nullptr, key.data(), iv.data()) != 1) {
-            throw std::runtime_error("Failed to initialize cipher");
-        }
+        secure_random(nonce.data(), nonce.size());
     }
     
     bool mix(unsigned char* data, size_t length) {
-        // Allocate output buffer with proper padding
-        std::vector<unsigned char> outbuf(length + EVP_MAX_BLOCK_LENGTH);
-        int outlen = 0, finalLen = 0;
+        // Create a temporary buffer for the keystream
+        std::vector<unsigned char> keystream(length);
         
-        // Perform encryption
-        if (!EVP_EncryptUpdate(ctx, outbuf.data(), &outlen, data, length) ||
-            !EVP_EncryptFinal_ex(ctx, outbuf.data() + outlen, &finalLen)) {
+        // Generate keystream
+        if (crypto_stream_chacha20(keystream.data(), length, nonce.data(), key.data()) != 0) {
             return false;
         }
         
-        // Copy back with bounds checking
-        std::memcpy(data, outbuf.data(), std::min(length, static_cast<size_t>(outlen + finalLen)));
+        // XOR the data with keystream
+        for (size_t i = 0; i < length; i++) {
+            data[i] ^= keystream[i];
+        }
         
         // Secure zeroing of sensitive buffer
-        sodium_memzero(outbuf.data(), outbuf.size());
+        sodium_memzero(keystream.data(), keystream.size());
         return true;
     }
     
@@ -227,63 +165,71 @@ public:
 // ---------------------------------------------------------------------
 // QuadraticIrrational: MPFR-based class for core recurrence
 class QuadraticIrrational {
-private:
-    MPFRWrapper disc_;    // Discriminant
-    MPFRWrapper root_;    // Square root of discriminant
-    MPFRWrapper value_;   // Current value
-    MPFRWrapper next_;    // Next value
-    MPFRWrapper temp_;    // Temporary value for calculations
-    
-    const long a_;
-    const long b_;
-    const long c_;
-    
+    long a_, b_, c_;
+    std::unique_ptr<MPFRWrapper> root_;   // √D
+    std::unique_ptr<MPFRWrapper> value_;  // Current value
+    std::unique_ptr<MPFRWrapper> next_;   // Next value
+    std::unique_ptr<MPFRWrapper> temp_;   // Temporary value for calculations
+
 public:
-    QuadraticIrrational(long a, long b, long c, mpfr_prec_t prec)
-        : disc_(prec), root_(prec), value_(prec), next_(prec), temp_(prec),
-          a_(a), b_(b), c_(c) {
-        // Initialize discriminant
-        mpfr_set_si(disc_.get(), b * b - 4 * a * (-c), MPFR_RNDN);
-        if (mpfr_cmp_ui(disc_.get(), 0) <= 0) {
-            throw std::runtime_error("Invalid parameters: discriminant must be positive");
+    QuadraticIrrational(long a, long b, long c, mpfr_prec_t prec = PRNGDefaults::mpfr_precision)
+        : a_(a), b_(b), c_(c),
+          root_(std::make_unique<MPFRWrapper>(prec)),
+          value_(std::make_unique<MPFRWrapper>(prec)),
+          next_(std::make_unique<MPFRWrapper>(prec)),
+          temp_(std::make_unique<MPFRWrapper>(prec)) {
+        
+        // Calculate D = b² - 4ac
+        // For quadratic irrational, we need c to be negative for positive discriminant
+        long d = b_ * b_ - 4 * a_ * c_;
+        if (d <= 0) {
+            throw std::runtime_error("Invalid quadratic parameters: discriminant must be positive");
         }
-        
-        // Calculate square root
-        mpfr_sqrt(root_.get(), disc_.get(), MPFR_RNDN);
-        
-        // Set initial value to irrational number
-        mpfr_set_si(value_.get(), b, MPFR_RNDN);
-        mpfr_add(value_.get(), value_.get(), root_.get(), MPFR_RNDN);
-        mpfr_div_si(value_.get(), value_.get(), 2 * a, MPFR_RNDN);
-        
-        // Ensure value is in [0,1)
-        mpfr_frac(value_.get(), value_.get(), MPFR_RNDN);
+
+        // Calculate √D
+        mpfr_set_si(*root_->get(), d, MPFR_RNDN);
+        mpfr_sqrt(*root_->get(), *root_->get(), MPFR_RNDN);
+
+        // Initialize x₀ = (-b + √D)/(2a)
+        mpfr_set_si(*value_->get(), -b_, MPFR_RNDN);
+        mpfr_add(*value_->get(), *value_->get(), *root_->get(), MPFR_RNDN);
+        mpfr_div_si(*value_->get(), *value_->get(), 2 * a_, MPFR_RNDN);
+        mpfr_frac(*value_->get(), *value_->get(), MPFR_RNDN);
+
+        // Initialize next_ and temp_ to 0
+        mpfr_set_zero(*next_->get(), 1);
+        mpfr_set_zero(*temp_->get(), 1);
     }
-    
-    // Delete copy constructor and assignment
-    QuadraticIrrational(const QuadraticIrrational&) = delete;
-    QuadraticIrrational& operator=(const QuadraticIrrational&) = delete;
-    
-    // Move operations
+
+    // Allow move operations
     QuadraticIrrational(QuadraticIrrational&&) = default;
     QuadraticIrrational& operator=(QuadraticIrrational&&) = default;
-    
+
     double next() {
         // Calculate next value: ax² + bx + c (mod 1)
-        mpfr_mul(temp_.get(), value_.get(), value_.get(), MPFR_RNDN);  // x²
-        mpfr_mul_si(temp_.get(), temp_.get(), a_, MPFR_RNDN);         // ax²
+        mpfr_mul(*temp_->get(), *value_->get(), *value_->get(), MPFR_RNDN);  // x²
+        mpfr_mul_si(*temp_->get(), *temp_->get(), a_, MPFR_RNDN);         // ax²
         
-        mpfr_mul_si(next_.get(), value_.get(), b_, MPFR_RNDN);        // bx
-        mpfr_add(next_.get(), next_.get(), temp_.get(), MPFR_RNDN);   // ax² + bx
+        mpfr_mul_si(*next_->get(), *value_->get(), b_, MPFR_RNDN);        // bx
+        mpfr_add(*next_->get(), *next_->get(), *temp_->get(), MPFR_RNDN);   // ax² + bx
         
-        mpfr_add_si(next_.get(), next_.get(), c_, MPFR_RNDN);         // ax² + bx + c
-        mpfr_frac(next_.get(), next_.get(), MPFR_RNDN);               // mod 1
+        mpfr_add_si(*next_->get(), *next_->get(), c_, MPFR_RNDN);         // ax² + bx + c
+        mpfr_frac(*next_->get(), *next_->get(), MPFR_RNDN);               // mod 1
         
         // Update current value
-        mpfr_swap(value_.get(), next_.get());
+        mpfr_swap(*value_->get(), *next_->get());
         
-        // Convert to double and return
-        return mpfr_get_d(value_.get(), MPFR_RNDN);
+        // Convert to double and return, with fallback for invalid values
+        double result = mpfr_get_d(*value_->get(), MPFR_RNDN);
+        if (!std::isfinite(result)) {
+            // If we get an invalid value, reset to initial state and return 0.5
+            mpfr_set_si(*value_->get(), -b_, MPFR_RNDN);
+            mpfr_add(*value_->get(), *value_->get(), *root_->get(), MPFR_RNDN);
+            mpfr_div_si(*value_->get(), *value_->get(), 2 * a_, MPFR_RNDN);
+            mpfr_frac(*value_->get(), *value_->get(), MPFR_RNDN);
+            return 0.5;
+        }
+        return result;
     }
 };
 
@@ -297,6 +243,21 @@ private:
     size_t buffer_pos_;
     std::unique_ptr<CryptoMixer> crypto_mixer;
     size_t sample_count_;
+    
+    // Added: Store spare normal for Box-Muller optimization
+    bool has_spare_normal_;
+    double spare_normal_;
+
+    static void log_debug(const char* format, ...) {
+        if (Rcpp::Function("getOption")("qiprng.debug")) {
+            va_list args;
+            va_start(args, format);
+            REprintf("[qiprng] ");
+            Rprintf(format, args);
+            REprintf("\n");
+            va_end(args);
+        }
+    }
 
     // Internal method for raw uniform values without distribution transforms
     double nextUniformRaw() {
@@ -307,16 +268,37 @@ private:
     }
 
     void fill_buffer() {
+        // Fill buffer with raw values from quadratic irrational
         for (size_t i = 0; i < buffer_.size(); ++i) {
             buffer_[i] = qi_.next();
+            
+            // Ensure values are strictly in (0,1)
+            if (buffer_[i] <= 0.0 || buffer_[i] >= 1.0) {
+                if (config_.debug) {
+                    log_debug("Warning: Generated value %g outside (0,1), adjusting\n", buffer_[i]);
+                }
+                // Use a small epsilon to avoid extreme values
+                const double epsilon = 1e-12;  // Smaller epsilon for better precision
+                buffer_[i] = std::max(epsilon, std::min(1.0 - epsilon, buffer_[i]));
+            }
         }
-
-        if (config_.use_crypto_mixing && crypto_mixer) {
-            mix_buffer();
-            // Normalize to [0,1] after mixing
-            for (auto& val : buffer_) {
-                val = std::fabs(val);
-                val = val - std::floor(val);  // Ensure [0,1)
+        
+        // Apply cryptographic mixing if enabled
+        if (crypto_mixer) {
+            // Convert doubles to bytes for mixing
+            std::vector<unsigned char> bytes(buffer_.size() * sizeof(double));
+            std::memcpy(bytes.data(), buffer_.data(), bytes.size());
+            
+            // Mix the bytes
+            crypto_mixer->mix(bytes.data(), bytes.size());
+            
+            // Convert back to doubles
+            std::memcpy(buffer_.data(), bytes.data(), bytes.size());
+            
+            // Re-ensure values are in (0,1) after mixing
+            for (size_t i = 0; i < buffer_.size(); ++i) {
+                const double epsilon = 1e-12;  // Smaller epsilon for better precision
+                buffer_[i] = std::max(epsilon, std::min(1.0 - epsilon, buffer_[i]));
             }
         }
         
@@ -330,46 +312,50 @@ private:
     }
 
     double transform_normal(double u1, double u2) {
-        // Handle edge case for u1 near zero
-        const double epsilon = std::numeric_limits<double>::epsilon();
-        if (u1 < epsilon) {
-            u1 = epsilon;
+        // Ensure u1 and u2 are strictly in (0,1)
+        const double epsilon = 1e-6;
+        u1 = std::max(epsilon, std::min(1.0 - epsilon, u1));
+        u2 = std::max(epsilon, std::min(1.0 - epsilon, u2));
+        
+        // Box-Muller transform
+        double z = std::sqrt(-2.0 * std::log(u1)) * std::cos(2.0 * M_PI * u2);
+        
+        // Scale and shift to desired mean and standard deviation
+        double result = config_.normal_mean + config_.normal_sd * z;
+        
+        if (config_.debug) {
+            log_debug("Normal: u1=%g, u2=%g, z=%g, mean=%g, sd=%g, result=%g\n",
+                    u1, u2, z, config_.normal_mean, config_.normal_sd, result);
         }
         
-        // Box-Muller transform with improved numerical stability
-        const double two_pi = 2.0 * M_PI;
-        const double r = std::sqrt(-2.0 * std::log(u1));
-        const double theta = two_pi * u2;
-        
-        // Use sincos for better precision and performance
-        #ifdef __GNUC__
-            double sin_theta, cos_theta;
-            __builtin_sincos(theta, &sin_theta, &cos_theta);
-            return r * cos_theta;
-        #else
-            return r * std::cos(theta);
-        #endif
+        return result;
     }
 
     double transform_normal_pair(double u1, double u2, double& second) {
-        const double epsilon = std::numeric_limits<double>::epsilon();
-        if (u1 < epsilon) {
-            u1 = epsilon;
+        // Ensure u1 and u2 are strictly in (0,1)
+        const double epsilon = 1e-6;
+        u1 = std::max(epsilon, std::min(1.0 - epsilon, u1));
+        u2 = std::max(epsilon, std::min(1.0 - epsilon, u2));
+        
+        // Box-Muller transform
+        double z1 = std::sqrt(-2.0 * std::log(u1)) * std::cos(2.0 * M_PI * u2);
+        double z2 = std::sqrt(-2.0 * std::log(u1)) * std::sin(2.0 * M_PI * u2);
+        
+        // Scale and shift to desired mean and standard deviation
+        double result1 = config_.normal_mean + config_.normal_sd * z1;
+        double result2 = config_.normal_mean + config_.normal_sd * z2;
+        
+        // Check for valid results
+        if (!std::isfinite(result1)) {
+            result1 = config_.normal_mean;  // Fallback to mean
         }
         
-        const double two_pi = 2.0 * M_PI;
-        const double r = std::sqrt(-2.0 * std::log(u1));
-        const double theta = two_pi * u2;
+        if (!std::isfinite(result2)) {
+            result2 = config_.normal_mean;  // Fallback to mean
+        }
         
-        #ifdef __GNUC__
-            double sin_theta, cos_theta;
-            __builtin_sincos(theta, &sin_theta, &cos_theta);
-            second = r * sin_theta;
-            return r * cos_theta;
-        #else
-            second = r * std::sin(theta);
-            return r * std::cos(theta);
-        #endif
+        second = result2;
+        return result1;
     }
 
     double transform_exponential() {
@@ -383,19 +369,52 @@ private:
 
     // Public interface uses distribution transforms
     double next() {
-        double raw = nextUniformRaw();
-        
         switch (config_.distribution) {
             case PRNGConfig::UNIFORM_01:
-                return raw;
+                return nextUniformRaw();
             case PRNGConfig::UNIFORM_RANGE:
-                return config_.range_min + raw * (config_.range_max - config_.range_min);
-            case PRNGConfig::NORMAL:
-                return transform_normal(nextUniformRaw(), nextUniformRaw());
-            case PRNGConfig::EXPONENTIAL:
-                return -std::log(1.0 - raw) / config_.exponential_lambda;
+                return config_.range_min + nextUniformRaw() * (config_.range_max - config_.range_min);
+            case PRNGConfig::NORMAL: {
+                if (has_spare_normal_) {
+                    has_spare_normal_ = false;
+                    return spare_normal_;
+                }
+                
+                // Box-Muller transform using both variates
+                double u1, u2;
+                do {
+                    u1 = nextUniformRaw();
+                    u2 = nextUniformRaw();
+                } while (u1 <= 0.0);  // Ensure u1 is positive for log
+                
+                const double two_pi = 2.0 * M_PI;
+                double r = std::sqrt(-2.0 * std::log(u1));
+                double theta = two_pi * u2;
+                
+                // Generate both normal variates
+                double z1 = r * std::cos(theta);
+                double z2 = r * std::sin(theta);
+                
+                // Scale and shift both values
+                z1 = config_.normal_mean + config_.normal_sd * z1;
+                z2 = config_.normal_mean + config_.normal_sd * z2;
+                
+                // Save second normal for next call
+                spare_normal_ = z2;
+                has_spare_normal_ = true;
+                
+                return z1;
+            }
+            case PRNGConfig::EXPONENTIAL: {
+                double u;
+                do {
+                    u = nextUniformRaw();
+                } while (u <= 0.0);  // Ensure u is positive for log
+                
+                return -std::log(u) / config_.exponential_lambda;
+            }
             default:
-                throw std::runtime_error("Unknown distribution type");
+                throw std::runtime_error("Invalid distribution type");
         }
     }
 
@@ -453,17 +472,23 @@ private:
     }
 
 public:
-    EnhancedPRNG(const PRNGConfig& cfg)
-        : qi_(cfg.a, cfg.b, cfg.c, cfg.mpfr_precision),
-          config_(cfg),
-          buffer_(cfg.buffer_size),
-          buffer_pos_(cfg.buffer_size),  // Force initial fill
-          sample_count_(0)
-    {
-        validate_config(cfg);
-        if (cfg.use_crypto_mixing) {
+    EnhancedPRNG(const PRNGConfig& config) 
+        : qi_(config.a, config.b, config.c, config.mpfr_precision),
+          config_(config),
+          buffer_(config.buffer_size),
+          buffer_pos_(config.buffer_size),  // Force initial fill
+          sample_count_(0),
+          has_spare_normal_(false),
+          spare_normal_(0.0) {
+        
+        validate_config(config);
+        
+        if (config.use_crypto_mixing) {
             crypto_mixer = std::make_unique<CryptoMixer>();
         }
+        
+        // Initial buffer fill
+        fill_buffer();
     }
 
     void updateConfig(const PRNGConfig& new_cfg) {
@@ -543,6 +568,158 @@ public:
         
         return result;
     }
+
+    void parseConfig(const Rcpp::List& config) {
+        // Set defaults first
+        config_.a = PRNGDefaults::a;
+        config_.b = PRNGDefaults::b;
+        config_.c = PRNGDefaults::c;
+        config_.buffer_size = PRNGDefaults::buffer_size;
+        config_.mpfr_precision = PRNGDefaults::mpfr_precision;
+        config_.normal_mean = PRNGDefaults::normal_mean;
+        config_.normal_sd = PRNGDefaults::normal_sd;
+        config_.range_min = PRNGDefaults::range_min;
+        config_.range_max = PRNGDefaults::range_max;
+        config_.exponential_lambda = PRNGDefaults::exponential_lambda;
+        config_.use_crypto_mixing = false;
+        config_.reseed_interval = 0;  // 0 means no automatic reseeding
+        config_.debug = false;
+        
+        // Parse distribution
+        if (config.containsElementNamed("distribution")) {
+            std::string dist_str = Rcpp::as<std::string>(config["distribution"]);
+            if (dist_str == "uniform_01") {
+                config_.distribution = PRNGConfig::UNIFORM_01;
+            } else if (dist_str == "uniform_range") {
+                config_.distribution = PRNGConfig::UNIFORM_RANGE;
+            } else if (dist_str == "normal") {
+                config_.distribution = PRNGConfig::NORMAL;
+            } else if (dist_str == "exponential") {
+                config_.distribution = PRNGConfig::EXPONENTIAL;
+            } else {
+                throw std::invalid_argument("Unknown distribution: " + dist_str);
+            }
+        }
+
+        // Debug mode flag
+        if (config.containsElementNamed("debug")) {
+            config_.debug = Rcpp::as<bool>(config["debug"]);
+        }
+        
+        // Parse normal distribution parameters
+        if (config.containsElementNamed("normal_mean")) {
+            double mean = Rcpp::as<double>(config["normal_mean"]);
+            if (!std::isfinite(mean)) {
+                throw std::invalid_argument("normal_mean must be a finite number");
+            }
+            config_.normal_mean = mean;
+            if (config_.debug) {
+                log_debug("Setting normal_mean to %g\n", config_.normal_mean);
+            }
+        }
+        
+        if (config.containsElementNamed("normal_sd")) {
+            double sd = Rcpp::as<double>(config["normal_sd"]);
+            if (!std::isfinite(sd) || sd <= 0) {
+                throw std::invalid_argument("normal_sd must be a positive finite number");
+            }
+            config_.normal_sd = sd;
+            if (config_.debug) {
+                log_debug("Setting normal_sd to %g\n", config_.normal_sd);
+            }
+        }
+        
+        // Parse uniform range parameters
+        if (config.containsElementNamed("range_min")) {
+            double min = Rcpp::as<double>(config["range_min"]);
+            if (!std::isfinite(min)) {
+                throw std::invalid_argument("range_min must be a finite number");
+            }
+            config_.range_min = min;
+        }
+        
+        if (config.containsElementNamed("range_max")) {
+            double max = Rcpp::as<double>(config["range_max"]);
+            if (!std::isfinite(max)) {
+                throw std::invalid_argument("range_max must be a finite number");
+            }
+            if (max <= config_.range_min) {
+                throw std::invalid_argument("range_max must be greater than range_min");
+            }
+            config_.range_max = max;
+        }
+        
+        // Parse exponential distribution parameters
+        if (config.containsElementNamed("exponential_lambda")) {
+            double lambda = Rcpp::as<double>(config["exponential_lambda"]);
+            if (!std::isfinite(lambda) || lambda <= 0) {
+                throw std::invalid_argument("exponential_lambda must be a positive finite number");
+            }
+            config_.exponential_lambda = lambda;
+        }
+        
+        // Parse PRNG parameters
+        if (config.containsElementNamed("a")) {
+            config_.a = Rcpp::as<long>(config["a"]);
+        }
+        
+        if (config.containsElementNamed("b")) {
+            config_.b = Rcpp::as<long>(config["b"]);
+        }
+        
+        if (config.containsElementNamed("c")) {
+            config_.c = Rcpp::as<long>(config["c"]);
+        }
+        
+        // Parse buffer size
+        if (config.containsElementNamed("buffer_size")) {
+            size_t buffer_size = Rcpp::as<size_t>(config["buffer_size"]);
+            if (buffer_size == 0) {
+                throw std::invalid_argument("buffer_size must be positive");
+            }
+            config_.buffer_size = buffer_size;
+        }
+        
+        // Parse MPFR precision
+        if (config.containsElementNamed("mpfr_precision")) {
+            mpfr_prec_t prec = Rcpp::as<mpfr_prec_t>(config["mpfr_precision"]);
+            if (prec < MPFR_PREC_MIN || prec > MPFR_PREC_MAX) {
+                throw std::invalid_argument("mpfr_precision must be between MPFR_PREC_MIN and MPFR_PREC_MAX");
+            }
+            config_.mpfr_precision = prec;
+        }
+        
+        // Parse crypto mixing flag
+        if (config.containsElementNamed("use_crypto_mixing")) {
+            config_.use_crypto_mixing = Rcpp::as<bool>(config["use_crypto_mixing"]);
+        }
+        
+        // Parse reseed interval
+        if (config.containsElementNamed("reseed_interval")) {
+            config_.reseed_interval = Rcpp::as<unsigned long>(config["reseed_interval"]);
+        }
+        
+        // Print config if debug mode is enabled
+        if (config_.debug) {
+            log_debug("Configuration:\n");
+            log_debug("  a = %ld\n", config_.a);
+            log_debug("  b = %ld\n", config_.b);
+            log_debug("  c = %ld\n", config_.c);
+            log_debug("  buffer_size = %zu\n", config_.buffer_size);
+            log_debug("  mpfr_precision = %ld\n", (long)config_.mpfr_precision);
+            log_debug("  distribution = %d\n", static_cast<int>(config_.distribution));
+            log_debug("  normal_mean = %g\n", config_.normal_mean);
+            log_debug("  normal_sd = %g\n", config_.normal_sd);
+            log_debug("  range_min = %g\n", config_.range_min);
+            log_debug("  range_max = %g\n", config_.range_max);
+            log_debug("  exponential_lambda = %g\n", config_.exponential_lambda);
+            log_debug("  use_crypto_mixing = %d\n", config_.use_crypto_mixing);
+            log_debug("  reseed_interval = %zu\n", config_.reseed_interval);
+        }
+    }
+
+    // Get config (for internal use only)
+    const PRNGConfig& getConfig() const { return config_; }
 };
 
 // ---------------------------------------------------------------------
@@ -550,26 +727,16 @@ public:
 static std::mutex g_prng_mutex;
 static std::unique_ptr<EnhancedPRNG> g_prng;
 
-// parseConfig
-PRNGConfig parseConfig(Rcpp::List cfg) {
+// Helper function to parse R config list into PRNGConfig
+PRNGConfig parse_r_config(const Rcpp::List& cfg) {
     PRNGConfig config;
-
+    
     // Core parameters
     if (cfg.containsElementNamed("a")) config.a = Rcpp::as<long>(cfg["a"]);
     if (cfg.containsElementNamed("b")) config.b = Rcpp::as<long>(cfg["b"]);
     if (cfg.containsElementNamed("c")) config.c = Rcpp::as<long>(cfg["c"]);
     if (cfg.containsElementNamed("mpfr_precision")) config.mpfr_precision = Rcpp::as<int>(cfg["mpfr_precision"]);
     if (cfg.containsElementNamed("buffer_size")) config.buffer_size = Rcpp::as<size_t>(cfg["buffer_size"]);
-    
-    // Boolean flags
-    if (cfg.containsElementNamed("use_crypto_mixing")) config.use_crypto_mixing = Rcpp::as<bool>(cfg["use_crypto_mixing"]);
-    if (cfg.containsElementNamed("use_hardware_rng")) config.use_hardware_rng = Rcpp::as<bool>(cfg["use_hardware_rng"]);
-    if (cfg.containsElementNamed("use_threading")) config.use_threading = Rcpp::as<bool>(cfg["use_threading"]);
-    
-    // Crypto parameters
-    if (cfg.containsElementNamed("reseed_interval")) config.reseed_interval = Rcpp::as<unsigned long>(cfg["reseed_interval"]);
-    if (cfg.containsElementNamed("hash_algorithm")) config.hash_algorithm = Rcpp::as<std::string>(cfg["hash_algorithm"]);
-    if (cfg.containsElementNamed("key_size")) config.key_size = Rcpp::as<int>(cfg["key_size"]);
     
     // Distribution parameters
     if (cfg.containsElementNamed("distribution")) {
@@ -578,7 +745,7 @@ PRNGConfig parseConfig(Rcpp::List cfg) {
         else if (dist == "uniform_range") config.distribution = PRNGConfig::UNIFORM_RANGE;
         else if (dist == "normal") config.distribution = PRNGConfig::NORMAL;
         else if (dist == "exponential") config.distribution = PRNGConfig::EXPONENTIAL;
-        else throw std::runtime_error("Invalid distribution type");
+        else throw std::runtime_error("Unknown distribution type");
     }
     
     if (cfg.containsElementNamed("range_min")) config.range_min = Rcpp::as<double>(cfg["range_min"]);
@@ -587,13 +754,20 @@ PRNGConfig parseConfig(Rcpp::List cfg) {
     if (cfg.containsElementNamed("normal_sd")) config.normal_sd = Rcpp::as<double>(cfg["normal_sd"]);
     if (cfg.containsElementNamed("exponential_lambda")) config.exponential_lambda = Rcpp::as<double>(cfg["exponential_lambda"]);
     
+    // Crypto parameters
+    if (cfg.containsElementNamed("use_crypto_mixing")) config.use_crypto_mixing = Rcpp::as<bool>(cfg["use_crypto_mixing"]);
+    if (cfg.containsElementNamed("reseed_interval")) config.reseed_interval = Rcpp::as<unsigned long>(cfg["reseed_interval"]);
+    
+    // Debug flag
+    if (cfg.containsElementNamed("debug")) config.debug = Rcpp::as<bool>(cfg["debug"]);
+    
     return config;
 }
 
 // [[Rcpp::export(.createPRNG_)]]
 void createPRNG_(Rcpp::List cfg) {
     std::lock_guard<std::mutex> lock(g_prng_mutex);
-    PRNGConfig config = parseConfig(cfg);
+    PRNGConfig config = parse_r_config(cfg);
     g_prng = std::make_unique<EnhancedPRNG>(config);
 }
 
@@ -601,10 +775,10 @@ void createPRNG_(Rcpp::List cfg) {
 void updatePRNG_(Rcpp::List cfg) {
     std::lock_guard<std::mutex> lock(g_prng_mutex);
     if (!g_prng) {
-        Rcpp::stop("PRNG not created yet. Call createPRNG(...) first.");
+        throw std::runtime_error("PRNG not initialized");
     }
-    PRNGConfig config = parseConfig(cfg);
-    g_prng->updateConfig(config);
+    PRNGConfig config = parse_r_config(cfg);
+    g_prng = std::make_unique<EnhancedPRNG>(config);
 }
 
 // [[Rcpp::export(.generatePRNG_)]]

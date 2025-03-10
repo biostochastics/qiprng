@@ -2,11 +2,12 @@
 
 ## Overview
 
-The `qiprng` R package provides a high-precision, configurable pseudo-random number generator based on quadratic irrational numbers with optional cryptographic mixing. This implementation is based on the theoretical framework described by Granville (2024), adapted here from Python to R/C++ for learning and practice purposes. It offers superior statistical properties compared to traditional linear congruential generators while maintaining high performance and flexibility.
+The `qiprng` R package provides a high-precision, configurable pseudo-random number generator based on quadratic irrational numbers with optional cryptographic mixing. This implementation is based on the theoretical framework described by Granville (2024), adapted here from Python to R/C++ for learning and practice purposes. It offers superior statistical properties compared to traditional linear congruential generators while maintaining high performance and flexibility. 
 
 ## Acknowledgments
 
 The mathematical foundation and core algorithm design of this package is based on the work of Vincent Granville, specifically his cool recent publication on [military-grade random number generators using quadratic irrationals](https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/). While Granville provided the original Python implementation, this package represents an independent R/C++ implementation developed for educational purposes and practical applications in statistical computing and data analysis (e.g., Monte Carlo simulations).
+Cool if you find it useful. Even better if you find a bug! 
 
 ## References
 
@@ -15,9 +16,8 @@ The mathematical foundation and core algorithm design of this package is based o
 ## Features
 
 - **High-precision computation** using the MPFR library
-- **Multiple output distributions**: uniform, normal, exponential, and more
-- **Optional cryptographic mixing** using AES-CTR mode for enhanced security
-- **Hardware RNG integration** for improved seed generation
+- **Multiple output distributions**: uniform, normal, exponential
+- **Optional cryptographic mixing** using ChaCha20 for enhanced security
 - **Configurable parameters** for the quadratic recurrence relation
 - **Thread-safe operation** for parallel applications
 - **Extensive statistical testing** to ensure quality of generated sequences
@@ -44,7 +44,7 @@ x_{n+1} = (a * x_n^2 + b * x_n + c) mod 1
 ```
 
 Where:
-- a, b, and c are integer coefficients (with constraints: a ≠ 0, c < 0, b² - 4ac > 0)
+- a, b, and c are integer coefficients (with constraints: a > 0, c < 0, b² - 4ac > 0)
 - x_n is the current state
 - x_{n+1} is the next state
 - "mod 1" means taking the fractional part of the result
@@ -63,9 +63,9 @@ createPRNG()
 
 # Or with custom parameters
 cfg <- list(
-  a = 3L,              # Quadratic coefficient
+  a = 3L,              # Quadratic coefficient (must be positive)
   b = 5L,              # Linear coefficient
-  c = -2L,             # Constant term
+  c = -2L,             # Constant term (must be negative)
   mpfr_precision = 100L,      # Precision in bits
   use_crypto_mixing = TRUE,   # Apply cryptographic mixing
   buffer_size = 2048L         # Internal buffer size
@@ -403,11 +403,11 @@ cat("Slowdown factor:", median(results$base$median) / median(base_r_time$median)
 
 | Parameter | Description | Default Value | Valid Range |
 |-----------|-------------|---------------|------------|
-| a | Quadratic coefficient | 2 | a ≠ 0 |
+| a | Quadratic coefficient | 2 | a > 0 |
 | b | Linear coefficient | 3 | Any integer |
 | c | Constant term | -1 | c < 0 |
 | mpfr_precision | MPFR precision in bits | 53 | 2 to 16384 |
-| use_crypto_mixing | Whether to use AES-CTR mixing | TRUE | TRUE/FALSE |
+| use_crypto_mixing | Whether to use ChaCha20 mixing | TRUE | TRUE/FALSE |
 | buffer_size | Number of random values to buffer | 1024 | > 0 |
 | distribution | Distribution type | "uniform_01" | "uniform_01", "uniform_range", "normal", "exponential" |
 | range_min | Lower bound for uniform_range | 0 | Any real number |
@@ -458,7 +458,7 @@ The package uses a combination of R and C++ (via Rcpp):
 
 - The core PRNG algorithm is implemented in C++ for performance
 - High-precision arithmetic uses the MPFR library
-- Cryptographic mixing uses OpenSSL's AES implementation and libsodium
+- Cryptographic mixing uses ChaCha20
 - The R interface provides convenient configuration and usage functions
 
 ### Security Considerations
@@ -467,7 +467,7 @@ The `qiprng` package provides two levels of security:
 
 1. **Base security**: The quadratic irrational generator alone provides good statistical properties but is deterministic.
 
-2. **Enhanced security**: When `use_crypto_mixing = TRUE`, the raw output is processed through AES-CTR mode, significantly improving the cryptographic properties.
+2. **Enhanced security**: When `use_crypto_mixing = TRUE`, the raw output is processed through ChaCha20, significantly improving the cryptographic properties.
 
 For applications requiring cryptographic security, always enable the cryptographic mixing option.
 

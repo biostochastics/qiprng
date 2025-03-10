@@ -13,27 +13,26 @@
 NULL
 
 # ----------------------------------------------------------------------
-# The SINGLE authoritative default_config aligned with C++ PRNGDefaults
+#' Default configuration for PRNG
+#' 
+#' @export
 default_config <- list(
-  # Core parameters
-  a = 2L,  # PRNGDefaults::a
-  b = 5L,  # PRNGDefaults::b
-  c = -2L, # PRNGDefaults::c
-  mpfr_precision = 53L,   # PRNGDefaults::mpfr_precision
-  buffer_size = 1024L,    # PRNGDefaults::buffer_size
-  
-  # Distribution parameters
-  distribution = "uniform_01",
-  range_min = 0.0,
-  range_max = 1.0,
-  normal_mean = 0.0,
-  normal_sd = 1.0,
-  exponential_lambda = 1.0,
-  
-  # Security parameters
-  use_crypto_mixing = TRUE,
-  use_hardware_rng = FALSE,
-  reseed_interval = 1000000L
+    # Core parameters - ensure b^2 - 4ac > 0
+    # With a=2, b=5, c=-2: b^2 - 4ac = 25 - 4(2)(-2) = 25 + 16 = 41 > 0
+    a = 2L,
+    b = 5L,
+    c = -2L,  # Changed from -1 to -2 to ensure positive discriminant
+    mpfr_precision = 53L,  # Default double precision
+    buffer_size = 1024L,
+    distribution = "uniform_01",
+    range_min = 0,
+    range_max = 1,
+    normal_mean = 0,
+    normal_sd = 1,
+    exponential_lambda = 1,
+    use_crypto_mixing = FALSE,
+    reseed_interval = 0L,
+    debug = FALSE
 )
 
 # ----------------------------------------------------------------------
@@ -43,43 +42,59 @@ default_config <- list(
 #' @return TRUE if valid, throws error otherwise
 #' @keywords internal
 validate_config <- function(config) {
-    # Only perform basic type checking and user-friendly validations here
-    # Core parameter validation is handled by C++ code
+    # Check quadratic parameters
+    a <- as.integer(config$a)
+    b <- as.integer(config$b)
+    c <- as.integer(config$c)
     
-    if (!is.list(config)) {
-        stop("Configuration must be a list")
+    # Check discriminant
+    D <- b * b - 4 * a * c
+    if (D <= 0) {
+        stop("Invalid quadratic parameters: discriminant must be positive")
     }
     
-    # Required parameters
-    required <- c("a", "b", "c", "mpfr_precision", "buffer_size")
-    missing <- setdiff(required, names(config))
-    if (length(missing) > 0) {
-        stop("Missing required parameters: ", paste(missing, collapse=", "))
+    # Check MPFR precision (53-bit is standard double precision)
+    # MPFR requires precision to be between 1 and (2^31 - 1 - 256)
+    mpfr_precision <- as.integer(config$mpfr_precision)
+    if (mpfr_precision < 2 || mpfr_precision > 2147483391L) {  # 2^31 - 1 - 256
+        stop("Invalid MPFR precision: must be between 2 and 2147483391")
     }
     
-    # Type checking
-    if (!is.numeric(config$a)) stop("Parameter 'a' must be numeric")
-    if (!is.numeric(config$b)) stop("Parameter 'b' must be numeric")
-    if (!is.numeric(config$c)) stop("Parameter 'c' must be numeric")
-    if (!is.numeric(config$mpfr_precision)) stop("Parameter 'mpfr_precision' must be numeric")
-    if (!is.numeric(config$buffer_size)) stop("Parameter 'buffer_size' must be numeric")
-    
-    # Distribution validation
+    # Check distribution parameters
     if (!is.null(config$distribution)) {
-        valid_dist <- c("uniform_01", "uniform_range", "normal", "exponential")
-        if (!config$distribution %in% valid_dist) {
-            stop("Invalid distribution. Must be one of: ", paste(valid_dist, collapse=", "))
+        dist <- config$distribution
+        if (!dist %in% c("uniform_01", "uniform_range", "normal", "exponential")) {
+            stop("Invalid distribution: must be one of 'uniform_01', 'uniform_range', 'normal', 'exponential'")
+        }
+        
+        if (dist == "uniform_range") {
+            if (config$range_max <= config$range_min) {
+                stop("Invalid uniform range: max must be greater than min")
+            }
+        } else if (dist == "normal") {
+            if (config$normal_sd <= 0) {
+                stop("Invalid normal distribution: standard deviation must be positive")
+            }
+        } else if (dist == "exponential") {
+            if (config$exponential_lambda <= 0) {
+                stop("Invalid exponential distribution: lambda must be positive")
+            }
         }
     }
     
-    # Note: Detailed numeric range validation is handled by C++ code
+    # Check buffer size
+    buffer_size <- as.integer(config$buffer_size)
+    if (buffer_size < 1) {
+        stop("Invalid buffer size: must be positive")
+    }
+    
     TRUE
 }
 
 #' Create a new PRNG instance
 #' 
-#' Creates a new Quadratic Irrational PRNG instance with the specified configuration.
-#' Note: This package currently uses a global PRNG instance that is protected by a mutex.
+#' Creates a new global PRNG instance with the specified configuration.
+#' Note: This package uses a global PRNG instance that is protected by a mutex.
 #' While basic thread safety is provided, for heavy parallel workloads it is recommended
 #' to create separate PRNG instances in each thread.
 #' 
@@ -100,7 +115,7 @@ createPRNG <- function(config = default_config) {
 
 #' Update PRNG configuration
 #' 
-#' Updates the configuration of the current PRNG instance.
+#' Updates the configuration of the global PRNG instance.
 #' Thread-safe: Will block until mutex is acquired.
 #' 
 #' @param config List of new configuration parameters
@@ -140,24 +155,23 @@ generatePRNG <- function(n) {
 
 #' Reseed the PRNG
 #' 
-#' @param prng PRNG instance
+#' Forces a reseed of the global PRNG instance.
+#' Thread-safe: Will block until mutex is acquired.
+#' 
 #' @export
-reseedPRNG <- function(prng) {
-    if (!inherits(prng, "qiprng")) {
-        stop("Invalid PRNG instance")
-    }
-    .reseedPRNG_(prng)
+reseedPRNG <- function() {
+    .reseedPRNG_()
     invisible(NULL)
 }
 
 #' Clean up PRNG resources
 #' 
-#' @param prng PRNG instance
+#' Cleans up the global PRNG instance.
+#' Thread-safe: Will block until mutex is acquired.
+#' 
 #' @export
-cleanup_prng <- function(prng) {
-    if (inherits(prng, "qiprng")) {
-        .cleanup_prng_(prng)
-    }
+cleanup_prng <- function() {
+    .cleanup_prng_()
     invisible(NULL)
 }
 
