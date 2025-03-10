@@ -1,10 +1,14 @@
 # Technical Documentation for the Quadratic Irrational PRNG
 
+> **Attribution Note**: The mathematical foundation and core algorithm design presented in this document is based on amazing work of Vincent Granville (2024), specifically his research on military-grade random number generators using quadratic irrationals. While Granville provided the original Python implementation, this document describes our independent R/C++ implementation developed for educational purposes.
+>
+> **Reference**: Granville, V. (2024). Synthetic Data and Generative AI 1st Edition. https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/
+
 ## 1. Mathematical Foundation: The Quadratic Map
 
 ### 1.1 Basic Principle
 
-The core algorithm is based on a quadratic recurrence relation of the form:
+The core algorithm, as described by Granville (2024), is based on a quadratic recurrence relation of the form:
 
 ```
 x_{n+1} = (a*x_n^2 + b*x_n + c) mod 1

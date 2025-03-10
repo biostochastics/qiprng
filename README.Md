@@ -2,7 +2,15 @@
 
 ## Overview
 
-The `qiprng` R package provides a high-precision, configurable pseudo-random number generator based on quadratic irrational numbers with optional cryptographic mixing. It offers superior statistical properties compared to traditional linear congruential generators while maintaining high performance and flexibility.
+The `qiprng` R package provides a high-precision, configurable pseudo-random number generator based on quadratic irrational numbers with optional cryptographic mixing. This implementation is based on the theoretical framework described by Granville (2024), adapted here from Python to R/C++ for learning and practice purposes. It offers superior statistical properties compared to traditional linear congruential generators while maintaining high performance and flexibility.
+
+## Acknowledgments
+
+The mathematical foundation and core algorithm design of this package is based on the work of Vincent Granville, specifically his cool recent publication on [military-grade random number generators using quadratic irrationals](https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/). While Granville provided the original Python implementation, this package represents an independent R/C++ implementation developed for educational purposes and practical applications in statistical computing and data analysis (e.g., Monte Carlo simulations).
+
+## References
+
+- Granville, V. (2024). Synthetic Data and Generative AI 1st Edition. https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/
 
 ## Features
 
@@ -472,7 +480,7 @@ If you use this package in your research, please cite:
   title = {qiprng: Quadratic Irrational Pseudo-Random Number Generator},
   author = {Sergey Kornilov},
   year = {2025},
-  note = {R package version 0.1.0},
+  note = {R package version 0.2.0},
   url = {https://github.com/biostochastics/qiprng},
 }
 ```
