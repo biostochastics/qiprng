@@ -21,7 +21,6 @@ Cool if you find it useful. Even better if you find a bug!
 - **Optional cryptographic mixing** using ChaCha20 for enhanced security
 - **Configurable parameters** for the quadratic recurrence relation
 - **Thread-safe operation** for parallel applications
-- **Extensive statistical testing** to ensure quality of generated sequences
 
 ## Installation
 
@@ -31,7 +30,7 @@ install.packages("qiprng")
 
 # Or install the development version from GitHub
 # install.packages("devtools")
-devtools::install_github("username/qiprng")
+devtools::install_github("/biostochastics/qiprng")
 ```
 
 ## Mathematical Background
