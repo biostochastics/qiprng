@@ -194,7 +194,15 @@ public:
         mpfr_set_si(*value_->get(), -b_, MPFR_RNDN);
         mpfr_add(*value_->get(), *value_->get(), *root_->get(), MPFR_RNDN);
         mpfr_div_si(*value_->get(), *value_->get(), 2 * a_, MPFR_RNDN);
-        mpfr_frac(*value_->get(), *value_->get(), MPFR_RNDN);
+        
+        // Properly handle fractional part for both positive and negative numbers
+        mpfr_floor(*temp_->get(), *value_->get());
+        mpfr_sub(*value_->get(), *value_->get(), *temp_->get(), MPFR_RNDN);
+        
+        // Ensure value is in [0,1)
+        if (mpfr_sgn(*value_->get()) < 0) {
+            mpfr_add_ui(*value_->get(), *value_->get(), 1, MPFR_RNDN);
+        }
 
         // Initialize next_ and temp_ to 0
         mpfr_set_zero(*next_->get(), 1);
@@ -206,30 +214,36 @@ public:
     QuadraticIrrational& operator=(QuadraticIrrational&&) = default;
 
     double next() {
-        // Calculate next value: ax² + bx + c (mod 1)
-        mpfr_mul(*temp_->get(), *value_->get(), *value_->get(), MPFR_RNDN);  // x²
-        mpfr_mul_si(*temp_->get(), *temp_->get(), a_, MPFR_RNDN);         // ax²
+        // Use a more chaotic mapping based on quadratic iteration
+        // x_{n+1} = (ax_n^2 + bx_n + c) mod 1
         
-        mpfr_mul_si(*next_->get(), *value_->get(), b_, MPFR_RNDN);        // bx
-        mpfr_add(*next_->get(), *next_->get(), *temp_->get(), MPFR_RNDN);   // ax² + bx
+        // temp = x_n^2
+        mpfr_mul(*temp_->get(), *value_->get(), *value_->get(), MPFR_RNDN);
         
-        mpfr_add_si(*next_->get(), *next_->get(), c_, MPFR_RNDN);         // ax² + bx + c
-        mpfr_frac(*next_->get(), *next_->get(), MPFR_RNDN);               // mod 1
+        // next = ax_n^2
+        mpfr_mul_si(*next_->get(), *temp_->get(), a_, MPFR_RNDN);
+        
+        // next += bx_n
+        mpfr_mul_si(*temp_->get(), *value_->get(), b_, MPFR_RNDN);
+        mpfr_add(*next_->get(), *next_->get(), *temp_->get(), MPFR_RNDN);
+        
+        // next += c
+        mpfr_add_si(*next_->get(), *next_->get(), c_, MPFR_RNDN);
+        
+        // Extract fractional part properly
+        mpfr_floor(*temp_->get(), *next_->get());
+        mpfr_sub(*next_->get(), *next_->get(), *temp_->get(), MPFR_RNDN);
+        
+        // Ensure result is in [0,1)
+        if (mpfr_sgn(*next_->get()) < 0) {
+            mpfr_add_ui(*next_->get(), *next_->get(), 1, MPFR_RNDN);
+        }
         
         // Update current value
         mpfr_swap(*value_->get(), *next_->get());
         
-        // Convert to double and return, with fallback for invalid values
-        double result = mpfr_get_d(*value_->get(), MPFR_RNDN);
-        if (!std::isfinite(result)) {
-            // If we get an invalid value, reset to initial state and return 0.5
-            mpfr_set_si(*value_->get(), -b_, MPFR_RNDN);
-            mpfr_add(*value_->get(), *value_->get(), *root_->get(), MPFR_RNDN);
-            mpfr_div_si(*value_->get(), *value_->get(), 2 * a_, MPFR_RNDN);
-            mpfr_frac(*value_->get(), *value_->get(), MPFR_RNDN);
-            return 0.5;
-        }
-        return result;
+        // Convert to double and return
+        return mpfr_get_d(*value_->get(), MPFR_RNDN);
     }
 };
 

@@ -9,6 +9,10 @@
     invisible(.Call(`_qiprng_updatePRNG_`, cfg))
 }
 
+.getPRNGConfig_ <- function() {
+    .Call(`_qiprng_getPRNGConfig_`)
+}
+
 .generatePRNG_ <- function(n) {
     .Call(`_qiprng_generatePRNG_`, n)
 }

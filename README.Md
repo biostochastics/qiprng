@@ -2,16 +2,17 @@
 
 ## Overview
 
-The `qiprng` R package provides a high-precision, configurable pseudo-random number generator based on quadratic irrational numbers with optional cryptographic mixing. This implementation is based on the theoretical framework described by Granville (2024), adapted here from Python to R/C++ for learning and practice purposes. It offers superior statistical properties compared to traditional linear congruential generators while maintaining high performance and flexibility. 
+The `qiprng` R package provides a high-precision, configurable pseudo-random number generator based on quadratic irrational numbers with optional cryptographic mixing. This implementation is based on the theoretical framework described by Granville (2022), adapted here from Python to R/C++ for learning and practice purposes. It offers superior statistical properties compared t
+o traditional linear congruential generators while maintaining high performance and flexibility. 
 
 ## Acknowledgments
 
-The mathematical foundation and core algorithm design of this package is based on the work of Vincent Granville, specifically his cool recent publication on [military-grade random number generators using quadratic irrationals](https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/). While Granville provided the original Python implementation, this package represents an independent R/C++ implementation developed for educational purposes and practical applications in statistical computing and data analysis (e.g., Monte Carlo simulations).
+The mathematical foundation and core algorithm design of this package is based on the work of Vincent Granville, specifically his cool recent publication on [random number generators using quadratic irrationals](https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/). While Granville provided the original Python implementation, this package represents an independent R/C++ implementation developed for educational purposes and practical applications in statistical computing and data analysis (e.g., Monte Carlo simulations).
 Cool if you find it useful. Even better if you find a bug! 
 
 ## References
 
-- Granville, V. (2024). Synthetic Data and Generative AI 1st Edition. https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/
+- Granville, V. (2022). Synthetic Data and Generative AI 1st Edition. https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/
 
 ## Features
 

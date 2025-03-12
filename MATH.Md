@@ -2,7 +2,7 @@
 
  **Attribution Note**: The mathematical foundation and core algorithm design presented in this document is based on amazing work of the illustruous Vincent Granville (2024), specifically his research on military-grade random number generators using quadratic irrationals that I ran into in the dead of night after having way too much coffee. While Granville provided the original Python implementation, this doc describes my R/C++ implementation developed primarily for educational purposes. Cool if you find it useful. Even better if you find a bug! 
 
- **Reference**: Granville, V. (2024). Synthetic Data and Generative AI 1st Edition. https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/
+ **Reference**: Granville, V. (2022). Synthetic Data and Generative AI 1st Edition. https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/
 
 ## 1. Mathematical Foundation: The Quadratic Map
 
@@ -188,6 +188,27 @@ With sufficient precision, the period length of the generator is extremely long:
 - At higher precisions: period grows exponentially
 - With cryptographic mixing: period becomes cryptographically large
 
+### 5.4 Fixed Point Avoidance
+
+A critical consideration in the implementation is avoiding fixed points. A fixed point is a value x where f(x) = x, meaning the sequence would get stuck at this value.
+
+**Issues with Fixed Points:**
+- Early implementations using the fractional part of 1/(ax + b) could converge to fixed points (e.g., 0.1861407...)
+- Once convergence occurs, random numbers are no longer generated, as all subsequent values are identical
+- This severely impacts the statistical properties and utility of the PRNG
+
+**Solution:**
+1. The current implementation uses the full quadratic map (ax² + bx + c mod 1)
+2. Proper handling of the fractional part calculation:
+   - Using floor subtraction instead of direct modular arithmetic
+   - Special handling for negative values by adding 1 to ensure results stay in [0,1)
+3. These changes ensure the sequence:
+   - Has more chaotic behavior
+   - Avoids convergence to fixed points
+   - Maintains uniform distribution
+
+Mathematically, the quadratic map has more complex dynamics than simpler maps like 1/(ax + b), making it less likely to settle into periodic orbits with small periods, especially when properly implemented with high-precision arithmetic.
+
 ## 6. Implementation Details
 
 ### 6.1 Thread Safety
@@ -329,4 +350,3 @@ For cryptographic applications:
 2. **Conservative usage**:
    - While the implementation follows best practices, it has not undergone formal cryptographic review which duh
    - Please, please, please use established cryptographic libraries for critical security applications. I ain't your momma, no.
-

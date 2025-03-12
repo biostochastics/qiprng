@@ -30,6 +30,16 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// getPRNGConfig_
+Rcpp::List getPRNGConfig_();
+RcppExport SEXP _qiprng_getPRNGConfig_() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(getPRNGConfig_());
+    return rcpp_result_gen;
+END_RCPP
+}
 // generatePRNG_
 Rcpp::NumericVector generatePRNG_(int n);
 RcppExport SEXP _qiprng_generatePRNG_(SEXP nSEXP) {
@@ -63,6 +73,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_qiprng_createPRNG_", (DL_FUNC) &_qiprng_createPRNG_, 1},
     {"_qiprng_updatePRNG_", (DL_FUNC) &_qiprng_updatePRNG_, 1},
+    {"_qiprng_getPRNGConfig_", (DL_FUNC) &_qiprng_getPRNGConfig_, 0},
     {"_qiprng_generatePRNG_", (DL_FUNC) &_qiprng_generatePRNG_, 1},
     {"_qiprng_reseedPRNG_", (DL_FUNC) &_qiprng_reseedPRNG_, 0},
     {"_qiprng_cleanup_prng_", (DL_FUNC) &_qiprng_cleanup_prng_, 0},
