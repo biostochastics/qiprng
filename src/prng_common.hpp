@@ -11,7 +11,7 @@ namespace qiprng {
 
 // Single source of truth for PRNG defaults
 struct PRNGDefaults {
-    static constexpr long a = 2;
+    static constexpr long  aa = 2;
     static constexpr long b = 5;
     static constexpr long c = -2;
     static constexpr size_t mpfr_precision = 53;  // IEEE double precision

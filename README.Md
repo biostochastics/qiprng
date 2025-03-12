@@ -30,7 +30,7 @@ install.packages("qiprng")
 
 # Or install the development version from GitHub
 # install.packages("devtools")
-devtools::install_github("/biostochastics/qiprng")
+devtools::install_github("biostochastics/qiprng")
 ```
 
 ## Mathematical Background

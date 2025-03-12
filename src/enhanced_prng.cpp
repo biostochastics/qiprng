@@ -27,41 +27,6 @@
 using namespace qiprng;
 
 // ---------------------------------------------------------------------
-// SecureVector for sensitive data handling
-template<typename T>
-class SecureVector {
-private:
-    std::vector<T> data;
-
-public:
-    SecureVector() = default;
-    explicit SecureVector(size_t n) : data(n) {}
-
-    void resize(size_t n) {
-        clear();
-        data.resize(n);
-    }
-
-    void clear() {
-        if (!data.empty()) {
-            volatile T* ptr = data.data();
-            for (size_t i = 0; i < data.size(); ++i) {
-                ptr[i] = T(0);
-            }
-        }
-        data.clear();
-    }
-
-    ~SecureVector() {
-        clear();
-    }
-
-    size_t size() const { return data.size(); }
-    T& operator[](size_t i) { return data[i]; }
-    const T& operator[](size_t i) const { return data[i]; }
-};
-
-// ---------------------------------------------------------------------
 // PRNGConfig structure with newly added fields
 struct PRNGConfig {
     enum Distribution {
@@ -90,17 +55,35 @@ struct PRNGConfig {
     bool use_crypto_mixing = false;
     unsigned long reseed_interval = 0;
 
+    // Additional: skip the first 'offset' draws
+    size_t offset = 0;
+
     // Debug flag
     bool debug = false;
 };
 
-// Forward declarations
-class QuadraticIrrational;
-
-// Standardized discriminant check function
+// ---------------------------------------------------------------------
+// Standardized discriminant check function (positive discriminant)
 bool has_positive_discriminant(long a, long b, long c) {
-    // b^2 - 4ac where c is negative, so we use -c
-    return (b * b) > (4 * a * (-c));
+    // We want b^2 - 4ac > 0
+    return (static_cast<long long>(b) * b) > (4LL * a * c);
+}
+
+// ---------------------------------------------------------------------
+// Square-free check for the discriminant
+bool is_square_free(long d) {
+    // Negative or zero is automatically not square-free for our usage
+    if (d <= 0) return false;
+
+    // Quick check: factor out perfect squares up to sqrt(d)
+
+    for (long factor = 2; factor * factor <= d; ++factor) {
+        long sq = factor * factor;
+        if (d % sq == 0) {
+            return false;
+        }
+    }
+    return true;
 }
 
 // Improved CryptoMixer with proper buffer management
@@ -169,7 +152,7 @@ class QuadraticIrrational {
     std::unique_ptr<MPFRWrapper> root_;   // √D
     std::unique_ptr<MPFRWrapper> value_;  // Current value
     std::unique_ptr<MPFRWrapper> next_;   // Next value
-    std::unique_ptr<MPFRWrapper> temp_;   // Temporary value for calculations
+    std::unique_ptr<MPFRWrapper> temp_;   // Temporary
 
 public:
     QuadraticIrrational(long a, long b, long c, mpfr_prec_t prec = PRNGDefaults::mpfr_precision)
@@ -180,26 +163,29 @@ public:
           temp_(std::make_unique<MPFRWrapper>(prec)) {
         
         // Calculate D = b² - 4ac
-        // For quadratic irrational, we need c to be negative for positive discriminant
-        long d = b_ * b_ - 4 * a_ * c_;
+        long long d = static_cast<long long>(b_) * b_ - 4LL * a_ * c_;
         if (d <= 0) {
             throw std::runtime_error("Invalid quadratic parameters: discriminant must be positive");
+        }
+
+        // Optionally check if it's square-free:
+        // (If you want to forcibly skip non-square-free, do it here.)
+        if (!is_square_free(static_cast<long>(d))) {
+            throw std::runtime_error("Discriminant is not square-free; reject these parameters if desired.");
         }
 
         // Calculate √D
         mpfr_set_si(*root_->get(), d, MPFR_RNDN);
         mpfr_sqrt(*root_->get(), *root_->get(), MPFR_RNDN);
 
-        // Initialize x₀ = (-b + √D)/(2a)
+        // Initialize x₀ = fractional part of [(-b + √D)/(2a)]
         mpfr_set_si(*value_->get(), -b_, MPFR_RNDN);
         mpfr_add(*value_->get(), *value_->get(), *root_->get(), MPFR_RNDN);
         mpfr_div_si(*value_->get(), *value_->get(), 2 * a_, MPFR_RNDN);
-        
-        // Properly handle fractional part for both positive and negative numbers
+
+        // fractional part
         mpfr_floor(*temp_->get(), *value_->get());
         mpfr_sub(*value_->get(), *value_->get(), *temp_->get(), MPFR_RNDN);
-        
-        // Ensure value is in [0,1)
         if (mpfr_sgn(*value_->get()) < 0) {
             mpfr_add_ui(*value_->get(), *value_->get(), 1, MPFR_RNDN);
         }
@@ -209,40 +195,28 @@ public:
         mpfr_set_zero(*temp_->get(), 1);
     }
 
-    // Allow move operations
+    // Move only
     QuadraticIrrational(QuadraticIrrational&&) = default;
     QuadraticIrrational& operator=(QuadraticIrrational&&) = default;
 
     double next() {
-        // Use a more chaotic mapping based on quadratic iteration
-        // x_{n+1} = (ax_n^2 + bx_n + c) mod 1
-        
-        // temp = x_n^2
-        mpfr_mul(*temp_->get(), *value_->get(), *value_->get(), MPFR_RNDN);
-        
-        // next = ax_n^2
-        mpfr_mul_si(*next_->get(), *temp_->get(), a_, MPFR_RNDN);
-        
-        // next += bx_n
-        mpfr_mul_si(*temp_->get(), *value_->get(), b_, MPFR_RNDN);
+        // x_{n+1} = frac(a*x_n^2 + b*x_n + c)
+        mpfr_mul(*temp_->get(), *value_->get(), *value_->get(), MPFR_RNDN); // x_n^2
+        mpfr_mul_si(*next_->get(), *temp_->get(), a_, MPFR_RNDN);           // a*x_n^2
+
+        mpfr_mul_si(*temp_->get(), *value_->get(), b_, MPFR_RNDN);          // b*x_n
         mpfr_add(*next_->get(), *next_->get(), *temp_->get(), MPFR_RNDN);
-        
-        // next += c
+
         mpfr_add_si(*next_->get(), *next_->get(), c_, MPFR_RNDN);
-        
-        // Extract fractional part properly
+
+        // fractional part
         mpfr_floor(*temp_->get(), *next_->get());
         mpfr_sub(*next_->get(), *next_->get(), *temp_->get(), MPFR_RNDN);
-        
-        // Ensure result is in [0,1)
         if (mpfr_sgn(*next_->get()) < 0) {
             mpfr_add_ui(*next_->get(), *next_->get(), 1, MPFR_RNDN);
         }
-        
-        // Update current value
+
         mpfr_swap(*value_->get(), *next_->get());
-        
-        // Convert to double and return
         return mpfr_get_d(*value_->get(), MPFR_RNDN);
     }
 };
@@ -254,81 +228,74 @@ private:
     QuadraticIrrational qi_;
     PRNGConfig config_;
     SecureBuffer<double> buffer_;
-    mutable size_t buffer_pos_;  // Mutable since it changes in const methods
+    size_t buffer_pos_;
     std::unique_ptr<CryptoMixer> crypto_mixer;
     size_t sample_count_;
     bool has_spare_normal_;
     double spare_normal_;
+    bool offset_applied_;
+    size_t skipped_;
 
-    // Get next raw uniform value
-    double nextUniformRaw() const {
-        if (buffer_pos_ >= buffer_.size()) {
-            const_cast<EnhancedPRNG*>(this)->fill_buffer();  // Mutable operation
-        }
-        return buffer_[buffer_pos_++];
-    }
-
-    // Fill buffer with new random values
     void fill_buffer() {
         for (size_t i = 0; i < buffer_.size(); ++i) {
             buffer_[i] = qi_.next();
         }
-        
         if (config_.use_crypto_mixing && crypto_mixer) {
             if (!mix_buffer()) {
                 throw std::runtime_error("Crypto mixing failed");
             }
         }
-        
         buffer_pos_ = 0;
     }
 
-    // Transform uniform to range
-    double transform_uniform_range() const {
+    double nextUniformRaw() {
+        if (!offset_applied_) {
+            while (skipped_ < config_.offset) {
+                qi_.next();
+                ++skipped_;
+            }
+            offset_applied_ = true;
+        }
+
+        if (buffer_pos_ >= buffer_.size()) {
+            fill_buffer();
+        }
+        return buffer_[buffer_pos_++];
+    }
+
+    double transform_uniform_range() {
         return config_.range_min + nextUniformRaw() * (config_.range_max - config_.range_min);
     }
 
-    // Transform uniform to normal using Box-Muller
-    double transform_normal(double u1, double u2) const {
+    double transform_normal(double u1, double u2) {
         if (has_spare_normal_) {
-            const_cast<EnhancedPRNG*>(this)->has_spare_normal_ = false;
+            has_spare_normal_ = false;
             return config_.normal_mean + config_.normal_sd * spare_normal_;
         }
-
-        // Box-Muller transform
         const double two_pi = 2.0 * M_PI;
         double r = std::sqrt(-2.0 * std::log(u1));
         double theta = two_pi * u2;
-        
-        // Generate both normal variates
         double z1 = r * std::cos(theta);
-        const_cast<EnhancedPRNG*>(this)->spare_normal_ = r * std::sin(theta);
-        const_cast<EnhancedPRNG*>(this)->has_spare_normal_ = true;
-        
+        spare_normal_ = r * std::sin(theta);
+        has_spare_normal_ = true;
         return config_.normal_mean + config_.normal_sd * z1;
     }
 
-    // Transform uniform to exponential
-    double transform_exponential() const {
+    double transform_exponential() {
         double u;
         do {
             u = nextUniformRaw();
-        } while (u <= 0.0);  // Ensure u is positive for log
-        
+        } while (u <= 0.0);
         return -std::log(u) / config_.exponential_lambda;
     }
 
-    // Type-safe crypto mixing
     bool mix_buffer() {
         if (!crypto_mixer) return true;
-        
         SecureBuffer<unsigned char> temp(buffer_.size() * sizeof(double));
         std::memcpy(temp.data(), buffer_.data(), temp.size());
-        
         if (!crypto_mixer->mix(temp.data(), temp.size())) {
             return false;
         }
-        
         std::memcpy(buffer_.data(), temp.data(), temp.size());
         return true;
     }
@@ -338,49 +305,55 @@ public:
         : qi_(config.a, config.b, config.c, config.mpfr_precision),
           config_(config),
           buffer_(config.buffer_size),
-          buffer_pos_(buffer_.size()),  // Force buffer fill on first use
+          buffer_pos_(config.buffer_size),
           sample_count_(0),
           has_spare_normal_(false),
-          spare_normal_(0.0) {
+          spare_normal_(0.0),
+          offset_applied_(false),
+          skipped_(0) {
         
-        if (config.use_crypto_mixing) {
+        if (config_.use_crypto_mixing) {
             crypto_mixer = std::make_unique<CryptoMixer>();
         }
     }
-    
-    // Get current configuration
+
     const PRNGConfig& getConfig() const {
         return config_;
     }
-    
-    // Update configuration
+
     void updateConfig(const PRNGConfig& new_config) {
-        // Validate new configuration
         if (!has_positive_discriminant(new_config.a, new_config.b, new_config.c)) {
             throw std::runtime_error("Invalid quadratic parameters: discriminant must be positive");
         }
         
-        // Check if core parameters changed
-        bool core_changed = (new_config.a != config_.a || 
-                           new_config.b != config_.b || 
+        long long new_d = static_cast<long long>(new_config.b) * new_config.b
+                          - 4LL * new_config.a * new_config.c;
+        if (new_d <= 0) {
+            throw std::runtime_error("Discriminant is not positive, can't update config.");
+        }
+        if (!is_square_free(static_cast<long>(new_d))) {
+            throw std::runtime_error("Discriminant is not square-free; rejecting updated config.");
+        }
+
+        bool core_changed = (new_config.a != config_.a ||
+                           new_config.b != config_.b ||
                            new_config.c != config_.c ||
                            new_config.mpfr_precision != config_.mpfr_precision);
-        
-        // Update configuration
+
         config_ = new_config;
-        
-        // If core parameters changed, recreate quadratic irrational
+
         if (core_changed) {
             qi_ = QuadraticIrrational(config_.a, config_.b, config_.c, config_.mpfr_precision);
         }
-        
-        // Update buffer size if needed
+
         if (buffer_.size() != config_.buffer_size) {
             buffer_.resize(config_.buffer_size);
-            buffer_pos_ = buffer_.size();  // Force buffer fill on next use
+            buffer_pos_ = buffer_.size();
         }
-        
-        // Update crypto mixer
+
+        offset_applied_ = false;
+        skipped_ = 0;
+
         if (config_.use_crypto_mixing) {
             if (!crypto_mixer) {
                 crypto_mixer = std::make_unique<CryptoMixer>();
@@ -388,20 +361,16 @@ public:
         } else {
             crypto_mixer.reset();
         }
-        
-        // Reset spare normal
+
         has_spare_normal_ = false;
     }
-    
-    // Generate next random number
+
     double next() {
-        // Check if we need to reseed
         if (config_.reseed_interval > 0 && sample_count_ >= config_.reseed_interval) {
             reseed();
         }
         
-        // Generate value based on distribution
-        double result;
+        double result = 0.0;
         switch (config_.distribution) {
             case PRNGConfig::UNIFORM_01:
                 result = nextUniformRaw();
@@ -410,10 +379,10 @@ public:
                 result = transform_uniform_range();
                 break;
             case PRNGConfig::NORMAL: {
-                double u1, u2;
+                double u1 = 0.0, u2 = 0.0;
                 do {
                     u1 = nextUniformRaw();
-                } while (u1 <= 0.0);  // Ensure u1 is positive for log
+                } while (u1 <= 0.0);
                 u2 = nextUniformRaw();
                 result = transform_normal(u1, u2);
                 break;
@@ -424,19 +393,20 @@ public:
             default:
                 throw std::runtime_error("Invalid distribution type");
         }
-        
+
         sample_count_++;
         return result;
     }
-    
-    // Reseed the PRNG
+
     void reseed() {
         if (crypto_mixer) {
             crypto_mixer->reseed();
         }
         sample_count_ = 0;
-        buffer_pos_ = buffer_.size();  // Force buffer fill on next use
-        has_spare_normal_ = false;     // Reset spare normal
+        buffer_pos_ = buffer_.size();
+        has_spare_normal_ = false;
+        offset_applied_ = false;
+        skipped_ = 0;
     }
 };
 
@@ -476,6 +446,9 @@ PRNGConfig parse_r_config(const Rcpp::List& cfg) {
     if (cfg.containsElementNamed("use_crypto_mixing")) config.use_crypto_mixing = Rcpp::as<bool>(cfg["use_crypto_mixing"]);
     if (cfg.containsElementNamed("reseed_interval")) config.reseed_interval = Rcpp::as<unsigned long>(cfg["reseed_interval"]);
     
+    // Additional offset parameter
+    if (cfg.containsElementNamed("offset")) config.offset = Rcpp::as<size_t>(cfg["offset"]);
+
     // Debug flag
     if (cfg.containsElementNamed("debug")) config.debug = Rcpp::as<bool>(cfg["debug"]);
     
@@ -503,14 +476,14 @@ Rcpp::List getPRNGConfig_() {
     const PRNGConfig& config = g_prng->getConfig();
     Rcpp::List result;
     
-    // Core parameters
+    // Core
     result["a"] = config.a;
     result["b"] = config.b;
     result["c"] = config.c;
     result["mpfr_precision"] = config.mpfr_precision;
     result["buffer_size"] = config.buffer_size;
     
-    // Distribution parameters
+    // Dist
     switch (config.distribution) {
         case PRNGConfig::UNIFORM_01:
             result["distribution"] = "uniform_01";
@@ -525,18 +498,20 @@ Rcpp::List getPRNGConfig_() {
             result["distribution"] = "exponential";
             break;
     }
-    
     result["range_min"] = config.range_min;
     result["range_max"] = config.range_max;
     result["normal_mean"] = config.normal_mean;
     result["normal_sd"] = config.normal_sd;
     result["exponential_lambda"] = config.exponential_lambda;
     
-    // Crypto parameters
+    // Crypto
     result["use_crypto_mixing"] = config.use_crypto_mixing;
     result["reseed_interval"] = config.reseed_interval;
-    
-    // Debug flag
+
+    // Additional offset
+    result["offset"] = config.offset;
+
+    // Debug
     result["debug"] = config.debug;
     
     return result;
