@@ -407,7 +407,7 @@ cat("Slowdown factor:", median(results$base$median) / median(base_r_time$median)
 | b | Linear coefficient | 3 | Any integer |
 | c | Constant term | -1 | c < 0 |
 | mpfr_precision | MPFR precision in bits | 53 | 2 to 16384 |
-| use_crypto_mixing | Whether to use ChaCha20 mixing | TRUE | TRUE/FALSE |
+| use_crypto_mixing | Whether to use ChaCha20 mixing | FALSE | TRUE/FALSE |
 | buffer_size | Number of random values to buffer | 1024 | > 0 |
 | distribution | Distribution type | "uniform_01" | "uniform_01", "uniform_range", "normal", "exponential" |
 | range_min | Lower bound for uniform_range | 0 | Any real number |

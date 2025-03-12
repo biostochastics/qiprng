@@ -32,6 +32,7 @@ default_config <- list(
     exponential_lambda = 1,
     use_crypto_mixing = FALSE,
     reseed_interval = 1000L,  # Default to 1000 iterations between reseeds
+    use_threading = FALSE,    # Enable thread-local PRNG instances
     debug = FALSE
 )
 
@@ -179,9 +180,14 @@ reseedPRNG <- function() {
 #' Thread-safe: Will block until mutex is acquired.
 #' 
 #' @export
-cleanup_prng <- function() {
+cleanupPRNG <- function() {
     .cleanup_prng_()
     invisible(NULL)
+}
+
+#' @export
+cleanup_prng <- function() {
+    cleanupPRNG()
 }
 
 # ----------------------------------------------------------------------

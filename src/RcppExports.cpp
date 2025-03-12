@@ -60,6 +60,16 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// skipPRNG_
+void skipPRNG_(int n);
+RcppExport SEXP _qiprng_skipPRNG_(SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    skipPRNG_(n);
+    return R_NilValue;
+END_RCPP
+}
 // cleanup_prng_
 void cleanup_prng_();
 RcppExport SEXP _qiprng_cleanup_prng_() {
@@ -76,6 +86,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_qiprng_getPRNGConfig_", (DL_FUNC) &_qiprng_getPRNGConfig_, 0},
     {"_qiprng_generatePRNG_", (DL_FUNC) &_qiprng_generatePRNG_, 1},
     {"_qiprng_reseedPRNG_", (DL_FUNC) &_qiprng_reseedPRNG_, 0},
+    {"_qiprng_skipPRNG_", (DL_FUNC) &_qiprng_skipPRNG_, 1},
     {"_qiprng_cleanup_prng_", (DL_FUNC) &_qiprng_cleanup_prng_, 0},
     {NULL, NULL, 0}
 };

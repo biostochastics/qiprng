@@ -21,6 +21,10 @@
     invisible(.Call(`_qiprng_reseedPRNG_`))
 }
 
+.skipPRNG_ <- function(n) {
+    invisible(.Call(`_qiprng_skipPRNG_`, n))
+}
+
 .cleanup_prng_ <- function() {
     invisible(.Call(`_qiprng_cleanup_prng_`))
 }

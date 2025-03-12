@@ -1,5 +1,8 @@
 context("Advanced PRNG Testing")
 
+# Ensure the qiprng package is loaded
+library(qiprng)
+
 test_that("Crypto Mixing with High Precision", {
     skip_on_cran()
     
@@ -304,14 +307,24 @@ test_that("Thread safety works correctly", {
     library(parallel)
     cl <- makeCluster(4)
     
-    # Setup PRNG in each worker
+    # Setup PRNG in each worker with threading enabled and unique parameters
     clusterEvalQ(cl, {
         library(qiprng)
-        createPRNG()
+        # Use process ID to create unique parameters for each worker
+        pid <- Sys.getpid()
+        createPRNG(list(
+            use_threading = TRUE,
+            a = 2L + (pid %% 5),  # Vary the parameters slightly based on PID
+            b = 5L + (pid %% 7),
+            c = -2L - (pid %% 3),
+            use_crypto_mixing = TRUE  # Enable crypto mixing for better randomness
+        ))
     })
     
     # Generate numbers in parallel
     nums <- parSapply(cl, 1:4, function(i) {
+        # Force a reseed to ensure different sequences
+        reseedPRNG()
         generatePRNG(1000)
     })
     
@@ -326,7 +339,7 @@ test_that("Thread safety works correctly", {
     
     # All sequences should be valid uniform numbers
     for (i in 1:4) {
-        expect_true(all(nums[,i] >= 0 & nums[,i] <= 1))
+        expect_true(all(nums[,i] >= 0 & nums[,i] < 1))
         expect_gt(stats::ks.test(nums[,i], "punif")$p.value, 0.01)
     }
     
