@@ -1,7 +1,7 @@
 context("Threading tests")
 
 test_that("Thread safety works", {
-  skip_on_cran()
+  # skip_on_cran()
   
   # Create PRNG with threading enabled
   createPRNG(list(use_threading = TRUE))

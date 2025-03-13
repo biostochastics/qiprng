@@ -4,7 +4,7 @@ context("Basic PRNG Tests")
 library(qiprng)
 
 test_that("PRNG creation works", {
-    skip_on_cran()
+    # skip_on_cran()
     
     # Create with default parameters
     cfg <- list(
@@ -34,7 +34,7 @@ test_that("PRNG creation works", {
 })
 
 test_that("PRNG update works", {
-    skip_on_cran()
+    # skip_on_cran()
     
     # Create PRNG with default parameters
     cfg <- list(
@@ -75,7 +75,7 @@ test_that("PRNG update works", {
 })
 
 test_that("Statistical properties are valid", {
-    skip_on_cran()
+    # skip_on_cran()
     
     # Create PRNG with default parameters
     cfg <- list(

@@ -4,7 +4,7 @@ context("Advanced PRNG Testing")
 library(qiprng)
 
 test_that("Crypto Mixing with High Precision", {
-    skip_on_cran()
+    # skip_on_cran()
     
     cfg <- list(
         a = 2,
@@ -47,7 +47,7 @@ test_that("Crypto Mixing with High Precision", {
 })
 
 test_that("Reseeding with Different Intervals", {
-    skip_on_cran()
+    # skip_on_cran()
     
     # Test with shorter reseed interval
     cfg <- list(
@@ -85,7 +85,7 @@ test_that("Reseeding with Different Intervals", {
 })
 
 test_that("Distribution Transitions", {
-    skip_on_cran()
+    # skip_on_cran()
     
     cfg <- list(
         a = 2,
@@ -137,7 +137,7 @@ test_that("Distribution Transitions", {
 })
 
 test_that("Error Handling and Edge Cases", {
-    skip_on_cran()
+    # skip_on_cran()
     
     # Test invalid quadratic parameters
     expect_error(
@@ -202,7 +202,7 @@ test_that("Error Handling and Edge Cases", {
 })
 
 test_that("Thread Safety and State Management", {
-    skip_on_cran()
+    # skip_on_cran()
     
     cfg <- list(
         a = 2,
@@ -236,7 +236,7 @@ test_that("Thread Safety and State Management", {
 })
 
 test_that("PRNG handles invalid parameters", {
-    skip_on_cran()
+    # skip_on_cran()
     
     # Test invalid quadratic parameters
     expect_error(
@@ -257,7 +257,7 @@ test_that("PRNG handles invalid parameters", {
 })
 
 test_that("PRNG handles invalid distribution parameters", {
-    skip_on_cran()
+    # skip_on_cran()
     
     # Setup valid PRNG first
     createPRNG(list(a = 2L, b = 5L, c = -1L))
@@ -284,7 +284,7 @@ test_that("PRNG handles invalid distribution parameters", {
 })
 
 test_that("PRNG maintains state correctly", {
-    skip_on_cran()
+    # skip_on_cran()
     
     createPRNG(list(a = 2L, b = 5L, c = -1L))
     x1 <- generatePRNG(1000)
@@ -301,7 +301,7 @@ test_that("PRNG maintains state correctly", {
 })
 
 test_that("Thread safety works correctly", {
-    skip_on_cran()
+    # skip_on_cran()
     
     # Test parallel generation
     library(parallel)
@@ -347,7 +347,7 @@ test_that("Thread safety works correctly", {
 })
 
 test_that("PRNG handles multiple instances", {
-    skip_on_cran()
+    # skip_on_cran()
     
     # Create two PRNGs with different parameters
     createPRNG(list(a = 2L, b = 5L, c = -1L))

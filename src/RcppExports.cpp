@@ -11,22 +11,22 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // createPRNG_
-void createPRNG_(Rcpp::List cfg);
-RcppExport SEXP _qiprng_createPRNG_(SEXP cfgSEXP) {
+void createPRNG_(Rcpp::List rcfg);
+RcppExport SEXP _qiprng_createPRNG_(SEXP rcfgSEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type cfg(cfgSEXP);
-    createPRNG_(cfg);
+    Rcpp::traits::input_parameter< Rcpp::List >::type rcfg(rcfgSEXP);
+    createPRNG_(rcfg);
     return R_NilValue;
 END_RCPP
 }
 // updatePRNG_
-void updatePRNG_(Rcpp::List cfg);
-RcppExport SEXP _qiprng_updatePRNG_(SEXP cfgSEXP) {
+void updatePRNG_(Rcpp::List rcfg);
+RcppExport SEXP _qiprng_updatePRNG_(SEXP rcfgSEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type cfg(cfgSEXP);
-    updatePRNG_(cfg);
+    Rcpp::traits::input_parameter< Rcpp::List >::type rcfg(rcfgSEXP);
+    updatePRNG_(rcfg);
     return R_NilValue;
 END_RCPP
 }
@@ -60,6 +60,15 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// cleanup_prng_
+void cleanup_prng_();
+RcppExport SEXP _qiprng_cleanup_prng_() {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    cleanup_prng_();
+    return R_NilValue;
+END_RCPP
+}
 // skipPRNG_
 void skipPRNG_(int n);
 RcppExport SEXP _qiprng_skipPRNG_(SEXP nSEXP) {
@@ -70,15 +79,6 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
-// cleanup_prng_
-void cleanup_prng_();
-RcppExport SEXP _qiprng_cleanup_prng_() {
-BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    cleanup_prng_();
-    return R_NilValue;
-END_RCPP
-}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_qiprng_createPRNG_", (DL_FUNC) &_qiprng_createPRNG_, 1},
@@ -86,8 +86,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_qiprng_getPRNGConfig_", (DL_FUNC) &_qiprng_getPRNGConfig_, 0},
     {"_qiprng_generatePRNG_", (DL_FUNC) &_qiprng_generatePRNG_, 1},
     {"_qiprng_reseedPRNG_", (DL_FUNC) &_qiprng_reseedPRNG_, 0},
-    {"_qiprng_skipPRNG_", (DL_FUNC) &_qiprng_skipPRNG_, 1},
     {"_qiprng_cleanup_prng_", (DL_FUNC) &_qiprng_cleanup_prng_, 0},
+    {"_qiprng_skipPRNG_", (DL_FUNC) &_qiprng_skipPRNG_, 1},
     {NULL, NULL, 0}
 };
 
