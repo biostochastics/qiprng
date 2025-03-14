@@ -1,7 +1,7 @@
 Package: qiprng
 Type: Package
 Title: Quadratic Irrational PRNG
-Version: 0.2.3
+Version: 0.2.4
 Authors@R: person("Sergey", "Kornilov", email = "sergey.kornilov@biostochastics.com", role = c("aut", "cre"))
 Description: Implements a high-quality pseudo-random number generator in R based on Granville's work on quadratic irrationals.
 License: MIT + file LICENSE

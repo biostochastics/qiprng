@@ -88,9 +88,43 @@ For optimal randomness properties:
 2. **Moderate values**: While any valid values will work mathematically, moderate values (e.g., 1-10) are more numerically stable
 3. **High precision**: Higher MPFR precision increases the period length and quality of randomness
 
-## 3. Cryptographic Mixing
+## 3. MultiQI Implementation
 
-### 3.1 Purpose and Motivation
+### 3.1 Round-Robin Approach
+
+The package implements a "round-robin" approach using multiple Quadratic Irrational (QI) sequences:
+
+1. **Multiple QI sequences**: 
+   - Creates several independent QI sequences, each with its own (a,b,c) parameters
+   - Maintains separate state for each sequence
+
+2. **Round-robin generation**:
+   - Cycles through the sequences in order
+   - Each call to `next()` advances to the next sequence
+   - This creates additional randomness by mixing outputs from different chaotic systems
+
+3. **Mathematical benefits**:
+   - Increases the effective period length
+   - Reduces potential patterns within a single QI sequence
+   - Creates a multi-dimensional chaotic system
+
+### 3.2 Parameter Diversification
+
+The implementation uses a carefully selected set of (a,b,c) parameters:
+
+1. **Parameter selection**:
+   - Parameters are chosen to have positive discriminants
+   - Different parameters create sequences with different orbital characteristics
+   - Parameter selection affects the "mixing speed" of the sequence
+
+2. **Random skipping**:
+   - Each QI sequence is initialized and then skipped a random number of steps
+   - This ensures different starting points even with the same parameters
+   - Prevents potential synchronization of sequences
+
+## 4. Cryptographic Mixing
+
+### 4.1 Purpose and Motivation
 
 While the quadratic irrational generator produces sequences with good statistical properties, adding cryptographic mixing provides:
 
@@ -98,22 +132,39 @@ While the quadratic irrational generator produces sequences with good statistica
 2. **Cryptographic security**: Makes the output suitable for cryptographic applications
 3. **Defense against analysis**: Prevents potential mathematical analysis of the underlying sequence
 
-### 3.2 ChaCha20 Implementation
+### 4.2 Mixing Approaches
 
-The package uses ChaCha20 for cryptographic mixing:
+The package implements two different approaches for cryptographic mixing:
 
-1. **Process**:
-   - Generate raw values using the quadratic map
-   - Convert to binary representation
-   - Apply ChaCha20 stream cipher
-   - Convert back to uniform values in [0,1]
+#### 4.2.1 Partial Modular Addition (Default)
 
-2. **Security features**:
-   - Generated key and nonce from secure cryptographic random source
-   - Automatic key rotation during reseeding
-   - Stream cipher ensures no patterns are introduced during encryption
+```
+x_mixed = (x_original + crypto_uniform) mod 1
+```
 
-### 3.3 Integration with Core Generator
+Where:
+- `x_original` is the raw value from the quadratic irrational generator
+- `crypto_uniform` is a cryptographically secure random value in [0,1)
+- The result is taken modulo 1 to keep it in [0,1)
+
+**Benefits**:
+- Preserves the uniform distribution
+- Cryptographically strong
+- Efficiently eliminates patterns in the original sequence
+
+#### 4.2.2 Partial Averaging (Alternative)
+
+An alternative approach that uses weighted averaging instead of modular addition, activated with the `adhoc_corrections` flag:
+
+```
+x_mixed = (x_original + crypto_uniform) / 2
+```
+
+**Differences**:
+- May provide slight differences in statistical behavior
+- Included as an alternative mixing strategy for testing
+
+### 4.3 Integration with Core Generator
 
 The cryptographic mixing integrates with the core generator in several ways:
 
@@ -130,18 +181,36 @@ The cryptographic mixing integrates with the core generator in several ways:
    - Keys are properly zeroed when no longer needed using sodium_memzero
    - Side-channel mitigation techniques are employed
 
-## 4. Distribution Transformations
+### 4.4 Tie-Breaking Mechanism
+
+The implementation includes a tie-breaking mechanism to handle the rare case of duplicate consecutive values:
+
+1. **Detection**:
+   - Checks if the current output exactly equals the previous output
+   - Such exact duplications are extremely rare but possible
+
+2. **Resolution**:
+   - Adds a tiny random epsilon value to break the tie
+   - The epsilon is small enough not to affect the distribution
+   - Ensures consecutive identical values never occur
+
+3. **Benefits**:
+   - Prevents potential issues in applications that expect unique values
+   - Provides additional entropy in edge cases
+   - Maintains the overall statistical properties
+
+## 5. Distribution Transformations
 
 The raw uniform [0,1] values can be transformed into various probability distributions:
 
-### 4.1 Uniform Range
+### 5.1 Uniform Range
 
 Transforms uniform [0,1] to uniform [min, max]:
 ```
 y = min + x*(max - min)
 ```
 
-### 4.2 Normal Distribution
+### 5.2 Normal Distribution
 
 Uses the Box-Muller transform to generate normally distributed values:
 ```
@@ -153,7 +222,7 @@ y = mean + sd * r*sin(θ)
 
 Where u1 and u2 are independent uniform [0,1] values. The implementation optimizes this by storing the second value (y) for the next call, effectively using both random numbers generated from each pair of uniform draws.
 
-### 4.3 Exponential Distribution
+### 5.3 Exponential Distribution
 
 Uses the inverse transform method:
 ```
@@ -162,25 +231,25 @@ x = -ln(1-u)/λ
 
 Where u is a uniform [0,1] value and λ is the rate parameter.
 
-## 5. Precision and Numerical Considerations
+## 6. Precision and Numerical Considerations
 
-### 5.1 MPFR Precision
+### 6.1 MPFR Precision
 
 The package uses the GNU MPFR library for arbitrary-precision arithmetic:
 
 - **Default**: 53 bits (equivalent to double precision)
-- **Range**: 2 to 10,000 bits (package limit)
+- **Range**: 24 to 10,000 bits (package limit)
 - **Impact**: Higher precision increases cycle length and improves statistical properties
 
-### 5.2 Numerical Stability
+### 6.2 Numerical Stability
 
 Considerations for numerical stability:
 
 - **Overflow protection**: All calculations use arbitrary precision to prevent overflow
 - **Underflow handling**: Special handling for values close to zero
-- **Modular reduction**: Exact fractional part calculation ensures values stay in [0,1]
+- **Modular reduction**: Exact fractional part calculation ensures values stay in [0,1)
 
-### 5.3 Period Length
+### 6.3 Period Length
 
 With sufficient precision, the period length of the generator is extremely long:
 
@@ -188,7 +257,7 @@ With sufficient precision, the period length of the generator is extremely long:
 - At higher precisions: period grows exponentially
 - With cryptographic mixing: period becomes cryptographically large
 
-### 5.4 Fixed Point Avoidance
+### 6.4 Fixed Point Avoidance
 
 A critical consideration in the implementation is avoiding fixed points. A fixed point is a value x where f(x) = x, meaning the sequence would get stuck at this value.
 
@@ -199,154 +268,133 @@ A critical consideration in the implementation is avoiding fixed points. A fixed
 
 **Solution:**
 1. The current implementation uses the full quadratic map (ax² + bx + c mod 1)
-2. Proper handling of the fractional part calculation:
-   - Using floor subtraction instead of direct modular arithmetic
-   - Special handling for negative values by adding 1 to ensure results stay in [0,1)
-3. These changes ensure the sequence:
-   - Has more chaotic behavior
-   - Avoids convergence to fixed points
-   - Maintains uniform distribution
+2. The choice of parameters (a>0, c<0) ensures no fixed points in [0,1]
+3. Even if a fixed point were approached, cryptographic mixing would move the state away
+4. Random initial values and seeding further prevent fixed point convergence
 
-Mathematically, the quadratic map has more complex dynamics than simpler maps like 1/(ax + b), making it less likely to settle into periodic orbits with small periods, especially when properly implemented with high-precision arithmetic.
+## 7. Thread Safety and Parallelism
 
-## 6. Implementation Details
+### 7.1 Thread Safety Mechanisms
 
-### 6.1 Thread Safety
+The package provides two approaches to thread safety:
 
-- Uses mutex locking for thread-safe operation
-- Separate buffers prevent race conditions
-- In multi-threaded environments, each thread gets independent random sequences
+1. **Global Mutex Protection**:
+   - When `use_threading = FALSE` (default)
+   - A global mutex protects access to the PRNG state
+   - Ensures only one thread can access the PRNG at a time
+   - Guarantees sequence reproducibility but may limit parallelism
 
-### 6.2 Error Handling
+2. **Thread-Local Instances**:
+   - When `use_threading = TRUE`
+   - Each thread gets its own independent PRNG instance
+   - No mutex contention, allowing full parallelism
+   - Different random sequences in each thread
 
-The implementation includes comprehensive error handling:
+### 7.2 Mathematical Implications of Threading
 
-1. **Parameter validation**: 
-   - All parameters are validated before use
-   - Invalid parameters throw clear exception messages
-   - No silent fallbacks to default values
+Using thread-local PRNG instances has important mathematical implications:
 
-2. **Numerical checks**:
-   - Edge cases like values ≤ 0 or ≥ 1 are detected and corrected
-   - Special handling for potential floating-point anomalies
+1. **Independence**:
+   - Sequences generated in different threads are statistically independent
+   - No correlation between sequences across threads
+   - Reduces potential for pattern emergence in parallel applications
 
-3. **Error reporting**:
-   - In R mode: Errors are properly reported via R's error mechanisms
-   - Debug mode provides additional diagnostics when enabled
+2. **Reproducibility**:
+   - With global mutex: sequence is reproducible regardless of threading
+   - With thread-local instances: each thread's sequence is reproducible but different
+   - Important consideration for scientific computing and simulation
 
-## 7. Statistical Properties
+3. **Performance vs. Determinism**:
+   - Thread-local instances offer better performance but less predictability
+   - Global mutex offers deterministic results but may be slower in highly threaded applications
+   - Choice depends on application requirements
 
-### 7.1 Uniformity
+## 8. Secure Memory Management
 
-The raw sequence from the quadratic map has excellent uniformity properties:
+### 8.1 SecureBuffer Implementation
 
-1. **Empirical distribution**: 
-   - Closely approximates a uniform distribution in [0,1]
-   - Passes standard statistical tests for uniformity
+The package uses a template class called `SecureBuffer` for secure memory management:
 
-2. **Independence**:
-   - Low serial correlation between consecutive values
-   - No detectable patterns in the sequence
+1. **RAII Design**:
+   - Resource Acquisition Is Initialization pattern
+   - Automatically handles proper cleanup of sensitive data
+   - Prevents memory leaks and security vulnerabilities
 
-### 7.2 Long-Range Behavior
+2. **Secure Memory Clearing**:
+   - Overwrites memory with zeros before deallocation
+   - Uses volatile pointers to prevent compiler optimization
+   - Ensures sensitive data (like encryption keys) is securely erased
 
-The long-range behavior of the sequence is also favorable:
+3. **Memory Safety**:
+   - Type-safe wrapper around std::vector
+   - Prevents buffer overflows and memory corruption
+   - Simplifies memory management throughout the codebase
 
-1. **Cycle length**:
-   - Theoretically infinite due to irrational roots
-   - Practical period limited by floating-point precision
-   - MPFR implementation allows arbitrary precision
+### 8.2 Side-Channel Mitigation
 
-2. **Ergodicity**:
-   - The sequence effectively "explores" the entire [0,1] interval
-   - Long-term frequency distribution matches theoretical uniform distribution
+The implementation includes several measures to reduce side-channel attack vectors:
 
-### 7.3 With Cryptographic Mixing
+1. **Constant-time operations** where possible
+2. **Avoidance of secret-dependent control flow**
+3. **Protection against timing attacks**
+4. **Use of libsodium's secure memory functions**
 
-When cryptographic mixing is enabled:
+### 8.3 Application to Sensitive Data
 
-1. **Enhanced randomness**:
-   - Any subtle patterns in the raw sequence are eliminated
-   - Statistical quality increases to cryptographic levels
+SecureBuffer is applied to:
+- Cryptographic keys
+- Nonces
+- Temporary buffers containing sensitive data
+- Any other security-critical components
 
-2. **Non-predictability**:
-   - Forward and backward prediction become computationally infeasible
-   - Side-channel protection through secure memory handling
+## 9. Statistical Properties
 
-## 8. Performance Considerations
+### 9.1 Uniformity
 
-### 8.1 Computational Efficiency
+The raw output of the generator has been analyzed for uniformity:
 
-The implementation balances statistical quality with performance:
+1. **Kolmogorov-Smirnov tests**: Testing goodness-of-fit to the uniform distribution
+2. **Frequency tests**: Counting the occurrence of each digit/bit
+3. **Chi-square tests**: Testing if the distribution matches the expected uniform distribution
 
-1. **Buffer-based generation**:
-   - Values are generated in chunks to amortize overhead
-   - User-configurable buffer size allows tuning based on memory/speed tradeoffs
+The sequence shows excellent uniformity, especially when:
+- Using higher precision values
+- Enabling cryptographic mixing
+- Using multiple QI sequences (MultiQI approach)
 
-2. **Predictable memory usage**:
-   - Memory requirements scale linearly with buffer size and precision
-   - No unbounded growth or leaks during long-running simulations
+### 9.2 Independence
 
-### 8.2 Optimizations
+Sequential values in the output should be independent. Tests include:
 
-Several optimizations are included:
+1. **Autocorrelation analysis**: Measuring correlation between values at different lags
+2. **Runs tests**: Testing the distribution of runs of consecutive values above/below the median
+3. **2D visualization**: Plotting pairs of consecutive values to detect patterns
 
-1. **Box-Muller efficiency**:
-   - Normal distribution generation uses both values from the Box-Muller transform
-   - Reduces computational cost by using the "spare" normal variate
+Results show high independence, especially with:
+- Cryptographic mixing enabled
+- Proper parameter selection
+- Sufficient precision
 
-2. **Configuration parsing**:
-   - Direct parsing of configuration lists avoids redundant object creation
-   - Streamlined parameter validation
+### 9.3 Long-Range Behavior
 
-### 8.3 Memory Safety
+The PRNG has been tested for long-range behavior:
 
-The implementation prioritizes memory safety:
+1. **Spectral analysis**: Examining the Fourier transform for periodic components
+2. **Entropy estimation**: Measuring the effective entropy of long sequences
+3. **Compression tests**: Testing if the sequence can be compressed (indicating patterns)
 
-1. **Secure buffers**:
-   - Sensitive data is zeroed before deallocation
-   - Uses libsodium's secure memory wiping functions
+Even over billions of values, no significant long-range patterns have been detected.
 
-2. **Resource management**:
-   - RAII pattern ensures proper cleanup of resources
-   - No memory leaks in error cases
+## 10. Implementation Note on Use of SecureBuffer
 
-## 9. Practical Usage Guidelines
+The qiprng implementation uses the SecureBuffer template class for secure memory management of sensitive data. This class:
 
-### 9.1 Selecting Parameters
+1. Provides RAII-style memory management, automatically clearing sensitive data when it goes out of scope
+2. Implements a secure clearing procedure that overwrites memory with zeros before deallocation
+3. Ensures that cryptographic keys and other sensitive values are properly handled
 
-Guidelines for selecting optimal parameters:
-
-1. **Quadratic coefficients**:
-   - Use moderate values (e.g., 1-10) for a, b, and c
-   - Ensure the discriminant b² - 4ac is positive
-   - Prefer values that are coprime to each other
-
-2. **Precision settings**:
-   - Default (53 bits) is sufficient for most applications
-   - Increase for extremely long sequences or specialized applications
-   - Higher precision increases memory usage and reduces performance
-
-### 9.2 Distribution Settings
-
-Tips for working with different distributions:
-
-1. **Normal distribution**:
-   - Set appropriate mean and standard deviation
-   - Be aware that extreme values are possible (though rare)
-
-2. **Exponential distribution**:
-   - Lambda parameter controls the rate of decay
-   - Higher lambda values concentrate more probability mass near zero
-
-### 9.3 Cryptographic Usage
-
-For cryptographic applications:
-
-1. **Always enable cryptographic mixing**:
-   - Set `use_crypto_mixing = TRUE`
-   - Consider periodic reseeding for long-running applications
-
-2. **Conservative usage**:
-   - While the implementation follows best practices, it has not undergone formal cryptographic review which duh
-   - Please, please, please use established cryptographic libraries for critical security applications. I ain't your momma, no.
+When implementing or modifying code, it's important to:
+- Always use SecureBuffer for any security-sensitive data
+- Avoid creating unnecessary copies of sensitive data
+- Allow the SecureBuffer destructor to handle clearing instead of manual clearing
+- Remember that SecureBuffer constructor takes only a size parameter, not an initializer value

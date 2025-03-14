@@ -1,7 +1,7 @@
 context("Distribution Tests")
 
 test_that("Normal distribution properties", {
-    skip_on_cran()
+    # skip_on_cran()
     
     # Create PRNG with normal distribution
     cfg <- list(
@@ -43,7 +43,7 @@ test_that("Normal distribution properties", {
 })
 
 test_that("Uniform range properties", {
-    skip_on_cran()
+    # skip_on_cran()
     
     # Create PRNG with uniform range distribution
     cfg <- list(
@@ -83,7 +83,7 @@ test_that("Uniform range properties", {
 })
 
 test_that("Exponential distribution properties", {
-    skip_on_cran()
+    # skip_on_cran()
     
     # Create PRNG with exponential distribution
     cfg <- list(

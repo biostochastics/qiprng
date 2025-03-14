@@ -190,6 +190,23 @@ cleanup_prng <- function() {
     cleanupPRNG()
 }
 
+#' Jump ahead in the PRNG sequence
+#' 
+#' Advances the PRNG state by skipping ahead n numbers.
+#' This is more efficient than generating and discarding n numbers.
+#' Thread-safe: Will block until mutex is acquired.
+#' 
+#' @param n Number of steps to jump ahead
+#' @export
+jumpAheadPRNG <- function(n) {
+    if (!is.numeric(n) || n <= 0) {
+        stop("n must be a positive number")
+    }
+    
+    .jumpAheadPRNG_(as.numeric(n))
+    invisible(NULL)
+}
+
 # ----------------------------------------------------------------------
 # We store the PRNG instance & lock in a special environment
 .prng_env <- new.env(parent = emptyenv())
