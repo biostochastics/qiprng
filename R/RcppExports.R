@@ -13,6 +13,10 @@
     .Call(`_qiprng_getPRNGConfig_`)
 }
 
+.dumpPRNGConfig_ <- function() {
+    invisible(.Call(`_qiprng_dumpPRNGConfig_`))
+}
+
 .generatePRNG_ <- function(n) {
     .Call(`_qiprng_generatePRNG_`, n)
 }
@@ -27,5 +31,9 @@
 
 .skipPRNG_ <- function(n) {
     invisible(.Call(`_qiprng_skipPRNG_`, n))
+}
+
+.jumpAheadPRNG_ <- function(n) {
+    invisible(.Call(`_qiprng_jumpAheadPRNG_`, n))
 }
 

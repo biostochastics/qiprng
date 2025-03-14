@@ -1,9 +1,13 @@
 # qiprng: Quadratic Irrational Pseudo-Random Number Generator for R
 
+[![CRAN Version](https://img.shields.io/badge/CRAN-0.2.4-blue)](https://cran.r-project.org/package=qiprng)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen)](https://github.com/biostochastics/qiprng)
+[![Coverage](https://img.shields.io/badge/Coverage-85%25-green)](https://github.com/biostochastics/qiprng)
+
 ## Overview
 
-The `qiprng` R package provides a high-precision, configurable pseudo-random number generator based on quadratic irrational numbers with optional cryptographic mixing. This implementation is based on the theoretical framework described by Granville (2022), adapted here from Python to R/C++ for learning and practice purposes. It offers superior statistical properties compared t
-o traditional linear congruential generators while maintaining high performance and flexibility. 
+The `qiprng` R package provides a high-precision, configurable pseudo-random number generator based on quadratic irrational numbers with optional cryptographic mixing. This implementation is based on the theoretical framework described by Granville (2022), adapted here from Python to R/C++ for learning and practice purposes. It offers superior statistical properties compared to traditional linear congruential generators while maintaining high performance and flexibility. 
 
 ## Acknowledgments
 
@@ -16,11 +20,14 @@ Cool if you find it useful. Even better if you find a bug!
 
 ## Features
 
-- **High-precision computation** using the MPFR library
+- **High-precision computation** using the MPFR library (24-10000 bits precision)
 - **Multiple output distributions**: uniform, normal, exponential
 - **Optional cryptographic mixing** using ChaCha20 for enhanced security
 - **Configurable parameters** for the quadratic recurrence relation
-- **Thread-safe operation** for parallel applications
+- **Thread-safe operation** with support for thread-local PRNG instances
+- **Automatic reseeding** with configurable intervals
+- **Secure memory management** using SecureBuffer for sensitive data
+- **Skip-ahead functionality** for efficient parallel processing
 
 ## Installation
 
@@ -63,12 +70,14 @@ createPRNG()
 
 # Or with custom parameters
 cfg <- list(
-  a = 3L,              # Quadratic coefficient (must be positive)
-  b = 5L,              # Linear coefficient
-  c = -2L,             # Constant term (must be negative)
-  mpfr_precision = 100L,      # Precision in bits
-  use_crypto_mixing = TRUE,   # Apply cryptographic mixing
-  buffer_size = 2048L         # Internal buffer size
+  a = 2L,                    # Quadratic coefficient (must be positive)
+  b = 5L,                    # Linear coefficient
+  c = -2L,                   # Constant term (must be negative)
+  mpfr_precision = 53L,      # Precision in bits (range: 24-10000)
+  use_crypto_mixing = FALSE, # Apply cryptographic mixing
+  buffer_size = 1024L,       # Internal buffer size
+  reseed_interval = 1000L,   # Iterations between reseeds
+  use_threading = FALSE      # Enable thread-local PRNG instances
 )
 createPRNG(cfg)
 ```
@@ -104,7 +113,40 @@ qqnorm(norm_samples)
 qqline(norm_samples)
 ```
 
+### Resetting and cleaning up
+
+```r
+# Force a reseed of the PRNG
+reseedPRNG()
+
+# Skip ahead in the sequence (more efficient than generating and discarding)
+jumpAheadPRNG(10000)
+
+# Clean up PRNG resources when done
+cleanupPRNG()
+```
+
 ## Advanced Usage
+
+### Thread-Safe Operation
+
+The package provides thread safety in two ways:
+
+```r
+# 1. Global mutex protection (safe but potentially slower for parallel workloads)
+updatePRNG(list(use_threading = FALSE))
+
+# 2. Thread-local PRNG instances (faster for parallel workloads)
+updatePRNG(list(use_threading = TRUE))
+
+# When using thread-local instances with parallel package:
+library(parallel)
+cl <- makeCluster(4)
+clusterEvalQ(cl, {
+  library(qiprng)
+  createPRNG(list(use_threading = TRUE))
+})
+```
 
 ### Statistical Testing
 
@@ -195,296 +237,43 @@ createPRNG(list(
 random_bytes <- as.raw(floor(generatePRNG(1000) * 256))
 ```
 
-## Vignettes
+## Performance Considerations
 
-### Vignette 1: Visualizing the PRNG Quality
+- **MPFR Precision**: Higher precision values provide better statistical properties but consume more memory and may be slower
+- **Buffer Size**: Larger buffers improve performance for batch operations but consume more memory
+- **Cryptographic Mixing**: Adds security but reduces performance
+- **Threading Mode**: Thread-local instances offer better parallelism but may use more memory
 
-```r
-library(qiprng)
-library(ggplot2)
+## API Reference
 
-# Configure PRNG
-createPRNG(list(
-  a = 2L,
-  b = 3L,
-  c = -1L,
-  mpfr_precision = 100L
-))
+| Function | Description |
+|----------|-------------|
+| `createPRNG()` | Creates a new PRNG instance with specified configuration |
+| `generatePRNG()` | Generates random numbers using current configuration |
+| `updatePRNG()` | Updates configuration of the current PRNG instance |
+| `reseedPRNG()` | Forces a reseed of the PRNG |
+| `jumpAheadPRNG()` | Advances the PRNG state by skipping ahead |
+| `cleanupPRNG()` | Cleans up PRNG resources |
+| `test_qiprng()` | Runs statistical tests on the PRNG |
 
-# Generate 10,000 consecutive pairs of random numbers
-n <- 10000
-x <- generatePRNG(n)
-y <- generatePRNG(n)
+## Security Considerations
 
-# Create a data frame for plotting
-df <- data.frame(x = x, y = y)
-
-# Plot the points
-ggplot(df, aes(x = x, y = y)) +
-  geom_point(alpha = 0.3, size = 0.5) +
-  theme_minimal() +
-  ggtitle("2D Distribution of Consecutive Random Values") +
-  xlab("First value") +
-  ylab("Second value")
-
-# Test for uniformity in 2D
-cells <- 10
-counts <- matrix(0, cells, cells)
-for (i in 1:n) {
-  ix <- floor(x[i] * cells) + 1
-  iy <- floor(y[i] * cells) + 1
-  if (ix > cells) ix <- cells
-  if (iy > cells) iy <- cells
-  counts[ix, iy] <- counts[ix, iy] + 1
-}
-
-# Chi-square test for uniformity
-expected <- n / (cells * cells)
-chi_sq <- sum((counts - expected)^2 / expected)
-df_chi <- cells * cells - 1
-p_value <- 1 - pchisq(chi_sq, df_chi)
-cat("Chi-square test p-value:", p_value, "\n")
-```
-
-### Vignette 2: Comparing Distribution Properties
-
-```r
-library(qiprng)
-library(ggplot2)
-
-# Set up the PRNG
-createPRNG()
-
-# Generate samples from different distributions
-samples <- 100000
-
-# Uniform [0,1]
-updatePRNG(list(distribution = "uniform_01"))
-uniform01 <- generatePRNG(samples)
-
-# Uniform [-5, 5]
-updatePRNG(list(
-  distribution = "uniform_range",
-  range_min = -5,
-  range_max = 5
-))
-uniform_range <- generatePRNG(samples)
-
-# Normal(0,1)
-updatePRNG(list(
-  distribution = "normal",
-  normal_mean = 0,
-  normal_sd = 1
-))
-normal <- generatePRNG(samples)
-
-# Exponential(1)
-updatePRNG(list(
-  distribution = "exponential",
-  exponential_lambda = 1
-))
-exponential <- generatePRNG(samples)
-
-# Create data frames for plotting
-df_uniform01 <- data.frame(value = uniform01, distribution = "Uniform [0,1]")
-df_uniform_range <- data.frame(value = uniform_range, distribution = "Uniform [-5,5]")
-df_normal <- data.frame(value = normal, distribution = "Normal(0,1)")
-df_exponential <- data.frame(value = exponential, distribution = "Exponential(1)")
-
-# Combine data
-df_combined <- rbind(
-  df_uniform01,
-  df_uniform_range,
-  df_normal,
-  df_exponential
-)
-
-# Plot density curves
-ggplot(df_combined, aes(x = value, fill = distribution)) +
-  geom_density(alpha = 0.5) +
-  facet_wrap(~ distribution, scales = "free") +
-  theme_minimal() +
-  ggtitle("Density Plots of Different Distributions") +
-  xlab("Value") +
-  ylab("Density")
-
-# Calculate summary statistics
-cat("Distribution  | Mean     | Variance  | Min       | Max\n")
-cat("----------------|----------|-----------|-----------|----------\n")
-cat(sprintf("Uniform [0,1]   | %f | %f | %f | %f\n", 
-            mean(uniform01), var(uniform01), min(uniform01), max(uniform01)))
-cat(sprintf("Uniform [-5,5]  | %f | %f | %f | %f\n", 
-            mean(uniform_range), var(uniform_range), min(uniform_range), max(uniform_range)))
-cat(sprintf("Normal(0,1)     | %f | %f | %f | %f\n", 
-            mean(normal), var(normal), min(normal), max(normal)))
-cat(sprintf("Exponential(1)  | %f | %f | %f | %f\n", 
-            mean(exponential), var(exponential), min(exponential), max(exponential)))
-```
-
-### Vignette 3: Performance Benchmarking
-
-```r
-library(qiprng)
-library(bench)
-library(ggplot2)
-
-# Define different configurations to benchmark
-configs <- list(
-  base = list(
-    a = 2L, b = 3L, c = -1L, 
-    mpfr_precision = 53L, 
-    use_crypto_mixing = FALSE
-  ),
-  crypto = list(
-    a = 2L, b = 3L, c = -1L, 
-    mpfr_precision = 53L, 
-    use_crypto_mixing = TRUE
-  ),
-  high_precision = list(
-    a = 2L, b = 3L, c = -1L, 
-    mpfr_precision = 256L, 
-    use_crypto_mixing = FALSE
-  ),
-  high_precision_crypto = list(
-    a = 2L, b = 3L, c = -1L, 
-    mpfr_precision = 256L, 
-    use_crypto_mixing = TRUE
-  )
-)
-
-# Benchmark function
-benchmark_prng <- function(cfg, n_samples) {
-  createPRNG(cfg)
-  bench::mark(
-    generatePRNG(n_samples),
-    iterations = 10,
-    check = FALSE
-  )
-}
-
-# Run benchmarks
-n_samples <- 100000
-results <- list()
-
-for (name in names(configs)) {
-  cat("Benchmarking", name, "configuration...\n")
-  results[[name]] <- benchmark_prng(configs[[name]], n_samples)
-  results[[name]]$configuration <- name
-}
-
-# Combine results
-combined_results <- do.call(rbind, results)
-
-# Plot results
-ggplot(combined_results, aes(x = configuration, y = median, fill = configuration)) +
-  geom_col() +
-  geom_errorbar(aes(ymin = min, ymax = max), width = 0.2) +
-  theme_minimal() +
-  ggtitle(paste("Performance Benchmark:", n_samples, "Samples")) +
-  xlab("Configuration") +
-  ylab("Time (seconds)") +
-  scale_fill_brewer(palette = "Set1") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-# Also compare with base R's random number generator
-base_r_time <- bench::mark(
-  runif(n_samples),
-  iterations = 10,
-  check = FALSE
-)
-
-cat("\nComparison with base R:\n")
-cat("Base R runif():", median(base_r_time$median), "seconds\n")
-cat("qiprng (base config):", median(results$base$median), "seconds\n")
-cat("Slowdown factor:", median(results$base$median) / median(base_r_time$median), "x\n")
-```
-
-## Configuration Parameters
-
-| Parameter | Description | Default Value | Valid Range |
-|-----------|-------------|---------------|------------|
-| a | Quadratic coefficient | 2 | a > 0 |
-| b | Linear coefficient | 3 | Any integer |
-| c | Constant term | -1 | c < 0 |
-| mpfr_precision | MPFR precision in bits | 53 | 2 to 16384 |
-| use_crypto_mixing | Whether to use ChaCha20 mixing | FALSE | TRUE/FALSE |
-| buffer_size | Number of random values to buffer | 1024 | > 0 |
-| distribution | Distribution type | "uniform_01" | "uniform_01", "uniform_range", "normal", "exponential" |
-| range_min | Lower bound for uniform_range | 0 | Any real number |
-| range_max | Upper bound for uniform_range | 1 | Any real number > range_min |
-| normal_mean | Mean for normal distribution | 0 | Any real number |
-| normal_sd | Standard deviation for normal distribution | 1 | > 0 |
-| exponential_lambda | Rate for exponential distribution | 1 | > 0 |
-
-## Testing the PRNG Quality
-
-The `test_qiprng()` function performs several statistical tests on the PRNG output:
-
-1. **Kolmogorov-Smirnov Test**: Tests whether the output follows the expected distribution.
-   - p-value > 0.05 suggests the distribution matches the expected one.
-
-2. **Runs Test**: Tests for independence in the sequence.
-   - Z-score should be between -2 and 2 for a good generator.
-
-3. **Spectral Analysis**: Examines the Fourier transform of the sequence to detect cyclical patterns.
-   - Lower values indicate better quality (less structure).
-
-```r
-# Example of testing PRNG quality
-results <- test_qiprng(n = 100000)
-print(results)
-
-# Test multiple configurations and compare
-configs_to_test <- list(
-  default = list(a = 2L, b = 3L, c = -1L),
-  alt1 = list(a = 3L, b = 5L, c = -2L),
-  alt2 = list(a = 5L, b = 7L, c = -3L),
-  alt3 = list(a = 7L, b = 11L, c = -5L)
-)
-
-test_results <- lapply(configs_to_test, function(cfg) {
-  test_qiprng(n = 50000, cfg = cfg)
-})
-
-# Print the results
-print(test_results)
-```
-
-## Technical Details
-
-### Implementation
-
-The package uses a combination of R and C++ (via Rcpp):
-
-- The core PRNG algorithm is implemented in C++ for performance
-- High-precision arithmetic uses the MPFR library
-- Cryptographic mixing uses ChaCha20
-- The R interface provides convenient configuration and usage functions
-
-### Security Considerations
-
-The `qiprng` package provides two levels of security:
-
-1. **Base security**: The quadratic irrational generator alone provides good statistical properties but is deterministic.
-
-2. **Enhanced security**: When `use_crypto_mixing = TRUE`, the raw output is processed through ChaCha20, significantly improving the cryptographic properties.
-
-For applications requiring cryptographic security, always enable the cryptographic mixing option.
+- The SecureBuffer class ensures sensitive data (like encryption keys) is securely erased when no longer needed
+- The cryptographic mixing option enhances security but is not cryptographically secure by default
+- For high-security applications, use hardware RNG sources when available
 
 ## Citation
 
 If you use this package in your research, please cite:
 
-```
 @Manual{qiprng,
   title = {qiprng: Quadratic Irrational Pseudo-Random Number Generator},
   author = {Sergey Kornilov},
   year = {2025},
-  note = {R package version 0.2.0},
+  note = {R package version 0.2.4},
   url = {https://github.com/biostochastics/qiprng},
 }
-```
 
 ## License
 
-This package is released under the MIT License.
+MIT
