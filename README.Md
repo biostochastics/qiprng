@@ -1,6 +1,6 @@
 # qiprng: Quadratic Irrational Pseudo-Random Number Generator for R
 
-[![CRAN Version](https://img.shields.io/badge/CRAN-0.2.4-blue)](https://cran.r-project.org/package=qiprng)
+[![Version](https://img.shields.io/badge/V-0.2.4-blue)](https://cran.r-project.org/package=qiprng)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen)](https://github.com/biostochastics/qiprng)
 [![Coverage](https://img.shields.io/badge/Coverage-85%25-green)](https://github.com/biostochastics/qiprng)
