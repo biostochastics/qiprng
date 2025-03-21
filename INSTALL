@@ -1,8 +1,6 @@
-qiprng Package Installation and Testing Guide
-===========================================
+# qiprng Package Installation and Testing Guide
 
-System Requirements for qiprng
-============================
+## System Requirements
 
 The qiprng package requires the following system libraries:
 
@@ -10,127 +8,158 @@ The qiprng package requires the following system libraries:
 2. libsodium (>= 1.0.11)
 3. GNU MPFR (for high-precision arithmetic)
 
-Prerequisites
-------------
-1. R >= 3.5.0
-2. C++11 compiler
+## Prerequisites
 
-Installation by Operating System
-------------------------------
+- R >= 3.5.0
+- C++11 compiler
 
-Ubuntu/Debian:
-    sudo apt-get update
-    sudo apt-get install -y \
-        r-base-dev \
-        libmpfr-dev \
-        libgmp-dev \
-        libssl-dev \
-        libsodium-dev
+## Installation by Operating System
 
-Fedora/CentOS:
-    sudo dnf install -y openssl-devel libsodium-devel mpfr-devel
+### Ubuntu/Debian
 
-macOS (using Homebrew):
-    # Install Homebrew if needed
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    
-    # Install required libraries
-    brew install r
-    brew install mpfr
-    brew install gmp
-    brew install openssl
-    brew install libsodium
+```bash
+sudo apt-get update
+sudo apt-get install -y \
+    r-base-dev \
+    libmpfr-dev \
+    libgmp-dev \
+    libssl-dev \
+    libsodium-dev
+```
 
-Windows:
-    1. Install Rtools from https://cran.r-project.org/bin/windows/Rtools/
-    2. Install required libraries through Rtools package manager
-    3. Set up environment variables to find the libraries
+### Fedora/CentOS
 
-R Package Dependencies
---------------------
+```bash
+sudo dnf install -y openssl-devel libsodium-devel mpfr-devel
+```
+
+### macOS (using Homebrew)
+
+```bash
+# Install Homebrew if needed
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install required libraries
+brew install r
+brew install mpfr
+brew install gmp
+brew install openssl
+brew install libsodium
+```
+
+### Windows
+
+1. Install [Rtools](https://cran.r-project.org/bin/windows/Rtools/)
+2. Install required libraries through Rtools package manager
+3. Set up environment variables to find the libraries
+
+## R Package Dependencies
+
 Install required R packages:
-    install.packages(c("Rcpp", "testthat", "parallel"))
 
-Building the Package
-------------------
+```r
+install.packages(c("Rcpp", "testthat", "parallel"))
+```
+
+## Building the Package
+
 From the command line:
-    # Navigate to package directory
-    cd qiprng
 
-    # Build the package
-    R CMD build .
+```bash
+# Navigate to package directory
+cd qiprng
 
-    # Check the package
-    R CMD check qiprng_0.2.0.tar.gz
+# Build the package
+R CMD build .
 
-    # Install the package
-    R CMD INSTALL qiprng_0.2.0.tar.gz
+# Check the package
+R CMD check qiprng_0.2.0.tar.gz
 
-Testing
--------
-1. Basic Tests:
-   From R console:
-   library(qiprng)
-   library(testthat)
-   test_package("qiprng")
+# Install the package
+R CMD INSTALL qiprng_0.2.0.tar.gz
+```
 
-2. Individual Test Suites:
-   test_file("tests/testthat/test-basic.R")
-   test_file("tests/testthat/test-distributions.R")
-   test_file("tests/testthat/test-config.R")
-   test_file("tests/testthat/test-advanced.R")
-   test_file("tests/testthat/test-threading.R")
+## Testing
 
-3. Long-running Tests:
-   Sys.setenv(NOT_CRAN = "true")
-   test_package("qiprng")
+### 1. Basic Tests
 
-Troubleshooting
---------------
-1. Library not found errors:
-   - Check that all system libraries are properly installed
-   - Verify library paths in your system
-   - On Unix systems, run: ldconfig -p | grep 'mpfr\|gmp\|ssl\|sodium'
+From R console:
 
-2. Compilation errors:
-   - Ensure your C++ compiler supports C++11
-   - Check compiler flags in Makevars
-   - Verify header file locations
+```r
+library(qiprng)
+library(testthat)
+test_package("qiprng")
+```
 
-3. Test failures:
-   - Check system entropy availability (/dev/urandom on Unix)
-   - Verify hardware RNG support on your CPU
-   - Ensure sufficient memory for large buffer sizes
+### 2. Individual Test Suites
 
-Performance Testing
------------------
+```r
+test_file("tests/testthat/test-basic.R")
+test_file("tests/testthat/test-distributions.R")
+test_file("tests/testthat/test-config.R")
+test_file("tests/testthat/test-advanced.R")
+test_file("tests/testthat/test-threading.R")
+```
+
+### 3. Long-running Tests
+
+```r
+Sys.setenv(NOT_CRAN = "true")
+test_package("qiprng")
+```
+
+## Troubleshooting
+
+### 1. Library not found errors
+
+- Check that all system libraries are properly installed
+- Verify library paths in your system
+- On Unix systems, run: `ldconfig -p | grep 'mpfr\|gmp\|ssl\|sodium'`
+
+### 2. Compilation errors
+
+- Ensure your C++ compiler supports C++11
+- Check compiler flags in Makevars
+- Verify header file locations
+
+### 3. Test failures
+
+- Check system entropy availability (`/dev/urandom` on Unix)
+- Verify hardware RNG support on your CPU
+- Ensure sufficient memory for large buffer sizes
+
+## Performance Testing
+
 Run basic benchmarks:
-    library(qiprng)
-    
-    # Generate 1 million numbers
-    system.time({
-        createPRNG()
-        x <- generatePRNG(1e6)
-    })
-    
-    # Test different configurations
-    configs <- list(
-        base = list(),
-        crypto = list(use_crypto_mixing = TRUE),
-        hardware = list(use_hardware_rng = TRUE),
-        threaded = list(use_threading = TRUE)
-    )
-    
-    # Benchmark each configuration
-    lapply(configs, function(cfg) {
-        system.time({
-            createPRNG(cfg)
-            generatePRNG(1e6)
-        })
-    })
 
-Security Notes
-------------
+```r
+library(qiprng)
+
+# Generate 1 million numbers
+system.time({
+    createPRNG()
+    x <- generatePRNG(1e6)
+})
+
+# Test different configurations
+configs <- list(
+    base = list(),
+    crypto = list(use_crypto_mixing = TRUE),
+    hardware = list(use_hardware_rng = TRUE),
+    threaded = list(use_threading = TRUE)
+)
+
+# Benchmark each configuration
+lapply(configs, function(cfg) {
+    system.time({
+        createPRNG(cfg)
+        generatePRNG(1e6)
+    })
+})
+```
+
+## Security Notes
+
 1. This package is for educational and demonstration purposes
 2. For production use I strongly recommend:
    - Not using this package
@@ -139,14 +168,14 @@ Security Notes
    - Follow cryptographic best practices
    - Consult security experts
 
-Support
--------
+## Support
+
 For issues and questions:
 1. Check the package documentation
-2. File issues on the GitHub repository
-3. Contact the package maintainer
+2. File issues on the [GitHub repository](https://github.com/biostochastics/qiprng/issues)
+3. Contact the package maintainer (sergey@kornilov.bio)
 
-Version Information
------------------
-This guide is for qiprng version 0.2.0
-Last updated: 2025-03-10 
+## Version Information
+
+This guide is for qiprng version 0.2.5  
+Last updated: 2025-03-20
