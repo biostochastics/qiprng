@@ -347,7 +347,6 @@ SecureBuffer is applied to:
 - Temporary buffers containing sensitive data
 - Any other security-critical components
 
-
 ## 9. Implementation Note on Use of SecureBuffer
 
 The qiprng implementation uses the SecureBuffer template class for secure memory management of sensitive data. This class:
