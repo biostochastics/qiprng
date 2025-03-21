@@ -347,45 +347,8 @@ SecureBuffer is applied to:
 - Temporary buffers containing sensitive data
 - Any other security-critical components
 
-## 9. Statistical Properties
 
-### 9.1 Uniformity
-
-The raw output of the generator has been analyzed for uniformity:
-
-1. **Kolmogorov-Smirnov tests**: Testing goodness-of-fit to the uniform distribution
-2. **Frequency tests**: Counting the occurrence of each digit/bit
-3. **Chi-square tests**: Testing if the distribution matches the expected uniform distribution
-
-The sequence shows excellent uniformity, especially when:
-- Using higher precision values
-- Enabling cryptographic mixing
-- Using multiple QI sequences (MultiQI approach)
-
-### 9.2 Independence
-
-Sequential values in the output should be independent. Tests include:
-
-1. **Autocorrelation analysis**: Measuring correlation between values at different lags
-2. **Runs tests**: Testing the distribution of runs of consecutive values above/below the median
-3. **2D visualization**: Plotting pairs of consecutive values to detect patterns
-
-Results show high independence, especially with:
-- Cryptographic mixing enabled
-- Proper parameter selection
-- Sufficient precision
-
-### 9.3 Long-Range Behavior
-
-The PRNG has been tested for long-range behavior:
-
-1. **Spectral analysis**: Examining the Fourier transform for periodic components
-2. **Entropy estimation**: Measuring the effective entropy of long sequences
-3. **Compression tests**: Testing if the sequence can be compressed (indicating patterns)
-
-Even over billions of values, no significant long-range patterns have been detected.
-
-## 10. Implementation Note on Use of SecureBuffer
+## 9. Implementation Note on Use of SecureBuffer
 
 The qiprng implementation uses the SecureBuffer template class for secure memory management of sensitive data. This class:
 
@@ -398,3 +361,5 @@ When implementing or modifying code, it's important to:
 - Avoid creating unnecessary copies of sensitive data
 - Allow the SecureBuffer destructor to handle clearing instead of manual clearing
 - Remember that SecureBuffer constructor takes only a size parameter, not an initializer value
+
+## 10. Statistical Properties - IN PROGRESS
