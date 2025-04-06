@@ -11,6 +11,12 @@ namespace qiprng {
 
 // Single source of truth for PRNG defaults
 struct PRNGDefaults {
+    // Normal distribution generation method
+    enum NormalMethod {
+        BOX_MULLER,
+        ZIGGURAT
+    };
+    
     static constexpr long  aa = 2;
     static constexpr long b = 5;
     static constexpr long c = -2;
@@ -21,6 +27,8 @@ struct PRNGDefaults {
     static constexpr double range_min = 0.0;
     static constexpr double range_max = 1.0;
     static constexpr double exponential_lambda = 1.0;
+    static constexpr bool use_csv_discriminants = false;  // default to not using CSV discriminants
+    static constexpr NormalMethod normal_method = ZIGGURAT; // default to faster algorithm
 };
 
 // RAII wrapper for MPFR values

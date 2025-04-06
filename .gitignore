@@ -8,3 +8,11 @@ src/*.dll
 src/Makevars 
 test_results/*
 code_concat_output.md
+TODO.md
+Rplots.pdf
+.Rhistory
+.RData
+.Ruserdata
+.Rproject
+test_log.txt
+TODO.md

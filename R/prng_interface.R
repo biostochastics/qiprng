@@ -33,6 +33,8 @@ default_config <- list(
     use_crypto_mixing = FALSE,
     reseed_interval = 1000L,  # Default to 1000 iterations between reseeds
     use_threading = FALSE,    # Enable thread-local PRNG instances
+    use_csv_discriminants = FALSE,  # Use custom discriminants from discriminants.csv
+    use_parallel_filling = TRUE,     # Use parallel buffer filling for better performance
     debug = FALSE
 )
 
