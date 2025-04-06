@@ -122,6 +122,41 @@ The implementation uses a carefully selected set of (a,b,c) parameters:
    - This ensures different starting points even with the same parameters
    - Prevents potential synchronization of sequences
 
+### 3.3 Custom Discriminants via CSV
+
+The implementation supports using custom discriminants from a CSV file:
+
+1. **Mathematical advantages of custom discriminants**:
+   - **Optimized orbital characteristics**: Carefully chosen discriminants can produce sequences with improved statistical properties
+   - **Controlled cycle lengths**: Different discriminants lead to different cycle lengths, allowing optimization for specific applications
+   - **Spectral properties**: The discriminant value directly influences the spectral properties of the sequence, with certain values producing better results in frequency domain tests
+   - **Greater unpredictability**: Custom discriminants can enhance the unpredictability of the sequence, making it harder to reverse-engineer
+
+2. **Selection criteria for optimal discriminants**:
+   - **Prime or prime-rich factorizations**: Discriminants with minimal common factors tend to produce better randomness
+   - **Congruence classes**: Discriminants of the form 5 mod 8 have shown particularly good randomness properties
+   - **Large discriminants**: Generally, larger discriminant values (>10,000) provide better statistical properties
+   - **Spectral testing**: Discriminants that perform well on spectral tests minimize periodic patterns
+
+3. **Implementation advantages**:
+   - **Customization**: Users can tune the PRNG to specific application requirements
+   - **Reproducibility**: Custom discriminants allow for reproducible sequences across different environments
+   - **Parallel independence**: Using different discriminants for parallel streams ensures statistical independence
+   - **Domain-specific optimization**: Applications with special requirements can benefit from discriminants optimized for those needs
+
+4. **Usage example**:
+   ```
+   # Content of discriminants.csv
+   a,b,c,Discriminant
+   1,9,-143,653
+   1,9,-145,661
+   1,9,-148,673
+   1,9,-149,677
+   1,11,-145,701
+   ...
+   ```
+   The CSV file provides complete (a,b,c) triplets along with their calculated discriminant values (b² - 4ac). This format allows for direct specification of parameters known to have desirable properties, rather than deriving them from discriminants alone.
+
 ## 4. Cryptographic Mixing
 
 ### 4.1 Purpose and Motivation
@@ -362,3 +397,7 @@ When implementing or modifying code, it's important to:
 - Remember that SecureBuffer constructor takes only a size parameter, not an initializer value
 
 ## 10. Statistical Properties - IN PROGRESS
+
+## 11. Discriminants (pre-selected)
+
+The package includes a set of pre-selected discriminants for quadratic irrationals.
