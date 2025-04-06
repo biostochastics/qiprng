@@ -29,6 +29,8 @@
 
 // If you have your own header with SecureBuffer, MPFRWrapper, etc.:
 #include "prng_common.hpp"
+#include <fstream>
+#include <sstream>
 
 using namespace qiprng;
 
@@ -116,6 +118,11 @@ static std::unique_ptr<EnhancedPRNG> g_prng;              // global PRNG
 static std::mutex g_disc_mutex;
 static std::unordered_set<long long> g_used_discriminants;
 
+// CSV discriminants vector
+static std::vector<std::tuple<long, long, long, long long>> g_csv_discriminants;
+static std::mutex g_csv_disc_mutex;
+static bool g_csv_discriminants_loaded = false;
+
 // ---------------------------------------------------------------------
 // PRNGConfig structure
 struct PRNGConfig {
@@ -126,10 +133,14 @@ struct PRNGConfig {
         EXPONENTIAL
     };
     
-    // Quadratic parameters
-    long a = 2;
-    long b = 5;
-    long c = -2;
+    // Normal distribution generation method
+    using NormalMethod = PRNGDefaults::NormalMethod;
+    NormalMethod normal_method = PRNGDefaults::normal_method;
+    
+    // Core parameters
+    long a = PRNGDefaults::aa;
+    long b = PRNGDefaults::b;
+    long c = PRNGDefaults::c;
     unsigned int mpfr_precision = 53;
     size_t buffer_size = 1024;
 
@@ -146,6 +157,12 @@ struct PRNGConfig {
     bool adhoc_corrections  = false;  // default false
     bool use_tie_breaking = true;     // tie-break by default
     unsigned long reseed_interval = 1000;
+    
+    // Discriminant options
+    bool use_csv_discriminants = false; // use custom discriminants from CSV file
+    
+    // Performance options
+    bool use_parallel_filling = true; // use parallel buffer filling for better performance
 
     // Additional offset
     size_t offset = 0;
@@ -241,8 +258,69 @@ public:
 
     // Simple skip
     void skip(uint64_t n) {
-        for (uint64_t i = 0; i < n; i++) {
-            step_once();
+        // Use jump_ahead for efficiency
+        jump_ahead(n);
+    }
+    
+    // Efficient jump-ahead implementation
+    void jump_ahead(uint64_t n) {
+        // For small jumps, use the naive approach
+        if (n < 100) {
+            for (uint64_t i = 0; i < n; i++) {
+                step_once();
+            }
+            return;
+        }
+        
+        // For large jumps, use binary decomposition
+        // Save current state
+        std::unique_ptr<MPFRWrapper> saved_value = 
+            std::make_unique<MPFRWrapper>(mpfr_get_prec(*value_->get()));
+        mpfr_set(*saved_value->get(), *value_->get(), MPFR_RNDN);
+        
+        // Binary decomposition approach:
+        // We'll precompute the state after 2^k iterations for various k
+        std::vector<std::unique_ptr<MPFRWrapper>> states;
+        states.reserve(64); // 64 bits should be enough for uint64_t
+        
+        // Initialize first state
+        states.push_back(std::move(saved_value));
+        
+        // Compute state after 1 step
+        step_once();
+        states.push_back(std::make_unique<MPFRWrapper>(mpfr_get_prec(*value_->get())));
+        mpfr_set(*states[1]->get(), *value_->get(), MPFR_RNDN);
+        
+        // Compute states after 2^k steps for k from 1 to log2(n)
+        for (size_t k = 1; (1ULL << k) <= n; k++) {
+            // Initialize a state for 2^k
+            states.push_back(std::make_unique<MPFRWrapper>(mpfr_get_prec(*value_->get())));
+            
+            // To reach state 2^k, apply the iteration function 2^(k-1) times to state 2^(k-1)
+            mpfr_set(*value_->get(), *states[k]->get(), MPFR_RNDN);
+            for (uint64_t i = 0; i < (1ULL << (k-1)); i++) {
+                step_once();
+            }
+            mpfr_set(*states[k+1]->get(), *value_->get(), MPFR_RNDN);
+        }
+        
+        // Reset to initial state
+        mpfr_set(*value_->get(), *states[0]->get(), MPFR_RNDN);
+        
+        // Apply jumps based on binary representation of n
+        for (size_t k = 0; k <= 63; k++) {
+            if (n & (1ULL << k)) {
+                if (k+1 < states.size()) {
+                    // Apply the precomputed jump of size 2^k
+                    mpfr_set(*value_->get(), *states[k+1]->get(), MPFR_RNDN);
+                } else {
+                    // If we don't have this power, use naive approach for remaining jumps
+                    for (uint64_t i = 0; i < (1ULL << k); i++) {
+                        step_once();
+                    }
+                    break;
+                }
+            }
         }
     }
 };
@@ -277,10 +355,23 @@ public:
     }
 
     void skip(uint64_t n) {
-        // naive skip by calling next() repeatedly
-        for (uint64_t i = 0; i < n; i++) {
-            next();
+        // Use the efficient jump_ahead implementation
+        jump_ahead(n);
+    }
+    
+    // Efficient jump ahead for MultiQI
+    void jump_ahead(uint64_t n) {
+        if (qis_.empty()) {
+            return;
         }
+        
+        // Apply jump-ahead to each QI sequence
+        for (auto& qi : qis_) {
+            qi.jump_ahead(n);
+        }
+        
+        // Update index based on jump size
+        idx_ = (idx_ + (n % qis_.size())) % qis_.size();
     }
 
     size_t size() const { return qis_.size(); }
@@ -399,12 +490,184 @@ public:
 };
 
 // ---------------------------------------------------------------------
+// ZigguratNormal - Efficient normal distribution generator
+//
+// This implements the Ziggurat algorithm by Marsaglia and Tsang for 
+// generating normal random variables more efficiently than Box-Muller
+class ZigguratNormal {
+private:
+    // Tables for the Ziggurat algorithm
+    // These precomputed tables enable the fast generation of normal random variables
+    static constexpr int ZIGGURAT_TABLES = 256;
+    static constexpr int ZIGGURAT_MASK = ZIGGURAT_TABLES - 1;
+    
+    // Arrays for the algorithm
+    std::array<double, ZIGGURAT_TABLES> x_table_;
+    std::array<double, ZIGGURAT_TABLES> y_table_;
+    std::array<uint32_t, ZIGGURAT_TABLES> k_table_;
+    
+    // Uniform random source
+    std::function<double()> uniform_generator_;
+    
+    // Distribution parameters
+    double mean_;
+    double stddev_;
+    
+    // Initialize the tables for the Ziggurat algorithm using the full iterative method
+    // as described by Marsaglia and Tsang
+    void initialize_tables() {
+        constexpr double R = 3.6541528853610088;  // Value at which the tail begins
+        constexpr double A = 0.00492867323399;    // Area under tail
+        
+        // Set the rightmost x value
+        x_table_[0] = R;
+        y_table_[0] = std::exp(-0.5 * R * R);     // Density at R
+        
+        // Volume of each box is v = A
+        double v = A;
+        
+        // Step 2: Create the tables using accurate iterative calculations
+        for (int i = 1; i < ZIGGURAT_TABLES; ++i) {
+            // Find the next x value where the rectangle and wedge have equal areas
+            // Using the equation: x * f(x) + v = y * (x_prev - x) + v
+            double x_prev = x_table_[i-1];
+            double y_prev = y_table_[i-1];
+            
+            // Starting value for x_i
+            double x_i = (i == ZIGGURAT_TABLES-1) ? 0.0 : 
+                         (x_prev > 0.5) ? x_prev - 0.1 : 0.25;
+            
+            // Iteratively solve for the correct x value
+            // We converge on a value where the areas of the wedge and rectangle are equal
+            for (int j = 0; j < 10; ++j) { // Usually 5-10 iterations are enough
+                double y_i = std::exp(-0.5 * x_i * x_i); // Density at x_i
+                
+                // Compute the areas and their difference
+                double fx = x_i * y_i;  // Rectangle area under the x_i point
+                double area_diff = y_prev * (x_prev - x_i) - (fx - fx * (y_i / y_prev));
+                
+                // Update x_i using Newton-like iteration
+                x_i -= area_diff / (y_prev - y_i - x_i * y_i * y_i / y_prev);
+                
+                // Special handling for the last point (near zero)
+                if (i == ZIGGURAT_TABLES-1 && j > 5) {
+                    x_i = 0.0;
+                    break;
+                }
+            }
+            
+            // Store calculated values
+            x_table_[i] = x_i;
+            y_table_[i] = std::exp(-0.5 * x_i * x_i);
+        }
+        
+        // Ensure x_table_[ZIGGURAT_TABLES-1] is exactly 0
+        x_table_[ZIGGURAT_TABLES-1] = 0.0;
+        y_table_[ZIGGURAT_TABLES-1] = 1.0;  // Density at x=0
+        
+        // Calculate k_table_ values (region acceptance thresholds) accurately
+        for (int i = 0; i < ZIGGURAT_TABLES; ++i) {
+            if (i == 0) {
+                // For the tail region, use the tail probability
+                k_table_[i] = static_cast<uint32_t>((UINT32_MAX) * (A / y_table_[i]));
+            } else {
+                // For internal rectangles, compute exact acceptance ratios
+                double ratio;
+                if (i == ZIGGURAT_TABLES-1) {
+                    // The innermost rectangle is fully accepted
+                    ratio = 1.0;
+                } else {
+                    // Other rectangles use the ratio of successive y values
+                    ratio = x_table_[i] / x_table_[i-1];
+                }
+                k_table_[i] = static_cast<uint32_t>((UINT32_MAX) * ratio);
+            }
+        }
+    }
+    
+    // Handle the tail region of the normal distribution
+    // Uses the accurate algorithm from Marsaglia and Tsang's paper
+    double sample_from_tail() {
+        double x, y;
+        do {
+            // Generate a point in the exponential tail
+            x = -std::log(uniform_generator_()) / x_table_[0]; // Using x_table_[0] which is R
+            y = -std::log(uniform_generator_());
+            
+            // Accept if it's under the density curve
+        } while (y + y < x * x);
+        
+        // Return tail value
+        return x_table_[0] + x;
+    }
+    
+public:
+    ZigguratNormal(std::function<double()> uniform_generator,
+                  double mean = 0.0, double stddev = 1.0)
+        : uniform_generator_(uniform_generator),
+          mean_(mean),
+          stddev_(stddev)
+    {
+        initialize_tables();
+    }
+    
+    // Update distribution parameters
+    void set_parameters(double mean, double stddev) {
+        mean_ = mean;
+        stddev_ = stddev;
+    }
+    
+    // Generate a single normal random number
+    double generate() {
+        uint32_t u, i, sign;
+        double x, y;
+        
+        while (true) {
+            // Get random 32-bit value and extract sign and index
+            u = static_cast<uint32_t>(uniform_generator_() * static_cast<double>(UINT32_MAX));
+            i = u & ZIGGURAT_MASK;
+            sign = u & 0x80000000;
+            
+            // First try the rectangle
+            if (u < k_table_[i]) {
+                x = u * x_table_[i] / static_cast<double>(UINT32_MAX);
+                // Apply mean and stddev
+                return sign ? mean_ - stddev_ * x : mean_ + stddev_ * x;
+            }
+            
+            // Bottom box: handle tail
+            if (i == 0) {
+                x = sample_from_tail();
+                return sign ? mean_ - stddev_ * x : mean_ + stddev_ * x;
+            }
+            
+            // Is point within density?
+            x = u * x_table_[i] / static_cast<double>(UINT32_MAX);
+            if (y_table_[i+1] + (y_table_[i] - y_table_[i+1]) * uniform_generator_() < 
+                std::exp(-0.5 * x * x)) {
+                return sign ? mean_ - stddev_ * x : mean_ + stddev_ * x;
+            }
+            
+            // Try again if we reach here
+        }
+    }
+    
+    // Generate multiple normal random numbers
+    void generate(double* buffer, size_t count) {
+        for (size_t i = 0; i < count; ++i) {
+            buffer[i] = generate();
+        }
+    }
+};
+
+// ---------------------------------------------------------------------
 // EnhancedPRNG
 class EnhancedPRNG {
 private:
     PRNGConfig config_;
     std::unique_ptr<MultiQI> multi_;
     std::unique_ptr<CryptoMixer> crypto_;
+    std::unique_ptr<ZigguratNormal> ziggurat_; // Ziggurat generator for normal distribution
     SecureBuffer<double> buffer_;
     size_t buffer_pos_;
     size_t sample_count_;
@@ -435,17 +698,119 @@ private:
         }
     }
 
+    // Parallel buffer filling implementation using shared state with jump-ahead approach
+    void fill_buffer_parallel() {
+        // Calculate optimal thread count based on buffer size and hardware
+        size_t ideal_threads = std::thread::hardware_concurrency();
+        if (ideal_threads == 0) ideal_threads = 4; // Fallback if hardware_concurrency fails
+        
+        // Scale threads based on buffer size - don't use many threads for small buffers
+        size_t buffer_based_threads = buffer_.size() / 10000;
+        if (buffer_based_threads == 0) buffer_based_threads = 1;
+        
+        size_t thread_count = std::min(ideal_threads, buffer_based_threads);
+        
+        // For small buffers or single thread, use sequential fill
+        if (thread_count <= 1 || buffer_.size() < 5000) {
+            if (multi_) multi_->fill(buffer_.data(), buffer_.size());
+            buffer_pos_ = 0;
+            return;
+        }
+        
+        // Thread safety check - don't try to use more threads than the buffer size
+        if (thread_count > buffer_.size()) {
+            thread_count = buffer_.size();
+        }
+        
+        // Setup thread containers
+        std::vector<std::thread> threads;
+        threads.reserve(thread_count);
+        
+        // Create clones of the main MultiQI for each thread
+        // This allows us to jump ahead to different positions without affecting the original
+        // We need to create a cloning function for MultiQI and QuadraticIrrational to do this properly
+        std::vector<std::unique_ptr<MultiQI>> thread_multiqis;
+        thread_multiqis.reserve(thread_count);
+        
+        // Get parameters from the main MultiQI instance
+        int howMany = config_.debug ? 16 : 32;
+        auto base_params = pickMultiQiSet(config_.mpfr_precision, howMany);
+        
+        // Create identical MultiQI instances for each thread
+        for (size_t t = 0; t < thread_count; ++t) {
+            thread_multiqis.push_back(std::make_unique<MultiQI>(base_params, config_.mpfr_precision));
+        }
+        
+        // Calculate chunk sizes and sequence positions
+        const size_t chunk_size = buffer_.size() / thread_count;
+        
+        // Use mutex to protect thread ID assignment and jump calculations
+        std::mutex jump_mutex;
+        
+        // Determine start position for the entire buffer fill
+        size_t current_sequence_position = 0; // We'll jump from the current sequence position
+        
+        // Launch worker threads
+        for (size_t t = 0; t < thread_count; ++t) {
+            size_t start = t * chunk_size;
+            size_t end = (t == thread_count - 1) ? buffer_.size() : (t + 1) * chunk_size;
+            size_t segment_size = end - start;
+            
+            threads.emplace_back([t, start, end, segment_size, &thread_multiqis, &jump_mutex, &current_sequence_position, this]() {
+                // Calculate this thread's jump position
+                uint64_t thread_jump_position;
+                {
+                    std::lock_guard<std::mutex> lock(jump_mutex);
+                    thread_jump_position = current_sequence_position;
+                    current_sequence_position += segment_size;
+                }
+                
+                // Jump ahead to the correct position in the sequence
+                thread_multiqis[t]->jump_ahead(thread_jump_position);
+                
+                // Fill this thread's portion of the buffer with values from the same
+                // conceptual sequence as the main generator, just at an offset
+                thread_multiqis[t]->fill(buffer_.data() + start, segment_size);
+            });
+        }
+        
+        // Wait for all threads to complete
+        for (auto& thread : threads) {
+            if (thread.joinable()) {
+                thread.join();
+            }
+        }
+        
+        // Update the main generator's position to be after the entire buffer
+        multi_->jump_ahead(buffer_.size());
+        
+        // Reset buffer position
+        buffer_pos_ = 0;
+        
+        // Apply crypto mixing if configured
+        if (config_.use_crypto_mixing && crypto_) {
+            crypto_->mix(reinterpret_cast<unsigned char*>(buffer_.data()),
+                        buffer_.size() * sizeof(double));
+        }
+    }
+    
     // Refill buffer with base uniform(0,1), then optionally cryptomix
     void fill_buffer() {
         if (!multi_) {
             throw std::runtime_error("MultiQI not initialized");
         }
-        multi_->fill(buffer_.data(), buffer_.size());
-        buffer_pos_ = 0;
-
-        if (config_.use_crypto_mixing && crypto_) {
-            crypto_->mix(reinterpret_cast<unsigned char*>(buffer_.data()),
-                         buffer_.size() * sizeof(double));
+        
+        if (config_.use_parallel_filling) {
+            fill_buffer_parallel();
+        } else {
+            // Original sequential implementation
+            multi_->fill(buffer_.data(), buffer_.size());
+            buffer_pos_ = 0;
+            
+            if (config_.use_crypto_mixing && crypto_) {
+                crypto_->mix(reinterpret_cast<unsigned char*>(buffer_.data()),
+                             buffer_.size() * sizeof(double));
+            }
         }
     }
 
@@ -479,10 +844,21 @@ private:
 public:
     EnhancedPRNG(const PRNGConfig& cfg,
                  const std::vector<std::tuple<long,long,long>>& abc_list)
-      : config_(cfg),
-        multi_(std::make_unique<MultiQI>(abc_list, config_.mpfr_precision)),
-        buffer_(config_.buffer_size),
-        buffer_pos_(config_.buffer_size),
+  : config_(cfg),
+    multi_(std::make_unique<MultiQI>(abc_list, config_.mpfr_precision)),
+    buffer_(config_.buffer_size),
+    buffer_pos_(config_.buffer_size),
+    // Initialize Ziggurat normal generator with a lambda that provides uniform values
+    ziggurat_(std::make_unique<ZigguratNormal>(
+        [this]() -> double {
+            // Get next uniform value
+            if (buffer_pos_ >= buffer_.size()) {
+                fill_buffer();
+            }
+            return buffer_[buffer_pos_++];
+        },
+        config_.normal_mean,
+        config_.normal_sd)),
         sample_count_(0),
         has_spare_normal_(false),
         spare_normal_(0.0),
@@ -515,11 +891,29 @@ public:
                               old_config.c != new_config.c);
         bool range_changed = (old_config.range_min != new_config.range_min ||
                              old_config.range_max != new_config.range_max);
-        bool normal_changed = (old_config.normal_mean != new_config.normal_mean ||
+        bool norm_changed = (old_config.normal_mean != new_config.normal_mean ||
                                old_config.normal_sd   != new_config.normal_sd);
+        bool method_changed = (old_config.normal_method != new_config.normal_method);        
         bool exp_changed = (old_config.exponential_lambda != new_config.exponential_lambda);
-
+        
         config_ = new_config;
+        
+        // Update normal params
+        if (norm_changed) {
+            reset_state();  // avoid spare_normal issues
+            has_spare_normal_ = false;
+            
+            // Update Ziggurat normal generator if needed
+            if (ziggurat_) {
+                ziggurat_->set_parameters(config_.normal_mean, config_.normal_sd);
+            }
+        }
+        
+        // Handle normal method changes
+        if (method_changed) {
+            reset_state();  // Reset state when switching methods
+            has_spare_normal_ = false;
+        }
 
         // Re-init crypto mixer if needed
         if (config_.use_crypto_mixing && !crypto_) {
@@ -567,20 +961,26 @@ public:
             return config_.range_min + (config_.range_max - config_.range_min)*u;
 
         case PRNGConfig::NORMAL: {
-            if (!has_spare_normal_) {
-                // get next uniform for the second normal
-                double u2 = (buffer_pos_ >= buffer_.size()) ?
-                    (fill_buffer(), buffer_[buffer_pos_++])
-                    : buffer_[buffer_pos_++];
-                sample_count_++;
-                // produce two normals
-                auto pairz = box_muller_pair(u, u2);
-                has_spare_normal_ = true;
-                spare_normal_ = pairz.second;
-                return pairz.first;
+            if (config_.normal_method == PRNGConfig::ZIGGURAT) {
+                // Use faster Ziggurat algorithm
+                ziggurat_->set_parameters(config_.normal_mean, config_.normal_sd);
+                return ziggurat_->generate();
             } else {
-                has_spare_normal_ = false;
-                return spare_normal_;
+                // Use traditional Box-Muller transform
+                if (!has_spare_normal_) {
+                    double u2 = (buffer_pos_ >= buffer_.size()) ? 
+                        (fill_buffer(), buffer_[buffer_pos_++])
+                        : buffer_[buffer_pos_++];
+                    sample_count_++;
+                    // produce two normals
+                    auto pairz = box_muller_pair(u, u2);
+                    has_spare_normal_ = true;
+                    spare_normal_ = pairz.second;
+                    return pairz.first;
+                } else {
+                    has_spare_normal_ = false;
+                    return spare_normal_;
+                }
             }
         }
 
@@ -594,29 +994,62 @@ public:
 
     // Skip n draws
     void skip(size_t n) {
-        size_t diff = (buffer_pos_ < buffer_.size())
-                        ? (buffer_.size() - buffer_pos_)
-                        : 0;
-        if (n <= diff) {
-            // just move pointer
+        if (n == 0) {
+            return;
+        }
+        
+        // For small skips or when we have buffer data available
+        size_t buffer_available = buffer_.size() - buffer_pos_;
+        if (n <= buffer_available) {
+            // Just move the pointer
             buffer_pos_ += n;
-        } else {
-            n -= diff;
-            size_t fullbuf = n / buffer_.size();
-            size_t remainder = n % buffer_.size();
-
-            // skip in the underlying Qi
-            if (multi_) {
-                multi_->skip(fullbuf * buffer_.size());
-            }
-            // refill
-            buffer_pos_ = buffer_.size();
-            if (remainder > 0) {
-                fill_buffer();
-                buffer_pos_ = remainder;
+            sample_count_ += n;
+            skipped_ += n;
+            return;
+        }
+        
+        // For larger skips - consume buffer first
+        n -= buffer_available;
+        buffer_pos_ = buffer_.size(); // Mark buffer as fully consumed
+        sample_count_ += buffer_available;
+        
+        // Calculate full buffer skips and remainder
+        size_t full_buffers = n / buffer_.size();
+        size_t remainder = n % buffer_.size();
+        
+        // Check if we need to reseed during this skip
+        if (config_.reseed_interval > 0) {
+            uint64_t total_samples = sample_count_ + full_buffers * buffer_.size() + remainder;
+            uint64_t intervals_crossed = total_samples / config_.reseed_interval;
+            
+            if (intervals_crossed > 0) {
+                // We'll cross at least one reseed boundary
+                reseed();
+                sample_count_ = 0;
+                
+                // Adjust the skip count
+                uint64_t remaining_samples = total_samples % config_.reseed_interval;
+                
+                // Recalculate full buffers and remainder
+                full_buffers = remaining_samples / buffer_.size();
+                remainder = remaining_samples % buffer_.size();
             }
         }
-        skipped_ += n;
+        
+        // Use jump-ahead for the majority of the skip
+        if (multi_ && full_buffers > 0) {
+            multi_->jump_ahead(full_buffers * buffer_.size());
+            sample_count_ += full_buffers * buffer_.size();
+        }
+        
+        // Handle remainder
+        if (remainder > 0) {
+            fill_buffer();  // Refill buffer
+            buffer_pos_ = remainder;  // Set position
+            sample_count_ += remainder;
+        }
+        
+        skipped_ += n + buffer_available;
     }
 
     // Reseed => re-randomize Qi with pickMultiQiSet(...) again + cryptomixer
@@ -740,7 +1173,21 @@ static PRNGConfig parseFromR(Rcpp::List rcfg) {
     parse_double_("normal_mean", config.normal_mean);
     parse_double_("normal_sd", config.normal_sd);
     parse_double_("exponential_lambda", config.exponential_lambda);
+    
+    // Parse normal distribution method
+    if (rcfg.containsElementNamed("normal_method")) {
+        std::string method = Rcpp::as<std::string>(rcfg["normal_method"]);
+        if (method == "ziggurat") {
+            config.normal_method = PRNGConfig::ZIGGURAT;
+        } else if (method == "box_muller") {
+            config.normal_method = PRNGConfig::BOX_MULLER;
+        } else {
+            throw std::runtime_error("Invalid normal method: must be 'ziggurat' or 'box_muller'");
+        }
+    }
     parse_flag("use_crypto_mixing", config.use_crypto_mixing);
+    parse_flag("use_parallel_filling", config.use_parallel_filling);
+    parse_flag("use_csv_discriminants", config.use_csv_discriminants);
     parse_flag("adhoc_corrections", config.adhoc_corrections);
     parse_flag("use_tie_breaking", config.use_tie_breaking);
     parse_ulong_("reseed_interval", config.reseed_interval);
@@ -935,6 +1382,61 @@ void reseedPRNG_() {
     }
 }
 
+// Load discriminants from CSV file
+void loadCSVDiscriminants() {
+    std::lock_guard<std::mutex> lock(g_csv_disc_mutex);
+    
+    // Check if already loaded
+    if (g_csv_discriminants_loaded) {
+        return;
+    }
+    
+    std::string csv_path = "discriminants.csv";
+    std::ifstream file(csv_path);
+    
+    if (!file.is_open()) {
+        Rcpp::warning("Could not open discriminants.csv file, falling back to random discriminants");
+        return;
+    }
+    
+    std::string line;
+    // Skip header
+    std::getline(file, line);
+    
+    // Read data lines
+    while (std::getline(file, line)) {
+        std::stringstream ss(line);
+        std::string token;
+        std::vector<std::string> tokens;
+        
+        while (std::getline(ss, token, ',')) {
+            tokens.push_back(token);
+        }
+        
+        if (tokens.size() >= 4) {
+            try {
+                long a = std::stol(tokens[0]);
+                long b = std::stol(tokens[1]);
+                long c = std::stol(tokens[2]);
+                long long discriminant = std::stoll(tokens[3]);
+                
+                // Verify discriminant
+                if (discriminant == static_cast<long long>(b)*b - 4LL*a*c && discriminant > 0) {
+                    g_csv_discriminants.push_back(std::make_tuple(a, b, c, discriminant));
+                }
+            } catch (const std::exception& e) {
+                // Skip invalid lines
+                continue;
+            }
+        }
+    }
+    
+    file.close();
+    g_csv_discriminants_loaded = true;
+    
+    Rcpp::Rcout << "Loaded " << g_csv_discriminants.size() << " discriminants from CSV file." << std::endl;
+}
+
 // [[Rcpp::export(".cleanup_prng_")]]
 void cleanup_prng_() {
     {
@@ -978,8 +1480,62 @@ void jumpAheadPRNG_(double n) {
 // ---------------------------------------------------------------------
 // chooseUniqueDiscriminant(...) and makeABCfromDelta(...)
 
-// Not heavily used in the tests, but kept for completeness.
+// Augmented to support custom discriminants from CSV file.
 long long chooseUniqueDiscriminant(long min_value, long max_value) {
+    // Check if we should use CSV discriminants
+    PRNGConfig* config = nullptr;
+    if (g_use_threading && t_prng) {
+        config = &t_prng->getConfig();
+    } else if (!g_use_threading && g_prng) {
+        config = &g_prng->getConfig();
+    }
+    
+    bool use_csv = config && config->use_csv_discriminants;
+    
+    // Use CSV discriminants if requested
+    if (use_csv) {
+        std::lock_guard<std::mutex> csv_lock(g_csv_disc_mutex);
+        
+        // Load CSV discriminants if not already loaded
+        if (!g_csv_discriminants_loaded) {
+            loadCSVDiscriminants();
+        }
+        
+        // Use CSV discriminants if available
+        if (!g_csv_discriminants.empty()) {
+            std::random_device rd;
+            std::mt19937_64 gen(rd());
+            
+            // Try up to 50 random discriminants from the CSV file
+            const int MAX_CSV_ATTEMPTS = 50;
+            for (int attempt = 0; attempt < MAX_CSV_ATTEMPTS; attempt++) {
+                std::uniform_int_distribution<size_t> csv_idx_dist(0, g_csv_discriminants.size() - 1);
+                size_t idx = csv_idx_dist(gen);
+                auto& entry = g_csv_discriminants[idx];
+                long long discriminant = std::get<3>(entry);
+                
+                // Check if already used
+                std::lock_guard<std::mutex> disc_lock(g_disc_mutex);
+                if (g_used_discriminants.find(discriminant) == g_used_discriminants.end()) {
+                    g_used_discriminants.insert(discriminant);
+                    
+                    // Update PRNG parameters if possible
+                    if (config) {
+                        config->a = std::get<0>(entry);
+                        config->b = std::get<1>(entry);
+                        config->c = std::get<2>(entry);
+                    }
+                    
+                    return discriminant;
+                }
+            }
+            
+            // If all attempts failed, fall back to random
+            Rcpp::warning("All CSV discriminants are used, falling back to random");
+        }
+    }
+    
+    // Original random selection logic
     std::random_device rd;
     std::mt19937_64 gen(rd());
     std::uniform_int_distribution<long long> dist(min_value, max_value);
