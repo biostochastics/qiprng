@@ -30,6 +30,11 @@ default_config <- list(
     normal_mean = 0,
     normal_sd = 1,
     exponential_lambda = 1,
+    poisson_lambda = 1,
+    gamma_shape = 1,
+    gamma_scale = 1,
+    beta_alpha = 1,
+    beta_beta = 1,
     use_crypto_mixing = FALSE,
     reseed_interval = 1000L,  # Default to 1000 iterations between reseeds
     use_threading = FALSE,    # Enable thread-local PRNG instances
@@ -57,17 +62,17 @@ validate_config <- function(config) {
     }
     
     # Check MPFR precision (53-bit is standard double precision)
-    # MPFR requires precision to be between 2 and (2^31 - 1 - 256)
+    # MPFR implementation restricts precision to 24..10000 bits for stability
     mpfr_precision <- as.integer(config$mpfr_precision)
-    if (mpfr_precision < 2 || mpfr_precision > 2147483391L) {  # 2^31 - 1 - 256
-        stop("Invalid MPFR precision: must be between 2 and 2147483391")
+    if (mpfr_precision < 24 || mpfr_precision > 10000) {
+        stop("Invalid MPFR precision: must be 24..10000 bits")
     }
     
     # Check distribution parameters
     if (!is.null(config$distribution)) {
         dist <- config$distribution
-        if (!dist %in% c("uniform_01", "uniform_range", "normal", "exponential")) {
-            stop("Invalid distribution: must be one of 'uniform_01', 'uniform_range', 'normal', 'exponential'")
+        if (!dist %in% c("uniform_01", "uniform_range", "normal", "exponential", "poisson", "gamma", "beta")) {
+            stop("Invalid distribution: must be one of 'uniform_01', 'uniform_range', 'normal', 'exponential', 'poisson', 'gamma', 'beta'")
         }
         
         if (dist == "uniform_range") {
@@ -81,6 +86,24 @@ validate_config <- function(config) {
         } else if (dist == "exponential") {
             if (config$exponential_lambda <= 0) {
                 stop("Invalid exponential distribution: lambda must be positive")
+            }
+        } else if (dist == "poisson") {
+            if (config$poisson_lambda <= 0) {
+                stop("Invalid poisson distribution: lambda must be positive")
+            }
+        } else if (dist == "gamma") {
+            if (config$gamma_shape <= 0) {
+                stop("Invalid gamma distribution: shape must be positive")
+            }
+            if (config$gamma_scale <= 0) {
+                stop("Invalid gamma distribution: scale must be positive")
+            }
+        } else if (dist == "beta") {
+            if (config$beta_alpha <= 0) {
+                stop("Invalid beta distribution: alpha must be positive")
+            }
+            if (config$beta_beta <= 0) {
+                stop("Invalid beta distribution: beta must be positive")
             }
         }
     }
