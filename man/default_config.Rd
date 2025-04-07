@@ -17,13 +17,18 @@ A list containing the following parameters:
   \item{c}{Integer (-2). Constant term for ax^2 + bx + c}
   \item{mpfr_precision}{Integer (53). MPFR precision in bits, standard double precision}
   \item{buffer_size}{Integer (1024). Size of internal buffer for random numbers}
-  \item{distribution}{Character ("uniform_01"). Default distribution type}
+  \item{distribution}{Character ("uniform_01"). Default distribution type, one of "uniform_01", "uniform_range", "normal", "exponential", "poisson", "gamma", "beta"}
   \item{range_min}{Numeric (0). Lower bound for uniform range distribution}
   \item{range_max}{Numeric (1). Upper bound for uniform range distribution}
   \item{normal_mean}{Numeric (0). Mean parameter for normal distribution}
   \item{normal_sd}{Numeric (1). Standard deviation for normal distribution}
   \item{normal_method}{Character ("ziggurat"). Method for generating normal distribution ("ziggurat" or "box_muller")}
   \item{exponential_lambda}{Numeric (1). Rate parameter for exponential distribution}
+  \item{poisson_lambda}{Numeric (1). Mean parameter for Poisson distribution}
+  \item{gamma_shape}{Numeric (1). Shape parameter for Gamma distribution}
+  \item{gamma_scale}{Numeric (1). Scale parameter for Gamma distribution}
+  \item{beta_alpha}{Numeric (1). First shape parameter (alpha) for Beta distribution}
+  \item{beta_beta}{Numeric (1). Second shape parameter (beta) for Beta distribution}
   \item{use_crypto_mixing}{Logical (FALSE). Whether to apply cryptographic mixing}
   \item{use_parallel_filling}{Logical (TRUE). Whether to use parallel buffer filling}
   \item{use_csv_discriminants}{Logical (FALSE). Whether to use discriminants from a CSV file}
