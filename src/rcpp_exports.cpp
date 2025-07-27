@@ -237,6 +237,27 @@ PRNGConfig parsePRNGConfig(Rcpp::List rcfg) {
         }
     }
     
+    if (rcfg.containsElementNamed("seed")) {
+        SEXP seed_sexp = rcfg["seed"];
+        if (TYPEOF(seed_sexp) == INTSXP || TYPEOF(seed_sexp) == REALSXP) {
+            cfg.seed = Rcpp::as<uint64_t>(seed_sexp);
+        }
+    }
+    
+    if (rcfg.containsElementNamed("has_seed")) {
+        SEXP has_seed_sexp = rcfg["has_seed"];
+        if (TYPEOF(has_seed_sexp) == LGLSXP) {
+            cfg.has_seed = Rcpp::as<bool>(has_seed_sexp);
+        }
+    }
+    
+    if (rcfg.containsElementNamed("deterministic")) {
+        SEXP deterministic_sexp = rcfg["deterministic"];
+        if (TYPEOF(deterministic_sexp) == LGLSXP) {
+            cfg.deterministic = Rcpp::as<bool>(deterministic_sexp);
+        }
+    }
+    
     return cfg;
 }
 
@@ -296,6 +317,9 @@ Rcpp::List PRNGConfigToList(const PRNGConfig& cfg) {
     result["use_threading"] = cfg.use_threading;
     result["offset"] = static_cast<int>(cfg.offset);
     result["debug"] = cfg.debug;
+    result["seed"] = static_cast<double>(cfg.seed);
+    result["has_seed"] = cfg.has_seed;
+    result["deterministic"] = cfg.deterministic;
     
     return result;
 }
@@ -351,7 +375,8 @@ void createPRNG_(Rcpp::List rcfg) {
         
         // Select quadratic irrationals based on precision and create thread-local PRNG
         int num_qis = cfg.mpfr_precision < 64 ? 2 : (cfg.mpfr_precision < 128 ? 3 : 5);
-        std::vector<std::tuple<long, long, long>> abc_list = pickMultiQiSet(cfg.mpfr_precision, num_qis);
+        std::vector<std::tuple<long, long, long>> abc_list = pickMultiQiSet(cfg.mpfr_precision, num_qis, 
+                                                                           cfg.seed, cfg.has_seed);
         t_prng = std::make_unique<EnhancedPRNG>(cfg, abc_list);
         
         if (cfg.debug) {
@@ -364,7 +389,8 @@ void createPRNG_(Rcpp::List rcfg) {
         
         // Select quadratic irrationals based on precision and create global PRNG
         int num_qis = cfg.mpfr_precision < 64 ? 2 : (cfg.mpfr_precision < 128 ? 3 : 5);
-        std::vector<std::tuple<long, long, long>> abc_list = pickMultiQiSet(cfg.mpfr_precision, num_qis);
+        std::vector<std::tuple<long, long, long>> abc_list = pickMultiQiSet(cfg.mpfr_precision, num_qis,
+                                                                           cfg.seed, cfg.has_seed);
         g_prng = std::make_unique<EnhancedPRNG>(cfg, abc_list);
         
         if (cfg.debug) {
@@ -407,7 +433,8 @@ void updatePRNG_(Rcpp::List rcfg) {
                 
                 // Get the MultiQI set for our PRNG
                 int num_qis = new_cfg.mpfr_precision < 64 ? 2 : (new_cfg.mpfr_precision < 128 ? 3 : 5);
-                std::vector<std::tuple<long, long, long>> abc_list = pickMultiQiSet(new_cfg.mpfr_precision, num_qis);
+                std::vector<std::tuple<long, long, long>> abc_list = pickMultiQiSet(new_cfg.mpfr_precision, num_qis,
+                                                                                   new_cfg.seed, new_cfg.has_seed);
                 
                 // Create the thread-local PRNG
                 t_prng = std::make_unique<EnhancedPRNG>(new_cfg, abc_list);
@@ -429,7 +456,8 @@ void updatePRNG_(Rcpp::List rcfg) {
                 
                 // Get the MultiQI set for our PRNG
                 int num_qis = new_cfg.mpfr_precision < 64 ? 2 : (new_cfg.mpfr_precision < 128 ? 3 : 5);
-                std::vector<std::tuple<long, long, long>> abc_list = pickMultiQiSet(new_cfg.mpfr_precision, num_qis);
+                std::vector<std::tuple<long, long, long>> abc_list = pickMultiQiSet(new_cfg.mpfr_precision, num_qis,
+                                                                                   new_cfg.seed, new_cfg.has_seed);
                 
                 // Create the global PRNG
                 std::lock_guard<std::mutex> lock(g_prng_mutex);

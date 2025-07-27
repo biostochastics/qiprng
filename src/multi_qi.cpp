@@ -5,7 +5,8 @@
 
 namespace qiprng {
 
-MultiQI::MultiQI(const std::vector<std::tuple<long, long, long>>& abc_list, int mpfr_prec)
+MultiQI::MultiQI(const std::vector<std::tuple<long, long, long>>& abc_list, int mpfr_prec,
+                 uint64_t seed, bool has_seed)
     : idx_(0) {
     if (abc_list.empty()) {
         throw std::runtime_error("MultiQI: abc_list cannot be empty for initialization.");
@@ -15,7 +16,7 @@ MultiQI::MultiQI(const std::vector<std::tuple<long, long, long>>& abc_list, int 
         long A, B, C;
         std::tie(A, B, C) = abc;
         // QuadraticIrrational constructor throws on error
-        qis_.push_back(std::make_unique<QuadraticIrrational>(A, B, C, mpfr_prec));
+        qis_.push_back(std::make_unique<QuadraticIrrational>(A, B, C, mpfr_prec, seed, has_seed));
     }
 }
 

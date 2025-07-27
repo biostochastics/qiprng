@@ -16,6 +16,7 @@ based on mathematical properties of quadratic irrational numbers. It features:
 \itemize{
 \item Multiple probability distributions (uniform, normal, exponential, etc.)
 \item Optional cryptographic mixing for enhanced security
+\item Deterministic/reproducible mode with seed support (v0.2.7)
 \item Thread-safe implementation with mutex protection and thread-local storage
 \item Configurable precision using MPFR
 \item Jump-ahead capability for efficient sequence advancement

@@ -18,7 +18,8 @@ private:
     std::mutex mutex_; // Added for thread safety
 
 public:
-    MultiQI(const std::vector<std::tuple<long, long, long>>& abc_list, int mpfr_prec);
+    MultiQI(const std::vector<std::tuple<long, long, long>>& abc_list, int mpfr_prec,
+            uint64_t seed = 0, bool has_seed = false);
     ~MultiQI() = default; // Unique_ptr handles cleanup
 
     double next();

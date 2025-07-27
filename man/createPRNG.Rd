@@ -26,6 +26,9 @@ Possible parameters include:
 \item{use_csv_discriminants}{Logical: whether to use custom discriminants from discriminants.csv}
 \item{use_parallel_filling}{Logical: whether to use parallel buffer filling}
 \item{debug}{Logical: whether to enable debugging output}
+\item{seed}{Numeric seed for reproducible sequences (0 to 2^53-1).
+When provided, all random initialization is replaced with
+deterministic seeding. Default NULL uses secure random initialization.}
 }}
 }
 \value{
@@ -55,4 +58,14 @@ createPRNG(list(
   normal_sd = 2,
   use_threading = TRUE
 ))
+
+# Create PRNG with seed for reproducible sequences
+createPRNG(list(seed = 12345))
+seq1 <- generatePRNG(10)
+
+# Same seed produces same sequence
+cleanup_prng()
+createPRNG(list(seed = 12345))
+seq2 <- generatePRNG(10)
+identical(seq1, seq2)  # TRUE
 }

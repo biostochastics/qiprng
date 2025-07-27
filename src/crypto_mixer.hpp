@@ -28,6 +28,9 @@ private:
     bool adhoc_corrections_;
     bool use_tie_breaking_;
     bool initialized_;
+    uint64_t seed_;
+    bool has_seed_;
+    std::mt19937_64 det_rng_;
 
     void secure_random(unsigned char* buf, size_t len);
 
@@ -35,7 +38,8 @@ public:
     static constexpr uint64_t MANTISSA_MASK = 0x000FFFFFFFFFFFFFULL;
     static constexpr uint64_t ONE_BITS      = 0x3FF0000000000000ULL;
 
-    CryptoMixer(bool adhoc_corrections, bool use_tie_breaking);
+    CryptoMixer(bool adhoc_corrections, bool use_tie_breaking, 
+                uint64_t seed = 0, bool has_seed = false);
     ~CryptoMixer(); // SecureBuffer handles its own cleanup
 
     void reseed();

@@ -97,12 +97,20 @@ EnhancedPRNG::EnhancedPRNG(const PRNGConfig& cfg,
         initialize_libsodium_if_needed();
         crypto_ = std::make_unique<CryptoMixer>(
             config_.adhoc_corrections,
-            config_.use_tie_breaking
+            config_.use_tie_breaking,
+            config_.seed,
+            config_.has_seed
         );
     }
     
     // Create MultiQI instance with provided parameters
-    multi_ = std::make_unique<MultiQI>(abc_list, config_.mpfr_precision);
+    if (config_.has_seed) {
+        // Pass seed to MultiQI for deterministic initialization
+        multi_ = std::make_unique<MultiQI>(abc_list, config_.mpfr_precision,
+                                          config_.seed, true);
+    } else {
+        multi_ = std::make_unique<MultiQI>(abc_list, config_.mpfr_precision);
+    }
     
     reset_state();
     
@@ -293,7 +301,8 @@ void EnhancedPRNG::fill_buffer_parallel(size_t thread_count) {
         if (multi_ && multi_->size() > 0) {
             // Use pickMultiQiSet to get a new set of parameters
             try {
-                abc_list = pickMultiQiSet(cfg.mpfr_precision, 3 + thread_count);
+                abc_list = pickMultiQiSet(cfg.mpfr_precision, 3 + thread_count, 
+                                        cfg.seed, cfg.has_seed);
             } catch (...) {
                 // In case of exception, use a safe default
                 abc_list.push_back(std::make_tuple(cfg.a, cfg.b, cfg.c));
@@ -521,9 +530,14 @@ void EnhancedPRNG::reseed() {
     }
     
     // Skip ahead in the sequence to get "new" starting point
+    // Use smaller range for reseed skips since this happens during runtime
+    // and we've already done a large warm-up during initialization
+    const uint64_t MIN_RESEED_SKIP = 1000;   // Minimum to ensure state change
+    const uint64_t MAX_RESEED_SKIP = 10000;  // Maximum to keep reseed fast
+    
     std::random_device rd;
     std::mt19937_64 rng(rd());
-    std::uniform_int_distribution<uint64_t> skip_dist(1000, 10000);
+    std::uniform_int_distribution<uint64_t> skip_dist(MIN_RESEED_SKIP, MAX_RESEED_SKIP);
     multi_->jump_ahead(skip_dist(rng));
 }
 
@@ -1142,6 +1156,9 @@ void EnhancedPRNG::dumpConfig() const {
     Rcpp::Rcout << "  use_parallel_filling: " << (config_.use_parallel_filling ? "true" : "false") << std::endl;
     Rcpp::Rcout << "  offset: " << config_.offset << std::endl;
     Rcpp::Rcout << "  debug: " << (config_.debug ? "true" : "false") << std::endl;
+    Rcpp::Rcout << "  seed: " << config_.seed << std::endl;
+    Rcpp::Rcout << "  has_seed: " << (config_.has_seed ? "true" : "false") << std::endl;
+    Rcpp::Rcout << "  deterministic: " << (config_.deterministic ? "true" : "false") << std::endl;
     
     Rcpp::Rcout << std::endl;
 }
