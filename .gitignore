@@ -5,14 +5,46 @@
 src/*.o
 src/*.so
 src/*.dll
-src/Makevars 
 test_results/*
 code_concat_output.md
-TODO.md
 Rplots.pdf
 .Rhistory
 .RData
 .Ruserdata
 .Rproject
 test_log.txt
-TODO.md
+
+
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dev-debug.log
+# Dependency directories
+node_modules/
+# Environment variables
+.env
+# Editor, IDE, and tool-specific files
+.claude/
+.cursor/
+.gemini/
+.mcp.json
+.taskmaster/
+.windsurf/
+
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# OS specific
+.DS_Store
+
+# Task files
+tasks.json
+tasks/ 
