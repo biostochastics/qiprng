@@ -13,6 +13,8 @@ Rplots.pdf
 .Ruserdata
 .Rproject
 test_log.txt
+*.Rcheck
+qiprng.Rcheck/
 
 
 

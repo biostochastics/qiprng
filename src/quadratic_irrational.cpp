@@ -1,6 +1,7 @@
 // File: quadratic_irrational.cpp
 // --------------------------------------------------------------
 #include "quadratic_irrational.hpp"
+#include "deterministic_rng.hpp"
 #include <limits> // For std::numeric_limits
 #include <cstdlib> // For std::getenv
 
@@ -81,7 +82,8 @@ void QuadraticIrrational::step_once() {
     }
 }
 
-QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t prec)
+QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t prec,
+                                       uint64_t seed, bool has_seed)
     : a_(a), b_(b), c_(c) {
     // Validate parameters more comprehensively
     if (a == 0) {
@@ -171,25 +173,25 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
         check_mpfr_result(op_ret, "initial_frac");
         if (mpfr_nan_p(*value_->get())) throw std::runtime_error("QuadraticIrrational: initial frac() resulted in NaN");
 
-        // Check if we should use deterministic initialization for testing
-        const char* deterministic_env = std::getenv("QIPRNG_DETERMINISTIC");
-        bool use_deterministic = (deterministic_env != nullptr && std::string(deterministic_env) == "1");
-        
-        if (!use_deterministic) {
-            // Normal operation: random initial skip for security
+        // Determine skip amount based on whether seed is provided
+        uint64_t skip_amt;
+        if (has_seed) {
+            // Deterministic skip based on seed and parameters
+            auto det_rng = DeterministicRNGFactory::create(seed,
+                std::to_string(a) + "_" + std::to_string(b) + "_" + std::to_string(c));
+            std::uniform_int_distribution<uint64_t> skip_dist(1000, 10000);
+            skip_amt = skip_dist(det_rng);
+        } else {
+            // Original random behavior
             std::random_device rd;
             std::mt19937_64 rng(rd());
-            std::uniform_int_distribution<uint64_t> skip_dist(1000, 10000); // Ensure a decent initial skip
-            uint64_t skip_amt = skip_dist(rng);
-            for (uint64_t i = 0; i < skip_amt; i++) {
-                step_once();
-            }
-        } else {
-            // Deterministic mode for testing: fixed initial skip
-            const uint64_t DETERMINISTIC_SKIP = 1000;
-            for (uint64_t i = 0; i < DETERMINISTIC_SKIP; i++) {
-                step_once();
-            }
+            std::uniform_int_distribution<uint64_t> skip_dist(1000, 10000);
+            skip_amt = skip_dist(rng);
+        }
+        
+        // Perform the initial skip
+        for (uint64_t i = 0; i < skip_amt; i++) {
+            step_once();
         }
 
     } catch (const std::bad_alloc& e) {

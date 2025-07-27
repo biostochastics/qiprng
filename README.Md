@@ -2,7 +2,7 @@
 
 <img src="images/qiprng_logo.png" alt="QIPRNG Logo" width="300"/>
 
-[![Version](https://img.shields.io/badge/Version-0.2.6-blue)](https://github.com/biostochastics/qiprng)
+[![Version](https://img.shields.io/badge/Version-0.2.7-blue)](https://github.com/biostochastics/qiprng)
 [![ThreadSafe](https://img.shields.io/badge/Thread%20Safe-Yes-brightgreen)](https://github.com/biostochastics/qiprng)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen)](https://github.com/biostochastics/qiprng)
@@ -90,6 +90,7 @@ remotes::install_github("biostochastics/qiprng")
 - **High-precision computation** using the MPFR library (24-10000 bits precision)
 - **Multiple output distributions**: uniform, normal, exponential
 - **Optional cryptographic mixing** using ChaCha20 for enhanced security
+- **Deterministic/reproducible mode** with seed support for scientific computing (v0.2.7)
 - **Configurable parameters** for the quadratic recurrence relation
 - **Robust thread-safe operation** with proper mutex protection and thread-local resources
 - **Thread-safe normal distribution** with both Box-Muller and Ziggurat methods
@@ -180,6 +181,36 @@ stopCluster(cl)
 print(results)
 ```
 
+### Reproducible Random Numbers
+
+For scientific computing and testing, you can enable fully reproducible sequences:
+
+```r
+# Set a seed for reproducibility
+cfg <- list(
+  seed = 12345,
+  a = 2L,
+  b = 5L,
+  c = -2L
+)
+createPRNG(cfg)
+
+# This will always produce the same sequence
+set1 <- generatePRNG(100)
+
+# Create another PRNG with the same seed
+cleanup_prng()
+createPRNG(cfg)
+set2 <- generatePRNG(100)
+
+# Verify they're identical
+all(set1 == set2)  # TRUE
+```
+
+Note: When seed is provided, the PRNG uses deterministic initialization while maintaining all mathematical properties. This is suitable for research and testing but should not be used when cryptographic randomness is required.
+
+For full determinism with normal distributions, use `normal_method = "box_muller"` instead of the default ziggurat method, as the ziggurat implementation uses additional randomness for efficiency.
+
 ### Jump-Ahead Example
 
 ```r
@@ -267,7 +298,7 @@ If you use this package in your research, please cite:
   title = {qiprng: Quadratic Irrational Pseudo-Random Number Generator for R},
   author = {Sergey Kornilov},
   year = {2025},
-  note = {R package version 0.2.6 - Thread-Safe Edition},
+  note = {R package version 0.2.7 - Deterministic Mode Edition},
   url = {https://github.com/biostochastics/qiprng},
 }
 ```

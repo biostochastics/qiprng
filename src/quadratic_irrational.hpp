@@ -23,7 +23,8 @@ private:
     void step_once();
 
 public:
-    QuadraticIrrational(long a, long b, long c, mpfr_prec_t prec);
+    QuadraticIrrational(long a, long b, long c, mpfr_prec_t prec, 
+                       uint64_t seed = 0, bool has_seed = false);
     ~QuadraticIrrational() = default; // Default destructor is fine with unique_ptr
 
     double next();

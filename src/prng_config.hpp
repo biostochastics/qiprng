@@ -65,6 +65,11 @@ struct PRNGConfig {
 
     // Debug
     bool debug = false;
+
+    // Deterministic mode fields
+    uint64_t seed = 0;          // Master seed for all randomness
+    bool has_seed = false;      // Flag indicating if seed was explicitly set
+    bool deterministic = false; // Force deterministic mode even without seed
 };
 
 } // namespace qiprng

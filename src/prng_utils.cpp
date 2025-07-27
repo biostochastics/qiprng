@@ -2,6 +2,7 @@
 // --------------------------------------------------------------
 #include "prng_utils.hpp"
 #include "enhanced_prng.hpp" // For accessing g_prng->getConfig(), t_prng->getConfig()
+#include "deterministic_rng.hpp" // For DeterministicRNGFactory
 #include <sodium.h>
 #include <fstream>
 #include <sstream>
@@ -70,8 +71,29 @@ std::mt19937_64& qiprng::getThreadLocalEngine() {
     return *t_engine_ptr;
 }
 
+// Deterministic thread-local random engine
+std::mt19937_64& qiprng::getDeterministicThreadLocalEngine(uint64_t seed) {
+    static thread_local std::unique_ptr<std::mt19937_64> t_det_engine_ptr;
+    static thread_local uint64_t t_last_seed = 0;
+
+    if (!t_det_engine_ptr || t_last_seed != seed) {
+        // Get unique thread ID
+        std::hash<std::thread::id> hasher;
+        size_t thread_id = hasher(std::this_thread::get_id());
+
+        // Create deterministic RNG for this thread
+        t_det_engine_ptr = std::make_unique<std::mt19937_64>(
+            DeterministicRNGFactory::create_for_thread(seed, thread_id)
+        );
+        t_last_seed = seed;
+    }
+
+    return *t_det_engine_ptr;
+}
+
 // Multi-QI parameter set selection
-std::vector<std::tuple<long, long, long>> qiprng::pickMultiQiSet(int precision, int count) {
+std::vector<std::tuple<long, long, long>> qiprng::pickMultiQiSet(int precision, int count, 
+                                                                 uint64_t seed, bool has_seed) {
     std::vector<std::tuple<long, long, long>> result;
     std::vector<std::tuple<long, long, long>> baseParams = {
         {1, 1, -1}, {2, 3, -1}, {1, 2, -1}, {1, 3, -2}, {2, 5, -3},
@@ -90,7 +112,11 @@ std::vector<std::tuple<long, long, long>> qiprng::pickMultiQiSet(int precision, 
         result = baseParams;
         int remaining = count - baseParams.size();
         std::vector<int> primes = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53};
-        std::mt19937_64& rng = getThreadLocalEngine(); // Use thread-local RNG
+        
+        // Get appropriate RNG based on whether we have a seed
+        std::mt19937_64& rng = has_seed
+            ? getDeterministicThreadLocalEngine(seed)
+            : getThreadLocalEngine();
 
         for (int i = 0; i < remaining; i++) {
             size_t baseIdx = i % baseParams.size();
@@ -320,7 +346,6 @@ void qiprng::loadCSVDiscriminants() {
 // Discriminant selection
 long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
     initialize_libsodium_if_needed(); // Ensure libsodium is ready if used by PRNG for config
-    std::mt19937_64& rng = getThreadLocalEngine();
 
     PRNGConfig current_config; // Default config
     bool use_csv = PRNGDefaults::use_csv_discriminants; // Default
@@ -337,6 +362,11 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
         }
     }
     use_csv = current_config.use_csv_discriminants;
+    
+    // Get appropriate RNG based on whether we have a seed
+    std::mt19937_64& rng = current_config.has_seed
+        ? getDeterministicThreadLocalEngine(current_config.seed)
+        : getThreadLocalEngine();
 
     // First approach: Use CSV discriminants if configured
     if (use_csv) {
@@ -353,8 +383,16 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
         }
 
         if (!local_csv_copy.empty()) {
-            // Randomize the order of candidates to avoid contention among threads
-            std::shuffle(local_csv_copy.begin(), local_csv_copy.end(), rng);
+            if (current_config.has_seed) {
+                // Sort deterministically instead of random shuffle
+                std::sort(local_csv_copy.begin(), local_csv_copy.end(),
+                    [](const auto& a, const auto& b) {
+                        return std::get<3>(a) < std::get<3>(b); // Sort by discriminant
+                    });
+            } else {
+                // Original random shuffle
+                std::shuffle(local_csv_copy.begin(), local_csv_copy.end(), rng);
+            }
             
             for (const auto& entry : local_csv_copy) {
                 long long disc_candidate = std::get<3>(entry);

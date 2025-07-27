@@ -16,7 +16,14 @@ void CryptoMixer::secure_random(unsigned char* buf, size_t len) {
     if (!buf || len == 0) {
         throw std::invalid_argument("CryptoMixer: Invalid buffer for secure random generation");
     }
-    if (qiprng::sodium_initialized) { // Check global flag
+    
+    if (has_seed_) {
+        // Use deterministic generation when seed is provided
+        std::uniform_int_distribution<unsigned int> dist(0, 255);
+        for (size_t i = 0; i < len; ++i) {
+            buf[i] = static_cast<unsigned char>(dist(det_rng_));
+        }
+    } else if (qiprng::sodium_initialized) { // Check global flag
         randombytes_buf(buf, len);
     } else {
         // Fallback or error if libsodium isn't ready
@@ -29,12 +36,16 @@ void CryptoMixer::secure_random(unsigned char* buf, size_t len) {
     }
 }
 
-CryptoMixer::CryptoMixer(bool adhoc_corrections, bool use_tie_breaking)
+CryptoMixer::CryptoMixer(bool adhoc_corrections, bool use_tie_breaking,
+                         uint64_t seed, bool has_seed)
     : key_(crypto_stream_chacha20_KEYBYTES),
       nonce_(crypto_stream_chacha20_NONCEBYTES),
       adhoc_corrections_(adhoc_corrections),
       use_tie_breaking_(use_tie_breaking),
-      initialized_(false) {
+      initialized_(false),
+      seed_(seed),
+      has_seed_(has_seed),
+      det_rng_(has_seed ? seed : std::random_device{}()) {
     if (!qiprng::sodium_initialized) {
          Rcpp::warning("CryptoMixer: Libsodium not initialized at construction. Crypto mixing may be insecure or fail.");
         // Do not throw here, allow construction but it won't be secure until libsodium is init'd

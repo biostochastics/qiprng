@@ -55,7 +55,9 @@ default_config <- list(
     use_threading = FALSE,    # Enable thread-local PRNG instances
     use_csv_discriminants = TRUE,  # Use custom discriminants from discriminants.csv
     use_parallel_filling = FALSE,
-    debug = FALSE
+    debug = FALSE,
+    seed = NULL,           # NULL means use random initialization
+    deterministic = FALSE  # Force deterministic mode
 )
 
 # ----------------------------------------------------------------------
@@ -170,6 +172,9 @@ validate_config <- function(config) {
 #'     \item{use_csv_discriminants}{Logical: whether to use custom discriminants from discriminants.csv}
 #'     \item{use_parallel_filling}{Logical: whether to use parallel buffer filling}
 #'     \item{debug}{Logical: whether to enable debugging output}
+#'     \item{seed}{Numeric seed for reproducible sequences (0 to 2^53-1).
+#'           When provided, all random initialization is replaced with
+#'           deterministic seeding. Default NULL uses secure random initialization.}
 #'   }
 #' @return Invisibly returns NULL
 #' @examples
@@ -186,6 +191,16 @@ validate_config <- function(config) {
 #'   normal_sd = 2,
 #'   use_threading = TRUE
 #' ))
+#' 
+#' # Create PRNG with seed for reproducible sequences
+#' createPRNG(list(seed = 12345))
+#' seq1 <- generatePRNG(10)
+#' 
+#' # Same seed produces same sequence
+#' cleanup_prng()
+#' createPRNG(list(seed = 12345))
+#' seq2 <- generatePRNG(10)
+#' identical(seq1, seq2)  # TRUE
 #' @export
 createPRNG <- function(config = default_config) {
     # Initialize libsodium first
@@ -193,6 +208,20 @@ createPRNG <- function(config = default_config) {
     
     # Merge with defaults
     config <- modifyList(default_config, config)
+    
+    # Process seed
+    if (!is.null(config$seed)) {
+        config$seed <- as.numeric(config$seed)
+        config$has_seed <- TRUE
+        
+        # Validate seed
+        if (config$seed < 0 || config$seed > 2^53 - 1) {
+            stop("Seed must be between 0 and 2^53-1")
+        }
+    } else {
+        config$has_seed <- FALSE
+        config$seed <- 0  # Default value for C++
+    }
     
     # Basic validation
     validate_config(config)
