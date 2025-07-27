@@ -23,7 +23,7 @@ hist(x, breaks = 50, main = "qiprng uniform distribution", col = "skyblue")
 
 ## Acknowledgments
 
-> This implementation is based on the groundbreaking work of **Vincent Granville** on random number generators using quadratic irrationals. The mathematical foundation and core algorithm design follows Granville's approach described in his 2022 publication.
+> This implementation is based on  **Vincent Granville's** work on random number generators using quadratic irrationals. The mathematical foundation and the core algorithm design both follow Granville's approach.
 >
 > **Reference:** Granville, V. (2022). [Military Grade Fast Random Number Generator Based on Quadratic Irrationals](https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/)
 
