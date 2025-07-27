@@ -2,13 +2,49 @@
 # ----------------------------------------------------------------------
 #' Combined visualization functions for PRNG testing
 #'
-#' This module provides functions for creating combined visualizations
-#' and summary reports across different test categories.
+#' This module provides functions for creating integrated visualizations
+#' and comprehensive summary reports across different PRNG test categories.
+#' Unlike the category-specific visualization modules, this module focuses
+#' on creating combined views that help evaluate the overall quality of
+#' random number generators.
+#'
+#' Features include:
+#' \itemize{
+#'   \item Summary visualizations across all test categories
+#'   \item Interactive HTML reports with drill-down capabilities
+#'   \item Configurable dashboard generation
+#'   \item Test result tables with statistics
+#'   \item Comparative visualizations between different PRNGs
+#' }
+#'
+#' The visualizations integrate the results from all test categories into
+#' a cohesive report that can be used for quality assessment and documentation.
+#'
+#' @name visualization_combined
+#' @aliases visualization-combined
+#' @keywords internal
 
 #' Generate all visualizations for a test suite
 #'
-#' @param suite The test suite object
-#' @return Updated test suite with visualization paths
+#' Creates comprehensive visualizations for all test results in a PRNG test suite.
+#' This function generates summary charts, detailed test visualizations, and HTML tables
+#' of test results that can be used for quality assessment and reporting.
+#'
+#' @param suite The test suite object with results from run_prng_test_suite
+#' @return Updated test suite with visualization paths added under suite$visualizations
+#' @examples
+#' \dontrun{
+#' # Create and run a test suite for qiprng
+#' createPRNG() # Initialize with defaults
+#' suite <- create_prng_test_suite(function(n) generatePRNG(n))
+#' suite <- run_prng_test_suite(suite)
+#' 
+#' # Generate visualizations
+#' suite <- visualize_all_tests(suite)
+#' 
+#' # Visualization paths are now available in the suite object
+#' print(names(suite$visualizations))
+#' }
 #' @export
 visualize_all_tests <- function(suite) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
@@ -305,9 +341,30 @@ Row {.tabset}
 
 #' Create a combined test report in PDF or HTML format
 #'
-#' @param suite The test suite object
-#' @param format Output format ("pdf" or "html")
-#' @return Path to the generated report
+#' Generates a comprehensive statistical report from test results in PDF or HTML format.
+#' The report includes summary tables, visualizations, and detailed test results with 
+#' statistics and p-values. This is useful for documenting PRNG quality and
+#' sharing results with others.
+#'
+#' @param suite The test suite object with results from run_prng_test_suite
+#' @param format Output format, either "pdf" or "html"
+#' @return Path to the generated report file
+#' @examples
+#' \dontrun{
+#' # Create and run a test suite
+#' createPRNG()
+#' suite <- create_prng_test_suite(function(n) generatePRNG(n))
+#' suite <- run_prng_test_suite(suite)
+#' 
+#' # Generate visualizations first
+#' suite <- visualize_all_tests(suite)
+#' 
+#' # Generate an HTML report
+#' report_path <- generate_report(suite, format = "html")
+#' 
+#' # Open the report
+#' browseURL(report_path)
+#' }
 #' @export
 generate_report <- function(suite, format = "html") {
   if (!requireNamespace("rmarkdown", quietly = TRUE)) {

@@ -6,6 +6,21 @@
 #' random number generators. This module provides various test suites,
 #' visualizations, and reporting capabilities to assess PRNG performance.
 #'
+#' The framework includes:
+#' \itemize{
+#'   \item Basic distribution tests (uniformity, normality)
+#'   \item Runs and independence tests
+#'   \item Correlation tests (serial correlation, autocorrelation)
+#'   \item Binary and bitwise tests
+#'   \item Classical PRNG tests (chi-squared, Kolmogorov-Smirnov)
+#'   \item Compression-based tests
+#'   \item Optional integration with external test batteries
+#' }
+#'
+#' All tests are designed with appropriate thresholds for reliability across
+#' different environments, including multi-threaded contexts.
+#'
+#' @name qiprng-testing
 #' @import ggplot2
 #' @import gridExtra
 #' @import randtests
@@ -17,6 +32,20 @@
 NULL
 
 #' List of available test categories
+#'
+#' A named list of available test categories for PRNG testing.
+#' 
+#' @name QPRNG_TEST_CATEGORIES
+#' @format A named list with the following categories:
+#'   \describe{
+#'     \item{basic}{Basic Distribution Tests}
+#'     \item{runs}{Runs and Independence Tests}
+#'     \item{correlation}{Correlation Tests}
+#'     \item{binary}{Binary and Bitwise Tests}
+#'     \item{classical}{Classical PRNG Tests}
+#'     \item{compression}{Compression Tests}
+#'     \item{external}{External Test Batteries}
+#'   }
 QPRNG_TEST_CATEGORIES <- list(
   basic = "Basic Distribution Tests",
   runs = "Runs and Independence Tests",
@@ -29,6 +58,28 @@ QPRNG_TEST_CATEGORIES <- list(
 
 #' Default test configuration
 #'
+#' Default configuration parameters for running the PRNG test suite.
+#' These parameters control sample sizes, statistical test parameters,
+#' visualization options, and processing settings.
+#'
+#' @format A list with the following components:
+#'   \describe{
+#'     \item{basic_sample_size}{Sample size for basic distribution tests}
+#'     \item{runs_sample_size}{Sample size for runs and independence tests}
+#'     \item{correlation_sample_size}{Sample size for correlation tests}
+#'     \item{binary_sample_size}{Sample size for binary and bitwise tests}
+#'     \item{classical_sample_size}{Sample size for classical statistical tests}
+#'     \item{compression_sample_size}{Sample size for compression-based tests}
+#'     \item{external_sample_size}{Sample size for external test batteries}
+#'     \item{chi_squared_bins}{Number of bins for chi-squared tests}
+#'     \item{significance_level}{Statistical significance level for hypothesis tests}
+#'     \item{plot_width, plot_height, plot_dpi}{Visualization parameters}
+#'     \item{save_results, save_visualizations}{Whether to save results and visualizations}
+#'     \item{verbose}{Whether to print progress information}
+#'     \item{output_dir}{Directory to save results and visualizations}
+#'     \item{use_dieharder, use_dieharder_quick, use_ent}{External test options}
+#'     \item{parallel, cores}{Parallel processing options}
+#'   }
 #' @export
 default_test_config <- list(
   # Test sample sizes
@@ -67,12 +118,32 @@ default_test_config <- list(
 
 #' Create a PRNG test suite
 #'
-#' Creates a test suite for evaluating the quality of a PRNG.
+#' Creates a comprehensive test suite for evaluating the statistical quality 
+#' of a pseudo-random number generator. The test suite can include various
+#' categories of tests and can be configured to run with different sample sizes
+#' and parameters.
 #'
-#' @param prng_func A function that generates n random numbers
-#' @param config Test configuration parameters
-#' @param categories Test categories to include (default: all)
-#' @return A test suite object
+#' @param prng_func A function that generates n random numbers when called as prng_func(n)
+#' @param config Test configuration parameters (see \code{\link{default_test_config}})
+#' @param categories Test categories to include. Available options: "basic", "runs", 
+#'   "correlation", "binary", "classical", "compression", "external".
+#'   Default includes all categories.
+#' @return A test suite object that can be executed with \code{\link{run_prng_test_suite}}
+#' @examples
+#' \dontrun{
+#' # Create a test suite for R's built-in runif
+#' suite <- create_prng_test_suite(function(n) runif(n))
+#' 
+#' # Create a test suite for qiprng
+#' createPRNG() # Initialize with defaults
+#' suite <- create_prng_test_suite(function(n) generatePRNG(n))
+#' 
+#' # Create a focused test suite with only basic and classical tests
+#' suite <- create_prng_test_suite(
+#'   function(n) generatePRNG(n),
+#'   categories = c("basic", "classical")
+#' )
+#' }
 #' @export
 create_prng_test_suite <- function(prng_func, 
                                     config = default_test_config,
@@ -122,9 +193,33 @@ create_prng_test_suite <- function(prng_func,
 
 #' Run the PRNG test suite
 #'
-#' @param suite A test suite created by create_prng_test_suite
-#' @param save_report Whether to save a comprehensive report
-#' @return The updated test suite with results
+#' Executes a comprehensive suite of statistical tests on a PRNG function.
+#' This function runs all the tests defined in the test suite and collects
+#' results. Tests can include uniformity, randomness, independence, and
+#' other statistical properties depending on the suite configuration.
+#'
+#' @param suite A test suite created by \code{\link{create_prng_test_suite}}
+#' @param save_report Whether to save a comprehensive HTML/PDF report with visualizations
+#' @return The updated test suite with results, including test statistics, p-values,
+#'   pass/fail results, and visualization data
+#' @examples
+#' \dontrun{
+#' # Create and run a test suite for qiprng
+#' createPRNG() # Initialize with defaults
+#' suite <- create_prng_test_suite(function(n) generatePRNG(n))
+#' results <- run_prng_test_suite(suite)
+#' 
+#' # Create and run a more compact test suite with smaller sample sizes
+#' compact_config <- default_test_config
+#' compact_config$basic_sample_size <- 1e4
+#' compact_config$classical_sample_size <- 1e4
+#' suite <- create_prng_test_suite(
+#'   function(n) generatePRNG(n),
+#'   config = compact_config,
+#'   categories = c("basic", "classical")
+#' )
+#' results <- run_prng_test_suite(suite, save_report = FALSE)
+#' }
 #' @export
 run_prng_test_suite <- function(suite, save_report = TRUE) {
   if (suite$config$verbose) {

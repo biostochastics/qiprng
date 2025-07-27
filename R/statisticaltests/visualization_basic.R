@@ -2,14 +2,50 @@
 # ----------------------------------------------------------------------
 #' Visualization functions for basic distribution tests
 #'
-#' This file contains functions for visualizing the results of
-#' basic distribution tests for PRNG quality evaluation.
-
-#' Visualize basic distribution tests
+#' This module provides specialized visualization functions for the results of
+#' basic distribution tests in PRNG quality evaluation. The visualizations help
+#' in identifying patterns and anomalies that might not be apparent from 
+#' numerical test results alone.
 #'
-#' @param suite The test suite object
-#' @param x The generated random numbers
-#' @return Updated test suite with visualization paths
+#' The visualizations implemented include:
+#' \itemize{
+#'   \item Histograms with expected distribution overlays
+#'   \item Q-Q plots comparing empirical vs. theoretical distributions
+#'   \item Cumulative distribution function (CDF) comparisons
+#'   \item Lag plots for visual identification of correlations
+#'   \item Series plots to visualize the sequence of random numbers
+#' }
+#'
+#' All visualizations are generated using ggplot2 and saved in a structured
+#' directory hierarchy for easy reference in reports.
+#'
+#' @name visualization_basic
+#' @aliases visualization-basic
+#' @keywords internal
+
+#' Create visualizations for basic distribution test results
+#'
+#' Generates a comprehensive set of visualizations to help interpret the
+#' results of basic distribution tests on random number generators. These
+#' visualizations are designed to make statistical properties visually apparent
+#' and to complement the numerical test results.
+#'
+#' @param suite The test suite object containing configuration and results
+#' @param x The generated random numbers to visualize
+#' @return Updated test suite with visualization paths added to suite$visualizations$basic
+#' @details
+#' This function creates the following visualizations:
+#' \itemize{
+#'   \item Histogram with expected uniform distribution overlay
+#'   \item Q-Q plot comparing sample quantiles to theoretical uniform quantiles
+#'   \item Cumulative distribution function comparison
+#'   \item Series plot showing the sequence of generated numbers
+#'   \item Lag-1 scatter plot to visualize sequential dependencies
+#'   \item Box plot showing distribution characteristics
+#' }
+#' 
+#' All visualizations are saved as PNG files in the configured output directory
+#' under visualizations/basic/ and the paths are stored in the test suite object.
 #' @keywords internal
 visualize_basic_tests <- function(suite, x) {
   # Set up output directory if it doesn't exist

@@ -10,9 +10,10 @@ validate_config(config)
 \item{config}{List of configuration parameters}
 }
 \value{
-TRUE if valid, throws error otherwise
+TRUE if valid, throws error otherwise with detailed message
 }
 \description{
-Validate PRNG configuration
+Validates the configuration parameters for the PRNG to ensure they meet
+requirements for mathematical correctness and numerical stability.
 }
 \keyword{internal}
