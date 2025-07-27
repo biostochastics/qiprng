@@ -1,0 +1,55 @@
+// File: prng_utils.hpp
+// --------------------------------------------------------------
+#ifndef QIPRNG_UTILS_HPP
+#define QIPRNG_UTILS_HPP
+
+#include "prng_config.hpp"
+#include <atomic>
+#include <mutex>
+#include <random>
+#include <thread>
+#include <vector>
+#include <unordered_set>
+#include <tuple>
+#include <memory>
+
+// Forward declarations
+namespace qiprng {
+    class EnhancedPRNG; // Forward declaration for globals
+}
+
+namespace qiprng {
+
+// LibSodium initialization
+extern std::atomic<bool> sodium_initialized_flag;
+extern bool sodium_initialized;
+
+void initialize_libsodium_if_needed();
+
+// Thread-local random engine
+std::mt19937_64& getThreadLocalEngine();
+
+// Global PRNG state
+extern bool g_use_threading;
+extern std::mutex g_prng_mutex;
+extern thread_local std::unique_ptr<qiprng::EnhancedPRNG> t_prng;
+extern std::unique_ptr<qiprng::EnhancedPRNG> g_prng;
+
+// Discriminant utilities
+extern std::mutex g_disc_mutex;
+extern std::unordered_set<long long> g_used_discriminants;
+
+// CSV Discriminant utilities
+extern std::vector<std::tuple<long, long, long, long long>> g_csv_discriminants;
+extern std::mutex g_csv_disc_mutex;
+extern bool g_csv_discriminants_loaded;
+
+// Core utility functions
+std::vector<std::tuple<long, long, long>> pickMultiQiSet(int precision, int count);
+void loadCSVDiscriminants(); // Make this accessible for thread-safe initialization
+long long chooseUniqueDiscriminant(long min_value = 5, long max_value = 1000000);
+std::tuple<long, long, long> makeABCfromDelta(long long Delta);
+
+} // namespace qiprng
+
+#endif // QIPRNG_UTILS_HPP

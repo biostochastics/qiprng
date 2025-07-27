@@ -2,14 +2,46 @@
 # ----------------------------------------------------------------------
 #' Basic distribution tests for PRNG quality
 #'
-#' This module provides basic statistical tests to evaluate the 
-#' distribution properties of a PRNG, including tests for uniformity,
+#' This module provides fundamental statistical tests to evaluate the 
+#' distributional properties of a PRNG, including tests for uniformity,
 #' goodness-of-fit, and basic statistical properties.
-
-#' Run basic distribution tests
 #'
-#' @param suite The test suite object
-#' @return Updated test suite with results
+#' The tests implemented in this module include:
+#' \itemize{
+#'   \item Kolmogorov-Smirnov test for uniformity
+#'   \item Chi-squared goodness-of-fit test
+#'   \item Mean and variance tests
+#'   \item Min-max range tests
+#'   \item Autocorrelation tests
+#' }
+#'
+#' These tests are designed to detect common issues in PRNGs such as
+#' non-uniformity, clustering, and statistical bias.
+#'
+#' @name basic_tests
+#' @aliases basic-tests
+#' @keywords internal
+
+#' Run basic distribution tests on random number generator
+#'
+#' Executes a comprehensive set of basic statistical tests on a random
+#' number generator to evaluate its uniformity, distribution characteristics,
+#' and statistical properties. The tests include Kolmogorov-Smirnov test,
+#' Chi-squared goodness-of-fit test, and basic descriptive statistics.
+#'
+#' @param suite The test suite object containing the PRNG function and configuration
+#' @return Updated test suite with results of all basic tests added to suite$results$basic
+#' @details
+#' This function performs the following tests:
+#' \itemize{
+#'   \item Kolmogorov-Smirnov test against uniform distribution
+#'   \item Chi-squared goodness-of-fit test with configurable bin count
+#'   \item Basic statistical tests including mean, variance, min/max range
+#'   \item Gap and autocorrelation tests for independence
+#' }
+#' 
+#' All test results include a PASS/FAIL indication based on the significance level
+#' configured in the test suite, along with p-values and test statistics.
 #' @keywords internal
 run_basic_tests <- function(suite) {
   # Generate random numbers

@@ -2,13 +2,49 @@
 # ----------------------------------------------------------------------
 #' Runs and independence tests for PRNG quality
 #'
-#' This module provides tests to evaluate the independence properties
-#' and run structure of the PRNG output.
-
-#' Run tests for independence and runs
+#' This module provides specialized tests to evaluate the independence properties
+#' and run structure of the PRNG output. Run-based tests are particularly 
+#' effective at detecting non-random patterns that might not be detected by
+#' simple distribution tests.
 #'
-#' @param suite The test suite object
-#' @return Updated test suite with results
+#' The tests implemented in this module include:
+#' \itemize{
+#'   \item Standard runs test (above/below median)
+#'   \item Run length tests (detecting abnormally long runs)
+#'   \item Up/down runs test (detecting trends)
+#'   \item Serial independence tests
+#'   \item Lag-k autocorrelation tests
+#' }
+#'
+#' These tests are sensitive to sequential patterns and are essential for
+#' cryptographic and simulation applications where independence between
+#' successive values is critical.
+#'
+#' @name runs_tests
+#' @aliases runs-tests
+#' @keywords internal
+
+#' Run tests for independence and runs in random sequences
+#'
+#' Executes a comprehensive set of runs-based and independence tests on a 
+#' random number generator. These tests evaluate whether successive values in the
+#' sequence are statistically independent, a critical property for high-quality PRNGs.
+#'
+#' @param suite The test suite object containing the PRNG function and configuration
+#' @return Updated test suite with results of all runs tests added to suite$results$runs
+#' @details
+#' This function performs the following tests:
+#' \itemize{
+#'   \item Standard runs test: Analyzes the number of runs above/below median
+#'   \item Runs up/down test: Tests for trends in the sequence
+#'   \item Serial independence test: Tests for correlations between consecutive values
+#'   \item Lag autocorrelation: Tests for periodic patterns at different lags
+#'   \item Longest run analysis: Tests if the longest run length is as expected
+#' }
+#' 
+#' The tests use the randtests package when available and implement custom
+#' algorithms otherwise. All tests include p-values and clear pass/fail indications
+#' based on the configured significance level.
 #' @keywords internal
 run_runs_tests <- function(suite) {
   # Generate random numbers

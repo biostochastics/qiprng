@@ -1,18 +1,46 @@
 #' QIPRNG Benchmarking Module
 #' 
 #' A comprehensive set of functions to benchmark the performance of the QIPRNG
-#' package against other random number generators in R.
+#' package against other random number generators in R. This module provides tools
+#' for measuring execution time, memory usage, and scaling characteristics across
+#' different configurations and distributions.
 
 #' Benchmark QIPRNG against other random number generators
 #' 
-#' @param n_values Vector of sample sizes to benchmark
+#' Performs comprehensive benchmarking of QIPRNG against other random number
+#' generators for various distributions, sample sizes, and configurations.
+#' Uses microbenchmark for precise timing measurements and creates visualizations
+#' to compare performance characteristics.
+#' 
+#' @param n_values Vector of sample sizes to benchmark (e.g., c(10, 100, 1000))
 #' @param generators List of generator functions to compare; each function should take n as input and return n random numbers
 #' @param distributions Character vector of distributions to test ("uniform", "normal", "exponential")
-#' @param repetitions Number of repetitions for each benchmark
-#' @param configs List of QIPRNG configurations to test
-#' @param export_data Whether to export raw benchmark data
+#' @param repetitions Number of repetitions for each benchmark to ensure reliable measurements
+#' @param configs List of QIPRNG configurations to test (named list of configuration parameters)
+#' @param export_data Whether to export raw benchmark data to an RDS file
 #' @param file Path to save results if export_data is TRUE
-#' @return A list containing benchmark results and plots
+#' @return A list containing benchmark results and ggplot2 visualization objects
+#' @examples
+#' \dontrun{
+#' # Initialize QIPRNG
+#' createPRNG()
+#' 
+#' # Define generators to compare
+#' generators <- list(
+#'   "qiprng" = function(n) generatePRNG(n),
+#'   "base_r" = function(n) runif(n)
+#' )
+#' 
+#' # Run benchmark with small sample sizes
+#' results <- benchmark_qiprng(
+#'   n_values = c(100, 1000),
+#'   generators = generators,
+#'   repetitions = 5
+#' )
+#' 
+#' # Display results
+#' print(results$plots$scaling)
+#' }
 #' @export
 benchmark_qiprng <- function(n_values = c(10, 100, 1000, 10000, 100000, 1000000),
                             generators = list("qiprng" = function(n) qiprng::generatePRNG(n),
@@ -372,10 +400,34 @@ create_benchmark_plots <- function(results, n_values, distributions, configs) {
 
 #' Profile QIPRNG with different configurations
 #' 
-#' @param config_list Named list of configurations to test
-#' @param n Sample size to use for testing
-#' @param repetitions Number of repetitions for each test
-#' @return A data frame with profiling results
+#' Profiles the performance of QIPRNG across different configuration settings.
+#' This function is useful for identifying optimal configurations for specific
+#' use cases and understanding performance trade-offs between different settings.
+#' 
+#' The function can optionally generate detailed profiling information using
+#' the profvis package if it is installed, providing insights into which parts
+#' of the code consume the most resources.
+#' 
+#' @param config_list Named list of configurations to test, where each configuration is a list of parameters
+#' @param n Sample size to use for testing (number of random values to generate)
+#' @param repetitions Number of repetitions for each test to ensure reliable measurements
+#' @param output_dir Directory to save detailed profiling results if profvis is available
+#' @return A data frame with profiling results including median time, mean time, min and max times for each configuration
+#' @examples
+#' \dontrun{
+#' # Profile different configurations
+#' profiles <- profile_qiprng_config(
+#'   config_list = list(
+#'     "default" = list(),
+#'     "high_precision" = list(mpfr_precision = 128),
+#'     "normal" = list(distribution = "normal"),
+#'     "large_buffer" = list(buffer_size = 10000)
+#'   )
+#' )
+#' 
+#' # Examine results
+#' print(profiles)
+#' }
 #' @export
 profile_qiprng_config <- function(config_list = list(
                                   "default" = list(),
@@ -481,11 +533,37 @@ profile_qiprng_config <- function(config_list = list(
 
 #' Benchmark generation of large quantities of random numbers
 #' 
-#' @param n_values Vector of large sample sizes to benchmark
-#' @param configs List of configurations to test
-#' @param generators List of generator functions to compare
-#' @param repetitions Number of repetitions for each benchmark
-#' @return A data frame with benchmark results
+#' Tests the performance and memory characteristics of random number generators when
+#' generating very large quantities of values. This function is particularly useful for
+#' assessing memory efficiency, scaling behavior, and practical limits for applications
+#' requiring millions or billions of random numbers.
+#' 
+#' The function measures both execution time and memory consumption for each generator
+#' and configuration, providing insights into real-world performance for data-intensive
+#' applications.
+#' 
+#' @param n_values Vector of large sample sizes to benchmark (e.g., c(1e6, 5e6, 1e7))
+#' @param configs List of configurations to test, where each configuration is a list of parameters
+#' @param generators List of generator functions to compare, each taking a single argument n
+#' @param repetitions Number of repetitions for each benchmark to ensure reliable measurements
+#' @return A list containing raw benchmark results and summary statistics with visualizations
+#' @examples
+#' \dontrun{
+#' # Initialize QIPRNG
+#' createPRNG()
+#' 
+#' # Define generators and configurations
+#' results <- benchmark_large_generation(
+#'   n_values = c(1e6, 5e6),  # 1 million and 5 million values
+#'   configs = list(
+#'     "default" = list(),
+#'     "large_buffer" = list(buffer_size = 1e6)
+#'   )
+#' )
+#' 
+#' # Examine summary statistics
+#' print(results$summary)
+#' }
 #' @export
 benchmark_large_generation <- function(n_values = c(1e6, 5e6, 1e7, 5e7),
                                      configs = list(
@@ -628,11 +706,35 @@ benchmark_large_generation <- function(n_values = c(1e6, 5e6, 1e7, 5e7),
 
 #' Run a comprehensive benchmark suite and generate a report
 #' 
+#' Executes a full suite of benchmarks including standard performance tests,
+#' configuration profiling, and large-scale generation tests. The function
+#' also generates an attractive HTML report with visualizations and detailed
+#' performance metrics for easy sharing and analysis.
+#' 
+#' This is the recommended entry point for comprehensive benchmarking as it
+#' combines multiple benchmark types into a single workflow.
+#' 
 #' @param output_dir Directory to save results and report
-#' @param distributions Distributions to test
-#' @param generators List of generators to compare
-#' @param create_html Whether to create an HTML report
-#' @return Path to the report file
+#' @param distributions Distributions to test (e.g., c("uniform", "normal"))
+#' @param generators List of generators to compare, each taking a single argument n
+#' @param create_html Whether to create an HTML report with visualizations
+#' @return A list containing all benchmark results and paths to the report and log files
+#' @examples
+#' \dontrun{
+#' # Initialize QIPRNG
+#' createPRNG()
+#' 
+#' # Run a comprehensive benchmark suite
+#' benchmark_results <- benchmark_suite(
+#'   output_dir = "qiprng_benchmarks",
+#'   distributions = c("uniform", "normal")
+#' )
+#' 
+#' # Open the generated HTML report
+#' if (!is.null(benchmark_results$report_file)) {
+#'   browseURL(benchmark_results$report_file)
+#' }
+#' }
 #' @export
 benchmark_suite <- function(output_dir = "qiprng_benchmark",
                           distributions = c("uniform", "normal", "exponential"),
@@ -850,11 +952,41 @@ benchmark_suite <- function(output_dir = "qiprng_benchmark",
 
 #' Compare the quality of random numbers from different generators
 #' 
-#' @param n Sample size to use
-#' @param generators List of generator functions to compare
-#' @param save_plots Whether to save plots to files
-#' @param output_dir Directory to save plots
-#' @return A list containing quality assessment results
+#' Performs statistical quality assessment of different random number generators,
+#' comparing their uniformity, independence, and distributional properties.
+#' The function runs multiple statistical tests including Kolmogorov-Smirnov,
+#' chi-squared, and runs tests, and generates visualizations for comparing
+#' the distributions.
+#' 
+#' This function is particularly useful for evaluating the statistical quality
+#' of QIPRNG compared to other generators before using them in simulation or
+#' statistical applications.
+#' 
+#' @param n Sample size to use for quality assessment (larger is more sensitive)
+#' @param generators List of generator functions to compare, each taking a single argument n
+#' @param save_plots Whether to save visualization plots to files
+#' @param output_dir Directory to save plots if save_plots is TRUE
+#' @return A list containing quality metrics, visualization plots, and raw samples
+#' @examples
+#' \dontrun{
+#' # Initialize QIPRNG
+#' createPRNG()
+#' 
+#' # Define generators to compare
+#' generators <- list(
+#'   "qiprng" = function(n) generatePRNG(n),
+#'   "base_r" = function(n) runif(n)
+#' )
+#' 
+#' # Run quality comparison
+#' quality <- compare_rng_quality(
+#'   n = 10000,
+#'   generators = generators
+#' )
+#' 
+#' # Examine quality metrics
+#' print(quality$metrics)
+#' }
 #' @export
 compare_rng_quality <- function(n = 100000,
                               generators = list(

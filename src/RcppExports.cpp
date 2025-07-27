@@ -10,6 +10,15 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// initialize_libsodium_
+void initialize_libsodium_();
+RcppExport SEXP _qiprng_initialize_libsodium_() {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    initialize_libsodium_();
+    return R_NilValue;
+END_RCPP
+}
 // createPRNG_
 void createPRNG_(Rcpp::List rcfg);
 RcppExport SEXP _qiprng_createPRNG_(SEXP rcfgSEXP) {
@@ -98,8 +107,72 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// suppress_mpfr_warnings_
+bool suppress_mpfr_warnings_();
+RcppExport SEXP _qiprng_suppress_mpfr_warnings_() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(suppress_mpfr_warnings_());
+    return rcpp_result_gen;
+END_RCPP
+}
+// set_mpfr_warnings_
+void set_mpfr_warnings_(bool show_warnings);
+RcppExport SEXP _qiprng_set_mpfr_warnings_(SEXP show_warningsSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< bool >::type show_warnings(show_warningsSEXP);
+    set_mpfr_warnings_(show_warnings);
+    return R_NilValue;
+END_RCPP
+}
+// cleanupPRNG_ThreadSafe_
+bool cleanupPRNG_ThreadSafe_();
+RcppExport SEXP _qiprng_cleanupPRNG_ThreadSafe_() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(cleanupPRNG_ThreadSafe_());
+    return rcpp_result_gen;
+END_RCPP
+}
+// cleanupPRNG_Final_
+bool cleanupPRNG_Final_();
+RcppExport SEXP _qiprng_cleanupPRNG_Final_() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(cleanupPRNG_Final_());
+    return rcpp_result_gen;
+END_RCPP
+}
+// test_choose_discriminant
+Rcpp::List test_choose_discriminant(int thread_count, int iterations);
+RcppExport SEXP _qiprng_test_choose_discriminant(SEXP thread_countSEXP, SEXP iterationsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type thread_count(thread_countSEXP);
+    Rcpp::traits::input_parameter< int >::type iterations(iterationsSEXP);
+    rcpp_result_gen = Rcpp::wrap(test_choose_discriminant(thread_count, iterations));
+    return rcpp_result_gen;
+END_RCPP
+}
+// check_discriminants_unique
+bool check_discriminants_unique(Rcpp::List discriminant_lists);
+RcppExport SEXP _qiprng_check_discriminants_unique(SEXP discriminant_listsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type discriminant_lists(discriminant_listsSEXP);
+    rcpp_result_gen = Rcpp::wrap(check_discriminants_unique(discriminant_lists));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_qiprng_initialize_libsodium_", (DL_FUNC) &_qiprng_initialize_libsodium_, 0},
     {"_qiprng_createPRNG_", (DL_FUNC) &_qiprng_createPRNG_, 1},
     {"_qiprng_updatePRNG_", (DL_FUNC) &_qiprng_updatePRNG_, 1},
     {"_qiprng_getPRNGConfig_", (DL_FUNC) &_qiprng_getPRNGConfig_, 0},
@@ -109,6 +182,12 @@ static const R_CallMethodDef CallEntries[] = {
     {"_qiprng_cleanup_prng_", (DL_FUNC) &_qiprng_cleanup_prng_, 0},
     {"_qiprng_skipPRNG_", (DL_FUNC) &_qiprng_skipPRNG_, 1},
     {"_qiprng_jumpAheadPRNG_", (DL_FUNC) &_qiprng_jumpAheadPRNG_, 1},
+    {"_qiprng_suppress_mpfr_warnings_", (DL_FUNC) &_qiprng_suppress_mpfr_warnings_, 0},
+    {"_qiprng_set_mpfr_warnings_", (DL_FUNC) &_qiprng_set_mpfr_warnings_, 1},
+    {"_qiprng_cleanupPRNG_ThreadSafe_", (DL_FUNC) &_qiprng_cleanupPRNG_ThreadSafe_, 0},
+    {"_qiprng_cleanupPRNG_Final_", (DL_FUNC) &_qiprng_cleanupPRNG_Final_, 0},
+    {"_qiprng_test_choose_discriminant", (DL_FUNC) &_qiprng_test_choose_discriminant, 2},
+    {"_qiprng_check_discriminants_unique", (DL_FUNC) &_qiprng_check_discriminants_unique, 1},
     {NULL, NULL, 0}
 };
 
