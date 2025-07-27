@@ -29,7 +29,59 @@ hist(x, breaks = 50, main = "qiprng uniform distribution", col = "skyblue")
 
 ## Installation
 
+This package contains C++ code and requires a compiler and several system libraries to be installed on your system before the R package can be built.
+
+### Prerequisites
+
+**macOS**
+
+You will need to install the Command Line Tools for Xcode and the required libraries using [Homebrew](https://brew.sh/).
+
+1.  **Install Xcode Command Line Tools**:
+    ```sh
+    xcode-select --install
+    ```
+
+2.  **Install Homebrew** (if you don't have it):
+    ```sh
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    ```
+
+3.  **Install required libraries**:
+    ```sh
+    brew install pkg-config gmp mpfr libsodium openssl
+    ```
+
+**Linux (Debian/Ubuntu)**
+
+Use `apt-get` to install the required development libraries:
+
+```sh
+sudo apt-get update
+sudo apt-get install build-essential libmpfr-dev libgmp-dev libsodium-dev libssl-dev
+```
+
+**Linux (Fedora/CentOS/RHEL)**
+
+Use `yum` or `dnf` to install the required development libraries:
+
+```sh
+sudo dnf groupinstall "Development Tools"
+sudo dnf install gmp-devel mpfr-devel libsodium-devel openssl-devel
+```
+
+**Windows**
+
+For Windows, the required libraries are downloaded automatically during installation, but you need to have [Rtools](https://cran.r-project.org/bin/windows/Rtools/) installed and configured correctly.
+
+### Install the Package
+
+Once the prerequisites are installed, you can install `qiprng` from GitHub using the `remotes` package in R:
+
 ```r
+if (!require("remotes")) {
+  install.packages("remotes")
+}
 remotes::install_github("biostochastics/qiprng")
 ```
 
