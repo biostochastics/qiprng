@@ -1,0 +1,6 @@
+# Use pkg-config to find libraries
+PKG_CPPFLAGS = $(shell pkg-config --cflags mpfr gmp libsodium openssl) -DUSE_MPFR
+PKG_LIBS = $(shell pkg-config --libs mpfr gmp libsodium openssl)
+
+# Set C++ standard
+CXX_STD = CXX14
