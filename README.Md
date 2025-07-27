@@ -97,6 +97,7 @@ remotes::install_github("biostochastics/qiprng")
 - **Automatic reseeding** with configurable intervals
 - **Enhanced error handling** with thread-local fallback generators for statistical correctness
 - **Comprehensive statistical testing** framework for PRNG quality evaluation
+- **Jump-ahead functionality** for efficiently skipping ahead in the sequence
 
 ## Usage
 
@@ -179,6 +180,25 @@ stopCluster(cl)
 print(results)
 ```
 
+### Jump-Ahead Example
+
+```r
+# The jump-ahead functionality allows efficient skipping in the sequence
+createPRNG()
+
+# Generate initial values
+initial <- generatePRNG(5)
+
+# Jump ahead 1 million steps in the sequence
+jumpAheadPRNG(1000000)
+
+# Generate values after the jump
+after_jump <- generatePRNG(5)
+
+# This is much more efficient than generating and discarding 1 million values
+# The jump-ahead uses block processing for cache efficiency
+```
+
 ## Documentation
 
 The `qiprng` package implements a PRNG based on the recurrence relation:
@@ -195,6 +215,20 @@ Where:
 
 The mathematical foundation is based on the work of Vincent Granville (2022).
 
+### Jump-Ahead Functionality
+
+The `jumpAheadPRNG()` function allows you to efficiently advance the PRNG state by n steps without generating all intermediate values. This is particularly useful for:
+
+- **Parallel simulations**: Different workers can jump to non-overlapping segments of the sequence
+- **Reproducible subsampling**: Jump to specific points in the sequence for reproducible results
+- **Performance optimization**: Skip large segments without the computational cost of generation
+
+**Important Notes**:
+- The jump-ahead implementation uses block processing for cache efficiency
+- Due to the security-focused design with random initialization, two PRNGs with identical parameters may start at different positions in the sequence
+- The function maintains all statistical properties of the PRNG
+- Performance scales sub-linearly with jump size due to block processing optimizations
+
 ### Function Reference
 
 | Function | Description |
@@ -203,7 +237,7 @@ The mathematical foundation is based on the work of Vincent Granville (2022).
 | `generatePRNG()` | Generates random numbers using current configuration |
 | `updatePRNG()` | Updates configuration of the current PRNG instance |
 | `reseedPRNG()` | Forces a reseed of the PRNG |
-| `jumpAheadPRNG()` | Advances the PRNG state by skipping ahead |
+| `jumpAheadPRNG()` | Advances the PRNG state by skipping ahead n steps |
 | `cleanupPRNG()` | Cleans up PRNG resources |
 | `test_prng()` | Runs statistical tests on the PRNG |
 

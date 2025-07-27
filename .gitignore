@@ -45,6 +45,8 @@ node_modules/
 # OS specific
 .DS_Store
 
+# Editor directories and files
+
 # Task files
-tasks.json
-tasks/ 
+# tasks.json
+# tasks/ 

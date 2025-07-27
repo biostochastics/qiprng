@@ -70,17 +70,29 @@ void MultiQI::skip(uint64_t n) {
 
 void MultiQI::jump_ahead(uint64_t n) {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (qis_.empty()) {
+    if (qis_.empty() || n == 0) {
         return;
     }
-    
-    // Advance each QuadraticIrrational by n steps
-    for (auto& qi : qis_) {
-        qi->jump_ahead(n); // Each QI advances 'n' steps
+
+    size_t num_qis = qis_.size();
+    uint64_t num_full_jumps = n / num_qis;
+    uint64_t remaining_jump = n % num_qis;
+
+    // Each QI advances by the number of full rotations
+    if (num_full_jumps > 0) {
+        for (auto& qi : qis_) {
+            qi->jump_ahead(num_full_jumps);
+        }
     }
-    
-    // Update the index to maintain proper rotation pattern
-    idx_ = (idx_ + (n % qis_.size())) % qis_.size();
+
+    // Handle the remaining jumps by advancing the next `remaining_jump` QIs one by one
+    for (uint64_t i = 0; i < remaining_jump; ++i) {
+        size_t current_qi_index = (idx_ + i) % num_qis;
+        qis_[current_qi_index]->jump_ahead(1);
+    }
+
+    // Update the index to the new position
+    idx_ = (idx_ + remaining_jump) % num_qis;
 }
 
 

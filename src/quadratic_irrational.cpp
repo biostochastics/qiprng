@@ -2,6 +2,7 @@
 // --------------------------------------------------------------
 #include "quadratic_irrational.hpp"
 #include <limits> // For std::numeric_limits
+#include <cstdlib> // For std::getenv
 
 #ifndef M_PI // Ensure M_PI is defined
 #define M_PI 3.14159265358979323846
@@ -170,13 +171,25 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
         check_mpfr_result(op_ret, "initial_frac");
         if (mpfr_nan_p(*value_->get())) throw std::runtime_error("QuadraticIrrational: initial frac() resulted in NaN");
 
-
-        std::random_device rd;
-        std::mt19937_64 rng(rd());
-        std::uniform_int_distribution<uint64_t> skip_dist(1000, 10000); // Ensure a decent initial skip
-        uint64_t skip_amt = skip_dist(rng);
-        for (uint64_t i = 0; i < skip_amt; i++) {
-            step_once();
+        // Check if we should use deterministic initialization for testing
+        const char* deterministic_env = std::getenv("QIPRNG_DETERMINISTIC");
+        bool use_deterministic = (deterministic_env != nullptr && std::string(deterministic_env) == "1");
+        
+        if (!use_deterministic) {
+            // Normal operation: random initial skip for security
+            std::random_device rd;
+            std::mt19937_64 rng(rd());
+            std::uniform_int_distribution<uint64_t> skip_dist(1000, 10000); // Ensure a decent initial skip
+            uint64_t skip_amt = skip_dist(rng);
+            for (uint64_t i = 0; i < skip_amt; i++) {
+                step_once();
+            }
+        } else {
+            // Deterministic mode for testing: fixed initial skip
+            const uint64_t DETERMINISTIC_SKIP = 1000;
+            for (uint64_t i = 0; i < DETERMINISTIC_SKIP; i++) {
+                step_once();
+            }
         }
 
     } catch (const std::bad_alloc& e) {
@@ -201,14 +214,42 @@ void QuadraticIrrational::skip(uint64_t n) {
     jump_ahead(n);
 }
 
+
 void QuadraticIrrational::jump_ahead(uint64_t n) {
     if (!value_ || !next_ || !temp_ || !temp2_ || !root_ ||
         !value_->is_valid() || !next_->is_valid() || !temp_->is_valid() ||
         !temp2_->is_valid() || !root_->is_valid()) {
         throw std::runtime_error("QuadraticIrrational: Invalid MPFR state at the beginning of jump_ahead");
     }
-    for (uint64_t i = 0; i < n; i++) {
-        step_once();
+    
+    if (n == 0) {
+        return; // No jump needed
+    }
+    
+    // For large jumps, we can process in blocks to improve cache efficiency
+    const uint64_t BLOCK_SIZE = 1024;
+    
+    if (n < BLOCK_SIZE) {
+        // For small jumps, just iterate
+        for (uint64_t i = 0; i < n; i++) {
+            step_once();
+        }
+    } else {
+        // For large jumps, process in blocks
+        uint64_t full_blocks = n / BLOCK_SIZE;
+        uint64_t remainder = n % BLOCK_SIZE;
+        
+        // Process full blocks
+        for (uint64_t block = 0; block < full_blocks; block++) {
+            for (uint64_t i = 0; i < BLOCK_SIZE; i++) {
+                step_once();
+            }
+        }
+        
+        // Process remainder
+        for (uint64_t i = 0; i < remainder; i++) {
+            step_once();
+        }
     }
 }
 

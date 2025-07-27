@@ -161,8 +161,8 @@ test_that("Parallel buffer filling is thread-safe", {
       library(qiprng)
     })
     
-    # Send the configuration to all workers
-    parallel::clusterExport(cl, "cfg")
+    # Send the configuration to all workers, explicitly providing the environment
+    parallel::clusterExport(cl, "cfg", envir = environment())
     
     # Initialize PRNG on all workers
     parallel::clusterEvalQ(cl, {
@@ -184,7 +184,7 @@ test_that("Parallel buffer filling is thread-safe", {
         for (j in (i+1):cores) {
           correlation <- cor(results[[i]], results[[j]])
           expect_lt(abs(correlation), 0.1, 
-                    info = paste("Correlation between thread", i, "and", j, "should be low"))
+                    label = paste("Correlation between thread", i, "and", j, "should be low"))
         }
       }
     }, finally = {

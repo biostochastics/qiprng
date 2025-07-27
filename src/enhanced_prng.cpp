@@ -566,32 +566,37 @@ double EnhancedPRNG::next() {
 }
 
 void EnhancedPRNG::skip(uint64_t n) {
-    // If skipping more than buffer size, jump ahead directly in the generator
-    if (n >= buffer_.size()) {
-        uint64_t full_buffers = n / buffer_.size();
-        n %= buffer_.size();
-        
-        // Jump ahead in the generator
-        multi_->jump_ahead(full_buffers * buffer_.size());
-        
-        // Reset buffer to force refill
-        buffer_pos_ = buffer_.size();
-    }
-    
-    // Handle remaining skip within buffer
-    if (n > 0) {
-        // If buffer is exhausted, refill it
-        if (buffer_pos_ >= buffer_.size()) {
-            fill_buffer();
+    if (n == 0) return;
+
+    uint64_t original_n = n;
+    size_t remaining_in_buffer = (buffer_pos_ < buffer_.size()) ? (buffer_.size() - buffer_pos_) : 0;
+
+    if (n <= remaining_in_buffer) {
+        // Jump is within the current buffer
+        buffer_pos_ += static_cast<size_t>(n);
+    } else {
+        // Jump is beyond the current buffer
+        n -= remaining_in_buffer; // Consume what's left in the current buffer
+
+        // Calculate how many full buffers to jump over
+        uint64_t num_full_buffers_to_skip = n / buffer_.size();
+        if (num_full_buffers_to_skip > 0) {
+            multi_->jump_ahead(num_full_buffers_to_skip * buffer_.size());
         }
+
+        // Calculate the position in the new buffer
+        uint64_t remaining_in_new_buffer = n % buffer_.size();
         
-        // Skip within buffer
-        size_t new_pos = buffer_pos_ + static_cast<size_t>(n);
-        buffer_pos_ = (new_pos < buffer_.size()) ? new_pos : buffer_.size();
+        if (remaining_in_new_buffer > 0) {
+            fill_buffer(); // Refill to get the target buffer
+            buffer_pos_ = static_cast<size_t>(remaining_in_new_buffer);
+        } else {
+            // If the jump lands exactly on a buffer boundary, the buffer is considered empty
+            // and will be refilled on the next call to next()
+            buffer_pos_ = buffer_.size();
+        }
     }
-    
-    // Update sample count
-    sample_count_ += n;
+    sample_count_ += original_n;
 }
 
 void EnhancedPRNG::generate_n(Rcpp::NumericVector& output_vec) {

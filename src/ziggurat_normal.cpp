@@ -833,8 +833,7 @@ double ZigguratNormal::generate() {
     } catch (...) {
         // Something catastrophic happened - possibly thread exit
         // Mark this thread for cleanup
-        static thread_local bool local_thread_exiting = false;
-        local_thread_exiting = true;
+
         
         // Check if cleanup is already in progress
         if (!cleanup_in_progress_.load(std::memory_order_acquire)) {

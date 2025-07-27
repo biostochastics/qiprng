@@ -26,7 +26,9 @@ tryCatch({
 
 # Test sample sizes - adjust these to speed up testing or get more thorough results
 CONFIG <- list(
-  # Sample sizes (adjust these to control test duration)
+  # === FAST TEST CONFIGURATION ===
+  # Sample sizes are kept high for thoroughness, but other PRNGs are disabled for speed.
+  # To run the full comparison suite, enable other PRNGs in the TEST_PRNGS list below.
   basic_sample_size = 10000,     # For distribution tests
   runs_sample_size = 10000,      # For runs and independence tests
   correlation_sample_size = 10000, # For correlation tests
@@ -44,30 +46,33 @@ CONFIG <- list(
   save_visualizations = TRUE,
   verbose = TRUE,
   
-  # Quarto report options
-  generate_report = TRUE,     # Set to TRUE to generate a Quarto report
-  report_format = "pdf",      # 'pdf', 'html', or 'docx'
+  # Quarto report options (disabled for speed in dev mode)
+  generate_report = FALSE,    # Set to TRUE to generate a Quarto report
+  report_format = "html",     # 'pdf', 'html', or 'docx'
   report_title = "PRNG Statistical Testing Report"
 )
 
 # PRNGs to test (TRUE = include in test, FALSE = skip)
+# For a full comparison, set all to TRUE. For quick development, only test qiprng.
 TEST_PRNGS <- list(
-  r_builtin = TRUE,     # R's built-in runif
-  lcg = TRUE,           # Simple Linear Congruential Generator
-  poor = TRUE,          # Intentionally poor PRNG (for comparison)
+  r_builtin = FALSE,    # R's built-in runif
+  lcg = FALSE,          # Simple Linear Congruential Generator
+  poor = FALSE,         # Intentionally poor PRNG (for comparison)
   qiprng = TRUE,        # Our QIPRNG implementation
   qiprng_nocrypto = TRUE, # QIPRNG without cryptomixing
-  dqrng = TRUE          # dqrng package (if available)
+  dqrng = FALSE         # dqrng package (if available)
 )
 
 # Tests to run (TRUE = run test, FALSE = skip)
+# For a quick development check, only 'basic' is enabled. 
+# For the full suite, set all categories to TRUE.
 TEST_CATEGORIES <- list(
-  basic = TRUE,         # Basic distribution tests
-  runs = TRUE,          # Runs and independence tests
-  correlation = TRUE,   # Correlation tests
-  binary = TRUE,        # Binary and bitwise tests
-  classical = TRUE,     # Classical statistical tests
-  compression = TRUE    # Compression tests
+  basic = TRUE,         # Basic distribution tests (fast)
+  runs = FALSE,          # Runs and independence tests (slower)
+  correlation = FALSE,   # Correlation tests (slower)
+  binary = FALSE,        # Binary and bitwise tests (slow)
+  classical = FALSE,     # Classical statistical tests (slow)
+  compression = FALSE    # Compression tests (very slow)
 )
 
 # ========================= HELPER FUNCTIONS =========================

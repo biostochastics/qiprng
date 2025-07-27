@@ -410,14 +410,32 @@ suppressMPFRWarnings <- function(suppress = TRUE) {
 #' Jump ahead in the PRNG sequence
 #' 
 #' Advances the PRNG state by skipping ahead n numbers. This is significantly more
-#' efficient than generating and discarding n numbers, as it uses mathematical properties
-#' of quadratic irrationals to compute the state directly.
+#' efficient than generating and discarding n numbers, as it uses an optimized
+#' block processing approach to advance the quadratic recurrence.
+#' 
+#' @details
+#' The jump-ahead functionality is particularly useful for:
+#' \itemize{
+#'   \item Parallel simulations where different workers need non-overlapping sequences
+#'   \item Subsampling from specific points in the random sequence
+#'   \item Skipping large segments without the computational cost of generation
+#' }
+#' 
+#' The implementation uses block processing for cache efficiency, processing the
+#' jump in chunks of 1024 steps for optimal performance. Performance scales
+#' sub-linearly with jump size.
+#' 
+#' Note: Due to the security-focused design with random initialization, two PRNGs
+#' created with identical parameters may start at different positions in the
+#' sequence. The jump-ahead function advances from the current position, not from
+#' a fixed origin.
 #' 
 #' Thread safety: This function is fully thread-safe and will block until mutex
 #' is acquired. The implementation ensures proper synchronization of all thread-local
 #' storage during jump-ahead operations.
 #' 
-#' @param n Number of steps to jump ahead (positive integer or numeric value)
+#' @param n Number of steps to jump ahead (positive integer or numeric value).
+#'   Can be very large (e.g., 1e9) as the implementation handles large jumps efficiently.
 #' @return Invisibly returns NULL
 #' @examples
 #' # Create default PRNG
@@ -431,6 +449,21 @@ suppressMPFRWarnings <- function(suppress = TRUE) {
 #' 
 #' # Generate values after the jump
 #' after_jump_values <- generatePRNG(5)
+#' 
+#' # Large jumps are handled efficiently
+#' jumpAheadPRNG(1e6)  # Jump ahead 1 million steps
+#' 
+#' # Use for parallel simulations
+#' \dontrun{
+#' # Worker 1: uses steps 0-999999
+#' createPRNG()
+#' worker1_values <- generatePRNG(1000000)
+#' 
+#' # Worker 2: uses steps 1000000-1999999
+#' createPRNG()
+#' jumpAheadPRNG(1000000)
+#' worker2_values <- generatePRNG(1000000)
+#' }
 #' @export
 jumpAheadPRNG <- function(n) {
     if (!is.numeric(n) || n <= 0) {

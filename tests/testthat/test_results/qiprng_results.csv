@@ -1,0 +1,7 @@
+"Category","Test","Result","PValue","Details"
+"basic","Kolmogorov-Smirnov Test for Uniformity","PASS",0.458099551910345,"Tests if the distribution is uniform on [0,1]. p-value should be above significance level for uniformity."
+"basic","Chi-squared Goodness-of-Fit Test","PASS",0.740263762887606,"Tests if frequencies in 100 bins match expected uniform frequencies."
+"basic","Mean Test","PASS",0.417717485700117,"Tests if mean = 0.497661 is close to expected 0.5 for uniform distribution."
+"basic","Variance Test","PASS",0.882797812220781,"Tests if variance = 0.0835016 is close to expected 1/12 for uniform distribution."
+"basic","Minimum Value Test","PASS",0.605662833888688,"Tests if minimum value = 9.30506e-05 is not too far from expected minimum for uniform distribution."
+"basic","Maximum Value Test","PASS",0.379372645641185,"Tests if maximum value = 0.999952 is not too far from expected maximum for uniform distribution."
