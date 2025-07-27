@@ -207,7 +207,10 @@ set2 <- generatePRNG(100)
 all(set1 == set2)  # TRUE
 ```
 
-Note: When seed is provided, the PRNG uses deterministic initialization while maintaining all mathematical properties. This is suitable for research and testing but should not be used when cryptographic randomness is required.
+Note: When seed is provided, the PRNG uses deterministic initialization while maintaining all mathematical properties:
+- **Discriminant selection**: When a seed is provided, discriminants are shuffled using a deterministic RNG seeded with the user's seed, providing reproducible but still randomized selection. Without a seed, discriminants are shuffled using the thread-local random RNG.
+- **Warm-up period**: The generator performs 10,000-100,000 initial iterations to ensure proper mixing and unpredictable starting states.
+- This mode is suitable for research and testing but should not be used when cryptographic randomness is required.
 
 For full determinism with normal distributions, use `normal_method = "box_muller"` instead of the default ziggurat method, as the ziggurat implementation uses additional randomness for efficiency.
 

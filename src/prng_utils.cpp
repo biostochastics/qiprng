@@ -384,11 +384,9 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
 
         if (!local_csv_copy.empty()) {
             if (current_config.has_seed) {
-                // Sort deterministically instead of random shuffle
-                std::sort(local_csv_copy.begin(), local_csv_copy.end(),
-                    [](const auto& a, const auto& b) {
-                        return std::get<3>(a) < std::get<3>(b); // Sort by discriminant
-                    });
+                // Use seeded shuffle for deterministic but randomized selection
+                std::mt19937_64 shuffle_rng(current_config.seed);
+                std::shuffle(local_csv_copy.begin(), local_csv_copy.end(), shuffle_rng);
             } else {
                 // Original random shuffle
                 std::shuffle(local_csv_copy.begin(), local_csv_copy.end(), rng);

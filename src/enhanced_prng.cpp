@@ -530,9 +530,14 @@ void EnhancedPRNG::reseed() {
     }
     
     // Skip ahead in the sequence to get "new" starting point
+    // Use smaller range for reseed skips since this happens during runtime
+    // and we've already done a large warm-up during initialization
+    const uint64_t MIN_RESEED_SKIP = 1000;   // Minimum to ensure state change
+    const uint64_t MAX_RESEED_SKIP = 10000;  // Maximum to keep reseed fast
+    
     std::random_device rd;
     std::mt19937_64 rng(rd());
-    std::uniform_int_distribution<uint64_t> skip_dist(1000, 10000);
+    std::uniform_int_distribution<uint64_t> skip_dist(MIN_RESEED_SKIP, MAX_RESEED_SKIP);
     multi_->jump_ahead(skip_dist(rng));
 }
 
