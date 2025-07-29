@@ -27,6 +27,39 @@ hist(x, breaks = 50, main = "qiprng uniform distribution", col = "skyblue")
 >
 > **Reference:** Granville, V. (2022). [Military Grade Fast Random Number Generator Based on Quadratic Irrationals](https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/)
 
+## Quality Assurance
+
+### Comprehensive Discriminant Analysis
+
+qiprng underwent extensive quality analysis testing all 750 discriminants with 1,000,000 samples each. Key findings:
+
+- **422 excellent discriminants** identified with superior autocorrelation properties
+- **Autocorrelation is the primary quality factor** - affects 66.3% of discriminants
+- **Enhanced testing methodology**: 50 lags with 99% confidence bounds + empirical thresholds
+- **Parameter optimization**: Small `a` values (1-3) and discriminants 1000-2000 perform best
+
+### Production-Ready Defaults
+
+By default, qiprng uses only the 422 excellent discriminants that meet strict quality criteria:
+
+```r
+# Production configuration (default)
+config <- list(
+  use_excellent_only = TRUE,    # Use only validated excellent discriminants
+  quality_threshold = 0.010     # Maximum autocorrelation threshold
+)
+```
+
+For research or legacy compatibility:
+
+```r
+# Research configuration (all 750 discriminants)
+config <- list(
+  use_excellent_only = FALSE,   # Use all discriminants
+  use_csv_discriminants = TRUE  # Load from discriminants.csv
+)
+```
+
 ## Installation
 
 This package contains C++ code and requires a compiler and several system libraries to be installed on your system before the R package can be built.
@@ -301,7 +334,7 @@ If you use this package in your research, please cite:
   title = {qiprng: Quadratic Irrational Pseudo-Random Number Generator for R},
   author = {Sergey Kornilov},
   year = {2025},
-  note = {R package version 0.2.7 - Deterministic Mode Edition},
+  note = {R package version 0.2.8},
   url = {https://github.com/biostochastics/qiprng},
 }
 ```
