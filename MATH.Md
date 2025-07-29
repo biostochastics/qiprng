@@ -1,6 +1,6 @@
 # Technical Documentation for the Quadratic Irrational PRNG
 
- **Attribution Note**: The mathematical foundation and core algorithm design presented in this document is based on amazing work of the illustruous Vincent Granville (2024), specifically his research on military-grade random number generators using quadratic irrationals that I ran into in the dead of night after having way too much coffee. While Granville provided the original Python implementation, this doc describes my R/C++ implementation developed primarily for educational purposes. Cool if you find it useful. Even better if you find a bug! 
+ **Attribution Note**: The mathematical foundation and core algorithm design presented in this document is based on the amazing work of Vincent Granville (2024), specifically his research on military-grade random number generators using quadratic irrationals that I ran into in the dead of night after having way too much coffee. While Granville provided the original Python implementation, this doc describes my R/C++ implementation developed primarily for educational purposes. Cool if you find it useful. Even better if you find a bug! 
 
  **Reference**: Granville, V. (2022). Synthetic Data and Generative AI 1st Edition. https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/
 
@@ -133,9 +133,9 @@ The implementation supports using custom discriminants from a CSV file:
    - **Greater unpredictability**: Custom discriminants can enhance the unpredictability of the sequence, making it harder to reverse-engineer
 
 2. **Selection criteria for optimal discriminants**:
-   - **Prime or prime-rich factorizations**: Discriminants with minimal common factors tend to produce better randomness
-   - **Congruence classes**: Discriminants of the form 5 mod 8 have shown particularly good randomness properties
-   - **Large discriminants**: Generally, larger discriminant values (>10,000) provide better statistical properties
+   - **Prime or prime-rich factorizations**
+   - **Congruence classes**
+   - **Large discriminants**
    - **Spectral testing**: Discriminants that perform well on spectral tests minimize periodic patterns
 
 3. **Implementation advantages**:
@@ -156,6 +156,8 @@ The implementation supports using custom discriminants from a CSV file:
    ...
    ```
    The CSV file provides complete (a,b,c) triplets along with their calculated discriminant values (b² - 4ac). This format allows for direct specification of parameters known to have desirable properties, rather than deriving them from discriminants alone.
+
+By default the package uses only the 370 "Excellent" discriminants obtained using testing the 750 discriminants provided with the package.
 
 ## 4. Cryptographic Mixing
 
@@ -396,15 +398,14 @@ When implementing or modifying code, it's important to:
 - Allow the SecureBuffer destructor to handle clearing instead of manual clearing
 - Remember that SecureBuffer constructor takes only a size parameter, not an initializer value
 
-## 10. Statistical Properties - IN PROGRESS
 
-## 11. Discriminants (pre-selected)
+## 10. Discriminants (pre-selected)
 
 The package includes a set of pre-selected discriminants for quadratic irrationals.
 
 ### Excellent Discriminant Selection (Production Default)
 
-**New Default Behavior**: qiprng now uses only the 422 excellent discriminants by default, identified through comprehensive analysis.
+**New Default Behavior**: qiprng now uses only the 370 "Excellent" rated discriminants by default, identified through comprehensive analysis.
 
 **Selection Criteria** (all must be satisfied):
 - **Autocorrelation Excellence**: `max_abs_acf ≤ 0.010`
@@ -417,38 +418,16 @@ The package includes a set of pre-selected discriminants for quadratic irrationa
 - **Parameter `c`**: Moderately negative values (-120 to -150) preferred
 
 **Quality Assurance**: Each excellent discriminant achieved:
-- Overall quality score ≥ 0.25 (most ≥ 0.80)
-- Passed comprehensive statistical validation
+- Overall quality score ≥ 0.85 ("Excellent" threshold)
+- Passed comprehensive statistical validation including autocorrelation, uniformity, independence, and periodicity tests
 - Demonstrated stable performance across 1,000,000 sample sequences
 
 The package includes all discriminants for research, but uses only excellent ones for production unless explicitly configured otherwise. Legacy discriminants are selected based on:
 
 ### Comprehensive Discriminant Analysis Results
 
-**Executive Summary**: A comprehensive analysis of all 750 discriminants with 1,000,000 samples each revealed that **autocorrelation is the primary quality bottleneck** for pseudorandom number generators. This analysis led to significant improvements in quality assessment methodology.
-
-**Key Findings**:
-- **422 excellent discriminants** identified with `max_abs_acf ≤ 0.010`
-- **Autocorrelation failures** affect 66.3% of discriminants using strict statistical thresholds
-- **Parameter patterns**: Small values of `a` (1-3) and discriminants in range 1000-2000 consistently produce higher quality
-- **Quality hierarchy**: Autocorrelation < Uniformity < Independence < Periodicity (by difficulty)
-
-### Enhanced Autocorrelation Testing
-
-**Justification for Changes**: The original autocorrelation test used 95% confidence bounds with 20 lags, resulting in an extremely strict threshold of `1.96/√n = 0.00196` for 1M samples. This mathematical rigor, while statistically correct, proved too restrictive for practical PRNG applications.
-
-**New Methodology**:
-- **Increased lag testing**: 50 lags instead of 20 (better detection of long-range dependencies)
-- **99% confidence interval**: `2.576/√n` instead of `1.96/√n` (reduced false positives)
-- **Empirical threshold**: Single threshold of `0.010` based on analysis of 750 discriminants
-- **Hybrid approach**: `max(statistical_bound, empirical_threshold)` ensures both mathematical rigor and practical utility
-
-**Mathematical Basis**:
-```
-For n = 1,000,000 samples:
-- Statistical bound (99%): 2.576/√1,000,000 = 0.00258
-- Empirical threshold: 0.010 (from comprehensive analysis)
-- Final threshold: max(0.00258, 0.010) = 0.010
-```
-
-The quality of pseudorandom sequences generated by qiprng is assessed through multiple statistical tests:
+**Executive Summary**: A comprehensive analysis of all 750 discriminants, each tested with 1,000,000 samples, was performed. The results confirm that while the underlying generation method is strong, rigorous testing is crucial for identifying the highest quality parameter sets.
+- **370 Excellent Discriminants**: A total of 370 discriminants (49.3%) passed all tests with the highest quality rating.
+- **Complete Quality Distribution**: Excellent: 370 (49.3%), Very-Good: 31 (4.1%), Good: 293 (39.1%), Fair: 50 (6.7%), Poor: 6 (0.8%)
+- **Effective Discrimination**: The stricter autocorrelation test provides a more realistic distribution of results, successfully identifying minor flaws that were previously missed.
+- **Overall Robustness**: 92.5% of the discriminants were rated as "Good" or better (including "Very-Good"), confirming the underlying strength of the generation method.

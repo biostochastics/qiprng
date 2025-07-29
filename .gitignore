@@ -1,19 +1,31 @@
-.Rproj.user
+# History files
 .Rhistory
+.Rapp.history
+
+# Session Data
 .RData
 .Ruserdata
+
+# R project files
+.Rproj.user
+*.Rproj
+
+# Compiled source files
 src/*.o
 src/*.so
 src/*.dll
+
+# Test results
 test_results/*
-code_concat_output.md
-Rplots.pdf
-.Rhistory
-.RData
-.Ruserdata
-.Rproject
 test_log.txt
+
+# Documentation and build files
+code_concat_output.md
+CI_CD_GUIDE.md
 *.Rcheck
+
+# Plots
+Rplots.pdf
 qiprng.Rcheck/
 
 
@@ -36,6 +48,7 @@ node_modules/
 .mcp.json
 .taskmaster/
 .windsurf/
+
 
 .idea
 .vscode

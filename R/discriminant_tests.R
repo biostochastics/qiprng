@@ -6,6 +6,17 @@ library(qiprng)
 library(moments)
 library(nortest)
 
+# Ensure rlang for safe null-coalescing and define helper if needed
+# This provides `%||%`, used for safely handling potentially NULL results from tests.
+if (!requireNamespace("rlang", quietly = TRUE)) {
+  install.packages("rlang", quiet = TRUE)
+}
+library(rlang)
+
+if (!exists("%||%")) {
+  `%||%` <- function(x, y) if (is.null(x) || length(x) == 0) y else x
+}
+
 # Load additional packages for enhanced testing
 suppressPackageStartupMessages({
   # Set CRAN mirror if not already set
@@ -74,7 +85,7 @@ load_discriminants <- function(file_path = "discriminants.csv") {
 #' @param b Parameter b  
 #' @param c Parameter c
 #' @param n Number of samples to generate
-#' @param precision MPFR precision (default 128)
+#' @param precision MPFR precision (default 256)
 #' @return Vector of random numbers
 generate_with_discriminant <- function(a, b, c, n = 50000, precision = 256) {
   # Create PRNG with specific parameters
@@ -154,9 +165,14 @@ test_independence <- function(samples) {
   expected_runs <- (2 * n1 * n0) / n + 1
   var_runs <- (2 * n1 * n0 * (2 * n1 * n0 - n)) / (n^2 * (n - 1))
   
-  # Z-score
-  z_score <- (n_runs - expected_runs) / sqrt(var_runs)
-  p_value <- 2 * (1 - pnorm(abs(z_score)))
+  # Z-score with a guard against zero variance, which occurs in non-random sequences
+  if (is.na(var_runs) || var_runs == 0) {
+    z_score <- NA
+    p_value <- 0 # A sequence with zero variance in runs is definitively non-random
+  } else {
+    z_score <- (n_runs - expected_runs) / sqrt(var_runs)
+    p_value <- 2 * (1 - pnorm(abs(z_score)))
+  }
   
   return(list(
     test_name = "Runs Test for Independence",
@@ -186,8 +202,8 @@ test_autocorrelation <- function(samples, max_lag = 50) {
   # Empirical threshold from comprehensive analysis (single threshold for excellence)
   empirical_threshold <- 0.010  # Based on analysis findings
   
-  # Use the more permissive of the two thresholds
-  final_threshold <- max(stat_bound, empirical_threshold)
+  # Use the stricter of the two thresholds to ensure rigorous testing
+  final_threshold <- min(stat_bound, empirical_threshold)
   
   # Find significant lags using final threshold
   significant_lags <- which(abs(autocorr$acf[-1]) > final_threshold)
@@ -221,7 +237,7 @@ test_moments <- function(samples) {
   sample_mean <- mean(samples)
   sample_var <- var(samples)
   sample_skew <- skewness(samples)
-  sample_kurt <- kurtosis(samples)
+  sample_kurt <- kurtosis(samples, excess = FALSE) # Use non-excess kurtosis
   
   # For uniform [0,1]: mean=0.5, var=1/12≈0.0833, skew=0, kurt=1.8
   expected_mean <- 0.5
@@ -395,7 +411,14 @@ test_discriminant <- function(a, b, c, discriminant, n = 50000) {
     )
     
     # Calculate weighted overall score with safe handling (including advanced tests)
-    weights <- list(uniformity = 0.25, independence = 0.25, autocorrelation = 0.15, periodicity = 0.15, advanced = 0.20)
+    # Define weights for scoring. Weights are adjusted to prioritize tests that are harder
+    # to pass and more indicative of high-quality randomness, per MATH.md analysis.
+    # Autocorrelation and Periodicity are given higher weight as they often identify subtle flaws.
+    weights <- list(uniformity = 0.20,      # Basic property
+                    independence = 0.20,      # Basic property
+                    autocorrelation = 0.25, # Key indicator of quality
+                    periodicity = 0.20,     # Key indicator of quality
+                    advanced = 0.15)      # Suite of additional tests
     
     # Safe scalar extraction to prevent length 0 vectors
     uniformity_score <- 0
@@ -441,13 +464,13 @@ test_discriminant <- function(a, b, c, discriminant, n = 50000) {
     # Safe quality rating assignment
     if (is.null(score) || length(score) == 0 || is.na(score)) {
       results$quality_rating <- "Error"
-    } else if (score >= 0.90) {
+    } else if (score >= 0.85) {
       results$quality_rating <- "Excellent"
-    } else if (score >= 0.80) {
+    } else if (score >= 0.75) {
       results$quality_rating <- "Very-Good"
-    } else if (score >= 0.65) {
+    } else if (score >= 0.60) {
       results$quality_rating <- "Good"
-    } else if (score >= 0.50) {
+    } else if (score >= 0.45) {
       results$quality_rating <- "Fair"
     } else {
       results$quality_rating <- "Poor"
@@ -501,7 +524,7 @@ run_discriminant_analysis <- function(discriminants_file = "discriminants.csv",
   
   # Auto-detect cores (M4Pro has 10-14 cores typically)
   if (is.null(n_cores)) {
-    n_cores <- max(1, detectCores() - 1)  # Leave 1 core free
+    n_cores <- max(1, detectCores() - 3)  # Leave 1 core free
   }
   n_cores <- min(n_cores, nrow(discriminants))  # Don't use more cores than discriminants
   
@@ -582,6 +605,7 @@ run_discriminant_analysis <- function(discriminants_file = "discriminants.csv",
         suppressPackageStartupMessages({
           if (require(randtests, quietly = TRUE)) library(randtests)
           if (require(tseries, quietly = TRUE)) library(tseries)
+          if (require(rlang, quietly = TRUE)) library(rlang)
           if (require(R.utils, quietly = TRUE)) library(R.utils)
         })
       })

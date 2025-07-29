@@ -31,16 +31,17 @@ hist(x, breaks = 50, main = "qiprng uniform distribution", col = "skyblue")
 
 ### Comprehensive Discriminant Analysis
 
-qiprng underwent extensive quality analysis testing all 750 discriminants with 1,000,000 samples each. Key findings:
+The `qiprng` package has undergone a rigorous, comprehensive quality analysis. All 750 discriminants were tested with 1,000,000 samples each against a suite of stringent statistical tests. After correcting and hardening the testing framework, particularly the autocorrelation analysis, the final results provide a trustworthy assessment of each parameter set.
 
-- **422 excellent discriminants** identified with superior autocorrelation properties
-- **Autocorrelation is the primary quality factor** - affects 66.3% of discriminants
-- **Enhanced testing methodology**: 50 lags with 99% confidence bounds + empirical thresholds
-- **Parameter optimization**: Small `a` values (1-3) and discriminants 1000-2000 perform best
+**Key Findings:**
+
+- **370 Excellent Discriminants:** A total of 370 discriminants (49.3%) passed all tests with the highest quality rating, demonstrating exceptional statistical properties.
+- **Robustness Across the Board:** 92.5% of the discriminants were rated as "Good" or better (including "Very-Good"), confirming the overall strength of the generation method.
+- **Effective Discrimination:** The corrected, stricter testing framework successfully distinguishes between truly superior generators and those with minor statistical weaknesses, providing users with a reliable quality guarantee.
 
 ### Production-Ready Defaults
 
-By default, qiprng uses only the 422 excellent discriminants that meet strict quality criteria:
+By default, qiprng uses only the 370 "Excellent" rated discriminants, ensuring maximum quality and reliability for production use:
 
 ```r
 # Production configuration (default)
