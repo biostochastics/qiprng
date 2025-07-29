@@ -560,11 +560,12 @@ cat("consistent with the theoretical expectation that larger discriminants provi
 
 ## Analysis Parameters
 
-- **Sample Size**: 10,000 random numbers per discriminant
-- **MPFR Precision**: 128 bits (default)
+- **Sample Size**: 50,000 random numbers per discriminant (default)
+- **MPFR Precision**: 256 bits (default)
 - **Significance Level**: α = 0.05 for all statistical tests
-- **Autocorrelation Lags**: Up to 20 lags tested
-- **Spectral Analysis**: Full FFT with power ratio threshold of 3.0
+- **Autocorrelation Lags**: Up to 50 lags tested (default)
+- **Spectral Analysis**: Enhanced periodicity analysis using Fisher's g-test, Bartels rank test, Cox-Stuart test, turning points test, and Ljung-Box test
+- **Parallel Processing**: Multi-core analysis with dynamic chunk sizing for efficiency
 
 ## Computational Environment
 

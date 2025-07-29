@@ -3,128 +3,127 @@
 ## Executive Summary
 
 Total discriminants tested: 750
-Sample size per discriminant: 50000
+Sample size per discriminant: 1e+06
 
 ### Overall Performance:
-- Excellent (score ≥ 0.75): 227 (30.3%)
-- Good (score ≥ 0.50): 429 (57.2%)
-- Fair (score ≥ 0.25): 87 (11.6%)
-- Poor (score < 0.25): 7 (0.9%)
+- Excellent (score ≥ 0.75): 370 (49.3%)
+- Good (score ≥ 0.50): 293 (39.1%)
+- Fair (score ≥ 0.25): 50 (6.7%)
+- Poor (score < 0.25): 6 (0.8%)
 - Errors: 0 (0%)
 
 ### Test Pass Rates:
-- Uniformity (Kolmogorov-Smirnov): 90.7%
-- Independence (Runs Test): 94.5%
-- Autocorrelation: 33.7%
-- Periodicity (Spectral): 97.5%
+- Uniformity (Kolmogorov-Smirnov): 91.5%
+- Independence (Runs Test): 95.2%
+- Autocorrelation: 56.8%
+- Periodicity (Spectral): 97.9%
 
 ## Top 5 Performing Discriminants
 
-### Rank 1: Discriminant #13
-**Parameters:** a=2, b=5, c=-141, Δ=1153
-**Overall Score:** 0.95 (Excellent)
+### Rank 1: Discriminant #2
+**Parameters:** a=1, b=9, c=-145, Δ=661
+**Overall Score:** 0.963 (Excellent)
 
 **Test Results:**
-- Uniformity: Passes both uniformity tests (good) (KS p=0.7726, ChiSq p=0.25)
-- Independence: ✓ PASS (p=0.9929)
-- Autocorrelation: ✓ PASS (No significant autocorrelation (good))
+- Uniformity: Passes both uniformity tests (good) (KS p=0.4543, ChiSq p=0.1343)
+- Independence: ✓ PASS (p=0.7505)
+- Autocorrelation: ✓ PASS (No significant autocorrelation (max |ACF| = 0.0022 < 0.0026))
 - Periodicity: ✓ PASS (No significant periodicity/patterns detected ( 4 / 5  tests passed))
-- Mean error: 0.000138
-- Variance error: 0
+- Mean error: NA
+- Variance error: NA
 
-### Rank 2: Discriminant #15
+### Rank 2: Discriminant #3
+**Parameters:** a=1, b=9, c=-148, Δ=673
+**Overall Score:** 0.963 (Excellent)
+
+**Test Results:**
+- Uniformity: Passes both uniformity tests (good) (KS p=0.6978, ChiSq p=0.4891)
+- Independence: ✓ PASS (p=0.752)
+- Autocorrelation: ✓ PASS (No significant autocorrelation (max |ACF| = 0.0022 < 0.0026))
+- Periodicity: ✓ PASS (No significant periodicity/patterns detected ( 4 / 5  tests passed))
+- Mean error: NA
+- Variance error: NA
+
+### Rank 3: Discriminant #8
+**Parameters:** a=1, b=13, c=-147, Δ=757
+**Overall Score:** 0.963 (Excellent)
+
+**Test Results:**
+- Uniformity: Passes both uniformity tests (good) (KS p=0.2449, ChiSq p=0.5723)
+- Independence: ✓ PASS (p=0.1579)
+- Autocorrelation: ✓ PASS (No significant autocorrelation (max |ACF| = 0.0022 < 0.0026))
+- Periodicity: ✓ PASS (No significant periodicity/patterns detected ( 4 / 5  tests passed))
+- Mean error: NA
+- Variance error: NA
+
+### Rank 4: Discriminant #15
 **Parameters:** a=2, b=5, c=-147, Δ=1201
-**Overall Score:** 0.95 (Excellent)
+**Overall Score:** 0.963 (Excellent)
 
 **Test Results:**
-- Uniformity: Passes both uniformity tests (good) (KS p=0.866, ChiSq p=0.6648)
-- Independence: ✓ PASS (p=0.9216)
-- Autocorrelation: ✓ PASS (No significant autocorrelation (good))
+- Uniformity: Passes both uniformity tests (good) (KS p=0.7405, ChiSq p=0.8625)
+- Independence: ✓ PASS (p=0.8274)
+- Autocorrelation: ✓ PASS (No significant autocorrelation (max |ACF| = 0.0023 < 0.0026))
 - Periodicity: ✓ PASS (No significant periodicity/patterns detected ( 4 / 5  tests passed))
-- Mean error: 0.000168
-- Variance error: 4.9e-05
+- Mean error: NA
+- Variance error: NA
 
-### Rank 3: Discriminant #16
+### Rank 5: Discriminant #16
 **Parameters:** a=2, b=5, c=-149, Δ=1217
-**Overall Score:** 0.95 (Excellent)
+**Overall Score:** 0.963 (Excellent)
 
 **Test Results:**
-- Uniformity: Passes both uniformity tests (good) (KS p=0.8333, ChiSq p=0.3605)
-- Independence: ✓ PASS (p=0.6873)
-- Autocorrelation: ✓ PASS (No significant autocorrelation (good))
+- Uniformity: Passes both uniformity tests (good) (KS p=0.2543, ChiSq p=0.3302)
+- Independence: ✓ PASS (p=0.1465)
+- Autocorrelation: ✓ PASS (No significant autocorrelation (max |ACF| = 0.0020 < 0.0026))
 - Periodicity: ✓ PASS (No significant periodicity/patterns detected ( 4 / 5  tests passed))
-- Mean error: 0.000194
-- Variance error: 0.000103
-
-### Rank 4: Discriminant #19
-**Parameters:** a=2, b=7, c=-120, Δ=1009
-**Overall Score:** 0.95 (Excellent)
-
-**Test Results:**
-- Uniformity: Passes both uniformity tests (good) (KS p=0.9372, ChiSq p=0.6461)
-- Independence: ✓ PASS (p=0.83)
-- Autocorrelation: ✓ PASS (No significant autocorrelation (good))
-- Periodicity: ✓ PASS (No significant periodicity/patterns detected ( 3 / 5  tests passed))
-- Mean error: 0.000456
-- Variance error: 8.1e-05
-
-### Rank 5: Discriminant #30
-**Parameters:** a=3, b=7, c=-129, Δ=1597
-**Overall Score:** 0.95 (Excellent)
-
-**Test Results:**
-- Uniformity: Passes both uniformity tests (good) (KS p=0.7691, ChiSq p=0.1474)
-- Independence: ✓ PASS (p=0.5312)
-- Autocorrelation: ✓ PASS (No significant autocorrelation (good))
-- Periodicity: ✓ PASS (No significant periodicity/patterns detected ( 4 / 5  tests passed))
-- Mean error: 4e-05
-- Variance error: 0.000193
+- Mean error: NA
+- Variance error: NA
 
 ## Bottom 5 Performing Discriminants
 
-### Rank 746 (Bottom 5): Discriminant #642
-**Parameters:** a=57, b=13, c=-43, Δ=9973
-**Overall Score:** 0.35 (Poor)
+### Rank 746 (Bottom 5): Discriminant #342
+**Parameters:** a=29, b=7, c=-57, Δ=6661
+**Overall Score:** 0.438 (Poor)
 
 **Failed Tests:**
-- Independence (p=0.0097)
+- Independence (p=0.0183)
+- Autocorrelation
+
+### Rank 747 (Bottom 4): Discriminant #63
+**Parameters:** a=6, b=5, c=-143, Δ=3457
+**Overall Score:** 0.275 (Poor)
+
+**Failed Tests:**
+- Independence (p=0.037)
 - Autocorrelation
 - Periodicity
 
-### Rank 747 (Bottom 4): Discriminant #5
-**Parameters:** a=1, b=11, c=-145, Δ=701
-**Overall Score:** 0.25 (Poor)
+### Rank 748 (Bottom 3): Discriminant #373
+**Parameters:** a=32, b=5, c=-44, Δ=5657
+**Overall Score:** 0.275 (Poor)
 
 **Failed Tests:**
-- Uniformity: Fails uniformity tests (KS: Fail , Chi-Sq: Pass ) (KS p=0.0222, ChiSq p=0.1575)
-- Independence (p=0.0297)
+- Independence (p=0.0392)
 - Autocorrelation
+- Periodicity
 
-### Rank 748 (Bottom 3): Discriminant #10
-**Parameters:** a=1, b=13, c=-150, Δ=769
-**Overall Score:** 0.25 (Poor)
+### Rank 749 (Bottom 2): Discriminant #382
+**Parameters:** a=33, b=5, c=-57, Δ=7549
+**Overall Score:** 0.275 (Poor)
 
 **Failed Tests:**
-- Uniformity: Fails uniformity tests (KS: Fail , Chi-Sq: Pass ) (KS p=0.036, ChiSq p=0.4778)
-- Independence (p=0.0187)
+- Independence (p=0.0468)
 - Autocorrelation
+- Periodicity
 
-### Rank 749 (Bottom 2): Discriminant #400
-**Parameters:** a=34, b=7, c=-25, Δ=3449
-**Overall Score:** 0.25 (Poor)
-
-**Failed Tests:**
-- Uniformity: Fails uniformity tests (KS: Pass , Chi-Sq: Fail ) (KS p=0.6889, ChiSq p=0.0419)
-- Independence (p=0.0065)
-- Autocorrelation
-
-### Rank 750 (Bottom 1): Discriminant #446
-**Parameters:** a=38, b=7, c=-20, Δ=3089
-**Overall Score:** 0.25 (Poor)
+### Rank 750 (Bottom 1): Discriminant #534
+**Parameters:** a=46, b=5, c=-79, Δ=14561
+**Overall Score:** 0.275 (Poor)
 
 **Failed Tests:**
-- Uniformity: Fails uniformity tests (KS: Fail , Chi-Sq: Pass ) (KS p=0.0284, ChiSq p=0.3262)
-- Independence (p=0.0481)
+- Uniformity: Fails uniformity tests (KS: Pass , Chi-Sq: Fail ) (KS p=0.2496, ChiSq p=0.0402)
+- Independence (p=0.0394)
 - Autocorrelation
 
 

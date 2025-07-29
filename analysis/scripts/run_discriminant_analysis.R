@@ -10,8 +10,8 @@
 #   Rscript run_discriminant_analysis.R [sample_size] [max_discriminants]
 #
 # Arguments:
-#   sample_size: Number of random samples to generate per discriminant (default: 10000)
-#   max_discriminants: Maximum number of discriminants to test (default: all)
+#   sample_size: Number of random samples to generate per discriminant (default: 1000000)
+#   max_discriminants: Maximum number of discriminants to test (default: 750)
 
 # Load required libraries and source files
 suppressPackageStartupMessages({
@@ -22,17 +22,17 @@ suppressPackageStartupMessages({
   library(gridExtra)
 })
 
-# Source our testing modules (adjust paths for new structure)
-source("../../R/discriminant_tests.R")
-source("../../R/discriminant_reports.R")
-source("../../R/excellent_discriminants.R")
+# Source our testing modules from the project root
+source("R/discriminant_tests.R")
+source("R/discriminant_reports.R")
+source("R/excellent_discriminants.R")
 
 # Parse command line arguments
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) >= 1) {
   sample_size <- as.numeric(args[1])
 } else {
-  sample_size <- 10000000
+  sample_size <- 1000000
 }
 if (length(args) >= 2) {
   if (args[2] == "NULL" || args[2] == "null" || args[2] == "all") {
@@ -56,7 +56,7 @@ cat("Max discriminants to test:", ifelse(is.null(max_discriminants), "All", max_
 cat("Output directory: discriminant_analysis_results/\n\n")
 
 # Verify discriminants file exists
-discriminants_path <- "../data/discriminants.csv"
+discriminants_path <- "analysis/data/discriminants.csv"
 if (!file.exists(discriminants_path)) {
   stop("Error: discriminants.csv not found at ", discriminants_path)
 }
@@ -91,7 +91,7 @@ cat("\nAnalysis completed in", round(as.numeric(analysis_duration), 2), "minutes
 
 # Generate and save comprehensive reports
 cat("Generating reports and visualizations...\n")
-analysis_output <- save_analysis_results(results, "../results/discriminant_analysis_results")
+analysis_output <- save_analysis_results(results, "analysis/results/discriminant_analysis_results")
 
 # Print summary to console
 summary_data <- analysis_output$summary_data
@@ -188,10 +188,10 @@ cat("EXCELLENT DISCRIMINANTS ANALYSIS\n")
 cat(paste(rep("=", 50), collapse=""), "\n")
 
 tryCatch({
-  print_excellent_summary("../results/discriminant_analysis_results/raw_results.rds")
+  print_excellent_summary("analysis/results/discriminant_analysis_results/raw_results.rds")
   
   cat("\n=== PRODUCTION RECOMMENDATIONS ===\n")
-  cat("The analysis identified 227 excellent discriminants suitable for production use.\n")
+  cat("The analysis identified excellent discriminants suitable for production use.\n")
   cat("These discriminants have passed rigorous statistical testing and show superior randomness quality.\n\n")
   
   cat("To use excellent discriminants in your code:\n")
@@ -220,7 +220,7 @@ cat("To generate the comprehensive Quarto report:\n")
 cat("\n# In R or RStudio:\n")
 cat("quarto::quarto_render('discriminant_analysis_report.qmd')\n\n")
 cat("# Or from command line:\n")
-cat("quarto render ../reports/discriminant_analysis_report.qmd\n\n")
+cat("quarto render analysis/reports/discriminant_analysis_report.qmd\n\n")
 cat("This will create an interactive HTML report with detailed analysis and visualizations.\n")
 
 cat("\n=== ANALYSIS COMPLETE ===\n")
