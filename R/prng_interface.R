@@ -54,6 +54,8 @@ default_config <- list(
     reseed_interval = 1000L,  # Default to 1000 iterations between reseeds
     use_threading = FALSE,    # Enable thread-local PRNG instances
     use_csv_discriminants = TRUE,  # Use custom discriminants from discriminants.csv
+    use_excellent_only = TRUE,     # Use only excellent discriminants (max_abs_acf <= 0.010)
+    quality_threshold = 0.010,     # Maximum autocorrelation threshold for discriminant selection
     use_parallel_filling = FALSE,
     debug = FALSE,
     seed = NULL,           # NULL means use random initialization
@@ -170,6 +172,8 @@ validate_config <- function(config) {
 #'     \item{reseed_interval}{Integer: number of iterations between automatic reseeds}
 #'     \item{use_threading}{Logical: whether to enable thread-local PRNG instances}
 #'     \item{use_csv_discriminants}{Logical: whether to use custom discriminants from discriminants.csv}
+#'     \item{use_excellent_only}{Logical: whether to restrict to excellent discriminants (max_abs_acf <= 0.010)}
+#'     \item{quality_threshold}{Numeric: maximum autocorrelation threshold for discriminant selection}
 #'     \item{use_parallel_filling}{Logical: whether to use parallel buffer filling}
 #'     \item{debug}{Logical: whether to enable debugging output}
 #'     \item{seed}{Numeric seed for reproducible sequences (0 to 2^53-1).
