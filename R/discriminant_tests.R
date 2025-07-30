@@ -2,7 +2,7 @@
 # Comprehensive statistical analysis of random numbers generated using different discriminants
 # Incorporates advanced tests for cryptographic-quality randomness assessment
 
-library(qiprng)
+# library(qiprng) # Not needed - functions are available within package
 library(moments)
 library(nortest)
 
@@ -599,7 +599,7 @@ run_discriminant_analysis <- function(discriminants_file = "discriminants.csv",
       
       # Load required libraries on each worker
       clusterEvalQ(cl, {
-        library(qiprng)
+        # library(qiprng) # Not needed - functions are available within package
         library(moments)
         library(nortest)
         suppressPackageStartupMessages({

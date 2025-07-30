@@ -24,6 +24,8 @@ Possible parameters include:
 \item{reseed_interval}{Integer: number of iterations between automatic reseeds}
 \item{use_threading}{Logical: whether to enable thread-local PRNG instances}
 \item{use_csv_discriminants}{Logical: whether to use custom discriminants from discriminants.csv}
+\item{use_excellent_only}{Logical: whether to restrict to excellent discriminants (max_abs_acf <= 0.010)}
+\item{quality_threshold}{Numeric: maximum autocorrelation threshold for discriminant selection}
 \item{use_parallel_filling}{Logical: whether to use parallel buffer filling}
 \item{debug}{Logical: whether to enable debugging output}
 \item{seed}{Numeric seed for reproducible sequences (0 to 2^53-1).

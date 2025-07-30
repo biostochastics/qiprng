@@ -95,12 +95,27 @@ std::mt19937_64& qiprng::getDeterministicThreadLocalEngine(uint64_t seed) {
 std::vector<std::tuple<long, long, long>> qiprng::pickMultiQiSet(int precision, int count, 
                                                                  uint64_t seed, bool has_seed) {
     std::vector<std::tuple<long, long, long>> result;
-    std::vector<std::tuple<long, long, long>> baseParams = {
-        {1, 1, -1}, {2, 3, -1}, {1, 2, -1}, {1, 3, -2}, {2, 5, -3},
-        {3, 5, -2}, {1, 4, -3}, {2, 7, -4}, {3, 7, -4}, {1, 5, -6},
-        {2, 9, -10}, {3, 11, -10}, {4, 9, -5}, {5, 11, -6},
-        {6, 13, -7}, {7, 15, -8}
-    };
+    
+    // First, try to load and use excellent discriminants from CSV
+    loadCSVDiscriminants();
+    
+    std::vector<std::tuple<long, long, long>> baseParams;
+    
+    // If CSV discriminants are loaded, use them; otherwise fallback to hardcoded values
+    if (g_csv_discriminants_loaded && !g_csv_discriminants.empty()) {
+        // Convert CSV discriminants (a,b,c,discriminant) to baseParams (a,b,c)
+        for (const auto& disc : g_csv_discriminants) {
+            baseParams.emplace_back(std::get<0>(disc), std::get<1>(disc), std::get<2>(disc));
+        }
+    } else {
+        // Fallback to hardcoded excellent discriminants if CSV loading fails
+        baseParams = {
+            {1, 1, -1}, {2, 3, -1}, {1, 2, -1}, {1, 3, -2}, {2, 5, -3},
+            {3, 5, -2}, {1, 4, -3}, {2, 7, -4}, {3, 7, -4}, {1, 5, -6},
+            {2, 9, -10}, {3, 11, -10}, {4, 9, -5}, {5, 11, -6},
+            {6, 13, -7}, {7, 15, -8}
+        };
+    }
 
     if (count <= 0) {
         return result; // Return empty if count is not positive
@@ -207,8 +222,14 @@ void qiprng::loadCSVDiscriminants() {
     try {
         std::vector<std::tuple<long, long, long, long long>> temp_discriminants;
         
-        // Try different possible paths for the CSV file
+        // Try different possible paths for the excellent discriminants CSV file
         std::vector<std::string> possible_paths = {
+            "inst/extdata/excellent_discriminants.csv",
+            "../inst/extdata/excellent_discriminants.csv",
+            "analysis/data/excellent_discriminants.csv",
+            "../analysis/data/excellent_discriminants.csv",
+            "../../analysis/data/excellent_discriminants.csv",
+            "excellent_discriminants.csv",
             "discriminants.csv",
             "../discriminants.csv",
             "../../discriminants.csv"
@@ -227,7 +248,7 @@ void qiprng::loadCSVDiscriminants() {
         }
 
         if (!file.is_open()) {
-            Rcpp::warning("Could not open discriminants.csv file in any standard location. Will use generated discriminants.");
+            Rcpp::warning("Could not open excellent_discriminants.csv file in any standard location. Will use generated discriminants.");
             
             // Generate default discriminants instead
             for (int i = 0; i < 100; i++) {

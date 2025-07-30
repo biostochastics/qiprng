@@ -43,7 +43,7 @@
 #' }
 #' @export
 benchmark_qiprng <- function(n_values = c(10, 100, 1000, 10000, 100000, 1000000),
-                            generators = list("qiprng" = function(n) qiprng::generatePRNG(n),
+                            generators = list("qiprng" = function(n) generatePRNG(n),
                                               "base_r" = function(n) stats::runif(n),
                                               "dqrng" = function(n) if(requireNamespace("dqrng", quietly = TRUE)) dqrng::dqrunif(n) else stats::runif(n)),
                             distributions = c("uniform", "normal", "exponential"),
@@ -106,8 +106,8 @@ benchmark_qiprng <- function(n_values = c(10, 100, 1000, 10000, 100000, 1000000)
     if (dist == "normal") {
       dist_generators <- list(
         "qiprng" = function(n) {
-          qiprng::createPRNG(list(distribution = "normal"))
-          qiprng::generatePRNG(n)
+          createPRNG(list(distribution = "normal"))
+          generatePRNG(n)
         },
         "base_r" = function(n) rnorm(n)
       )
@@ -117,8 +117,8 @@ benchmark_qiprng <- function(n_values = c(10, 100, 1000, 10000, 100000, 1000000)
     } else if (dist == "exponential") {
       dist_generators <- list(
         "qiprng" = function(n) {
-          qiprng::createPRNG(list(distribution = "exponential"))
-          qiprng::generatePRNG(n)
+          createPRNG(list(distribution = "exponential"))
+          generatePRNG(n)
         },
         "base_r" = function(n) rexp(n)
       )
@@ -147,8 +147,8 @@ benchmark_qiprng <- function(n_values = c(10, 100, 1000, 10000, 100000, 1000000)
             current_config$distribution <- "uniform_01"
             
             # Create and generate
-            qiprng::createPRNG(current_config)
-            result <- qiprng::generatePRNG(n)
+            createPRNG(current_config)
+            result <- generatePRNG(n)
             if (debug_mode) cat("DEBUG: QIPRNG uniform generation successful\n")
             result
           }, error = function(e) {
@@ -170,8 +170,8 @@ benchmark_qiprng <- function(n_values = c(10, 100, 1000, 10000, 100000, 1000000)
             current_config$distribution <- "normal"
             
             # Create and generate
-            qiprng::createPRNG(current_config)
-            result <- qiprng::generatePRNG(n)
+            createPRNG(current_config)
+            result <- generatePRNG(n)
             if (debug_mode) cat("DEBUG: QIPRNG normal generation successful\n")
             result
           }, error = function(e) {
@@ -193,8 +193,8 @@ benchmark_qiprng <- function(n_values = c(10, 100, 1000, 10000, 100000, 1000000)
             current_config$distribution <- "exponential"
             
             # Create and generate
-            qiprng::createPRNG(current_config)
-            result <- qiprng::generatePRNG(n)
+            createPRNG(current_config)
+            result <- generatePRNG(n)
             if (debug_mode) cat("DEBUG: QIPRNG exponential generation successful\n")
             result
           }, error = function(e) {
@@ -595,7 +595,7 @@ benchmark_large_generation <- function(n_values = c(1e6, 5e6, 1e7, 5e7),
         
         # Set configuration for QIPRNG if that's the generator
         if (gen_name == "qiprng") {
-          qiprng::createPRNG(configs[[config_name]])
+          createPRNG(configs[[config_name]])
         }
         
         gen_func <- generators[[gen_name]]

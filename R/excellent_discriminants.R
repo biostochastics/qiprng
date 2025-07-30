@@ -1,5 +1,5 @@
 # Excellent Discriminants Selection Module
-# Provides functions to select from the 227 excellent discriminants for production use
+# Provides functions to select from the 370 excellent discriminants for production use
 
 #' Load and filter excellent discriminants from analysis results
 #'
@@ -178,7 +178,7 @@ generate_excellent_random <- function(n = 10000,
   config <- create_excellent_prng_config(selected_discriminant, precision = precision)
   
   # Initialize and generate
-  library(qiprng)
+  # library(qiprng) # Not needed - functions are available within package
   createPRNG(config = config)
   samples <- generatePRNG(n)
   
