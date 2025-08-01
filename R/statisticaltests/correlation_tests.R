@@ -60,7 +60,12 @@ run_correlation_tests <- function(suite) {
   # ACF and PACF test
   # Calculate autocorrelation for multiple lags and test if any are significant
   acf_test <- function(x, max_lag = 20) {
-    acf_vals <- acf(x, lag.max = max_lag, plot = FALSE)$acf
+    # Use cached version if available, otherwise fall back to regular acf
+    if (exists("cached_acf", mode = "function")) {
+      acf_vals <- cached_acf(x, lag.max = max_lag)$acf
+    } else {
+      acf_vals <- acf(x, lag.max = max_lag, plot = FALSE)$acf
+    }
     acf_vals <- acf_vals[-1]  # Remove lag 0 (always 1)
     
     # Critical value for 95% confidence
@@ -88,7 +93,12 @@ run_correlation_tests <- function(suite) {
   
   # PACF test
   pacf_test <- function(x, max_lag = 20) {
-    pacf_vals <- pacf(x, lag.max = max_lag, plot = FALSE)$acf
+    # Use cached version if available, otherwise fall back to regular pacf
+    if (exists("cached_pacf", mode = "function")) {
+      pacf_vals <- cached_pacf(x, lag.max = max_lag)$acf
+    } else {
+      pacf_vals <- pacf(x, lag.max = max_lag, plot = FALSE)$acf
+    }
     
     # Critical value for 95% confidence
     n <- length(x)
@@ -118,7 +128,13 @@ run_correlation_tests <- function(suite) {
   acf_result <- acf_test(x, max_lag)
   suite$results$correlation$acf_test <- list(
     description = "Autocorrelation Function Test",
-    result = ifelse(acf_result$p.value >= suite$config$significance_level, "PASS", "FAIL"),
+    result = if (is.na(acf_result$p.value)) {
+      "INCONCLUSIVE"
+    } else if (acf_result$p.value >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
     p_value = acf_result$p.value,
     statistic = acf_result$statistic,
     details = paste("Tests if autocorrelations exceed critical value.",
@@ -130,7 +146,13 @@ run_correlation_tests <- function(suite) {
   pacf_result <- pacf_test(x, max_lag)
   suite$results$correlation$pacf_test <- list(
     description = "Partial Autocorrelation Function Test",
-    result = ifelse(pacf_result$p.value >= suite$config$significance_level, "PASS", "FAIL"),
+    result = if (is.na(pacf_result$p.value)) {
+      "INCONCLUSIVE"
+    } else if (pacf_result$p.value >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
     p_value = pacf_result$p.value,
     statistic = pacf_result$statistic,
     details = paste("Tests if partial autocorrelations exceed critical value.",
@@ -141,7 +163,12 @@ run_correlation_tests <- function(suite) {
   # Spectral analysis
   spectral_test <- function(x) {
     # Calculate spectrum
-    spec_result <- spectrum(x, plot = FALSE)
+    # Use cached version if available, otherwise fall back to regular spectrum
+    if (exists("cached_spectrum", mode = "function")) {
+      spec_result <- cached_spectrum(x, plot = FALSE)
+    } else {
+      spec_result <- spectrum(x, plot = FALSE)
+    }
     
     # In a random sequence, spectral densities should be approximately exponential
     # We'll use Kolmogorov-Smirnov test to compare with exponential distribution
@@ -167,7 +194,13 @@ run_correlation_tests <- function(suite) {
   spec_result <- spectral_test(x)
   suite$results$correlation$spectral_test <- list(
     description = "Spectral Analysis Test",
-    result = ifelse(spec_result$p.value >= suite$config$significance_level, "PASS", "FAIL"),
+    result = if (is.na(spec_result$p.value)) {
+      "INCONCLUSIVE"
+    } else if (spec_result$p.value >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
     p_value = spec_result$p.value,
     statistic = spec_result$statistic,
     details = paste("Tests if spectrum follows expected distribution.",
@@ -185,7 +218,13 @@ run_correlation_tests <- function(suite) {
   lb_result <- lb_test(x, max_lag)
   suite$results$correlation$ljung_box <- list(
     description = "Ljung-Box Test",
-    result = ifelse(lb_result$p.value >= suite$config$significance_level, "PASS", "FAIL"),
+    result = if (is.na(lb_result$p.value)) {
+      "INCONCLUSIVE"
+    } else if (lb_result$p.value >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
     p_value = lb_result$p.value,
     statistic = lb_result$statistic,
     details = paste("Tests for overall autocorrelation up to lag", max_lag)

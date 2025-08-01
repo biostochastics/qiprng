@@ -2,16 +2,50 @@
 % Please edit documentation in R/discriminant_tests.R
 \name{test_uniformity}
 \alias{test_uniformity}
-\title{Test uniformity using Kolmogorov-Smirnov test}
+\title{Test uniformity using Kolmogorov-Smirnov and Chi-squared tests}
 \usage{
 test_uniformity(samples, bins = 20)
 }
 \arguments{
-\item{samples}{Vector of random samples}
+\item{samples}{Numeric vector of random samples to test}
+
+\item{bins}{Number of bins for the Chi-squared test (default: 20)}
 }
 \value{
-List with test results
+A list containing test results:
+\describe{
+\item{test_name}{Name of the test suite}
+\item{ks_statistic}{Kolmogorov-Smirnov test statistic}
+\item{ks_p_value}{Kolmogorov-Smirnov p-value}
+\item{chi_sq_statistic}{Chi-squared test statistic}
+\item{chi_sq_p_value}{Chi-squared p-value}
+\item{passed}{Logical; TRUE if both tests pass at 0.05 significance}
+\item{interpretation}{Human-readable interpretation of results}
+}
 }
 \description{
-Test uniformity using Kolmogorov-Smirnov test
+Performs comprehensive uniformity testing on a sample of random numbers using
+both the Kolmogorov-Smirnov test and Chi-squared goodness-of-fit test.
+}
+\details{
+The function performs two complementary tests:
+\itemize{
+\item \strong{Kolmogorov-Smirnov test}: Compares the empirical CDF against uniform\link{0,1}
+\item \strong{Chi-squared test}: Tests if bin frequencies match expected uniform distribution
+}
+
+A warning is issued if expected bin counts are less than 5, as this may
+affect the validity of the Chi-squared test.
+}
+\note{
+Both tests must pass (p-value > 0.05) for the overall test to pass.
+}
+\examples{
+\dontrun{
+# Test uniform random numbers
+samples <- runif(10000)
+result <- test_uniformity(samples)
+print(result$interpretation)
+}
+
 }

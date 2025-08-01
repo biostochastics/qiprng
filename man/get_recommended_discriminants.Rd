@@ -11,15 +11,63 @@ get_recommended_discriminants(
 )
 }
 \arguments{
-\item{n}{Number of discriminants to return (default 10)}
+\item{n}{Number of discriminants to return (default: 10)}
 
-\item{results_file}{Path to the analysis results RDS file}
+\item{results_file}{Path to the analysis results RDS file
+(default: "discriminant_analysis_results/raw_results.rds")}
 
-\item{criteria}{Selection criteria: "top_score", "balanced", or "diverse"}
+\item{criteria}{Selection criteria, one of:
+\describe{
+\item{"top_score"}{Select discriminants with highest overall scores}
+\item{"balanced"}{Select discriminants that pass all tests uniformly}
+\item{"diverse"}{Select discriminants with diverse parameter ranges using k-means clustering}
+}}
 }
 \value{
-Data frame with recommended discriminant parameters
+A data frame with recommended discriminant parameters containing:
+\describe{
+\item{a, b, c}{Discriminant parameters}
+\item{discriminant}{The discriminant value b² - 4ac}
+\item{overall_score}{Combined test score}
+\item{Test results}{Individual test pass/fail status}
+\item{balance_score}{For "balanced" criteria, the proportion of tests passed}
+}
 }
 \description{
-Get recommended discriminant parameters for production use
+Selects a subset of excellent discriminants based on specified criteria.
+Provides three selection strategies: highest scores, balanced test performance,
+or diverse parameter ranges.
+}
+\details{
+Selection strategies:
+\itemize{
+\item \strong{top_score}: Simply returns the n highest-scoring discriminants
+\item \strong{balanced}: Prioritizes discriminants that pass all tests equally well,
+then sorts by overall score
+\item \strong{diverse}: Uses k-means clustering on normalized (a,b,c) parameters
+to ensure diverse parameter combinations, selecting the best from each cluster
+}
+
+If fewer excellent discriminants exist than requested, returns all available
+with a warning.
+}
+\note{
+The "diverse" criteria requires at least 3 discriminants and uses
+k-means clustering with seed=42 for reproducibility.
+}
+\examples{
+\dontrun{
+# Get top 10 discriminants by score
+top10 <- get_recommended_discriminants(n = 10, criteria = "top_score")
+
+# Get discriminants with balanced test performance
+balanced <- get_recommended_discriminants(n = 5, criteria = "balanced")
+
+# Get diverse parameter combinations
+diverse <- get_recommended_discriminants(n = 20, criteria = "diverse")
+}
+
+}
+\seealso{
+\code{\link{load_excellent_discriminants}}, \code{\link{create_excellent_prng_config}}
 }

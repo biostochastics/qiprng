@@ -1,7 +1,7 @@
 Package: qiprng
 Type: Package
 Title: Quadratic Irrational PRNG
-Version: 0.2.8
+Version: 0.3.0
 Authors@R: person("Sergey", "Kornilov", email = "sergey.kornilov@biostochastics.com", role = c("aut", "cre"))
 Author: Sergey Kornilov [aut, cre]
 Maintainer: Sergey Kornilov <sergey.kornilov@biostochastics.com>
@@ -20,7 +20,9 @@ Imports:
     ggplot2,
     gridExtra,
     nortest,
-    randtests
+    randtests,
+    R.cache,
+    digest
 Suggests:
     testthat (>= 3.1.0)
 LinkingTo: 

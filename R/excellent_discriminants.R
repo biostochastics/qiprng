@@ -3,9 +3,54 @@
 
 #' Load and filter excellent discriminants from analysis results
 #'
-#' @param results_file Path to the analysis results RDS file
-#' @param min_score Minimum score threshold for excellent discriminants (default 0.85)
-#' @return Data frame with excellent discriminants only
+#' Loads discriminant analysis results and filters for those rated as "Excellent"
+#' based on comprehensive statistical testing. These discriminants have passed
+#' all major randomness tests and are suitable for production use.
+#'
+#' @param results_file Path to the analysis results RDS file containing test results
+#'   (default: "discriminant_analysis_results/raw_results.rds")
+#' @param min_score Minimum overall score threshold for excellent discriminants 
+#'   (default: 0.85)
+#' 
+#' @return A data frame containing excellent discriminants with columns:
+#'   \describe{
+#'     \item{a}{Quadratic coefficient}
+#'     \item{b}{Linear coefficient}
+#'     \item{c}{Constant term}
+#'     \item{discriminant}{The discriminant value b² - 4ac}
+#'     \item{overall_score}{Combined test score (0-1)}
+#'     \item{quality_rating}{Quality classification ("Excellent")}
+#'     \item{uniformity_passed}{Logical; uniformity test result}
+#'     \item{independence_passed}{Logical; independence test result}
+#'     \item{autocorrelation_passed}{Logical; autocorrelation test result}
+#'     \item{periodicity_passed}{Logical; periodicity test result}
+#'   }
+#'   
+#' @details
+#' The function filters discriminants that:
+#' \itemize{
+#'   \item Have quality_rating == "Excellent"
+#'   \item Have overall_score >= min_score (default 0.85)
+#'   \item Have valid (non-NA) scores
+#' }
+#' 
+#' Results are sorted by overall_score in descending order.
+#' 
+#' @note Requires that discriminant analysis has been run and results saved.
+#' Run \code{run_discriminant_analysis()} first if results file doesn't exist.
+#' 
+#' @examples
+#' \dontrun{
+#' # Load excellent discriminants
+#' excellent <- load_excellent_discriminants()
+#' 
+#' # Load with higher threshold
+#' top_excellent <- load_excellent_discriminants(min_score = 0.90)
+#' }
+#' 
+#' @seealso \code{\link{run_discriminant_analysis}}, \code{\link{get_recommended_discriminants}}
+#' 
+#' @export
 load_excellent_discriminants <- function(results_file = "discriminant_analysis_results/raw_results.rds", 
                                        min_score = 0.85) {
   
@@ -36,10 +81,60 @@ load_excellent_discriminants <- function(results_file = "discriminant_analysis_r
 
 #' Get recommended discriminant parameters for production use
 #'
-#' @param n Number of discriminants to return (default 10)
-#' @param results_file Path to the analysis results RDS file
-#' @param criteria Selection criteria: "top_score", "balanced", or "diverse"
-#' @return Data frame with recommended discriminant parameters
+#' Selects a subset of excellent discriminants based on specified criteria.
+#' Provides three selection strategies: highest scores, balanced test performance,
+#' or diverse parameter ranges.
+#'
+#' @param n Number of discriminants to return (default: 10)
+#' @param results_file Path to the analysis results RDS file 
+#'   (default: "discriminant_analysis_results/raw_results.rds")
+#' @param criteria Selection criteria, one of:
+#'   \describe{
+#'     \item{"top_score"}{Select discriminants with highest overall scores}
+#'     \item{"balanced"}{Select discriminants that pass all tests uniformly}
+#'     \item{"diverse"}{Select discriminants with diverse parameter ranges using k-means clustering}
+#'   }
+#'   
+#' @return A data frame with recommended discriminant parameters containing:
+#'   \describe{
+#'     \item{a, b, c}{Discriminant parameters}
+#'     \item{discriminant}{The discriminant value b² - 4ac}
+#'     \item{overall_score}{Combined test score}
+#'     \item{Test results}{Individual test pass/fail status}
+#'     \item{balance_score}{For "balanced" criteria, the proportion of tests passed}
+#'   }
+#'   
+#' @details
+#' Selection strategies:
+#' \itemize{
+#'   \item **top_score**: Simply returns the n highest-scoring discriminants
+#'   \item **balanced**: Prioritizes discriminants that pass all tests equally well,
+#'     then sorts by overall score
+#'   \item **diverse**: Uses k-means clustering on normalized (a,b,c) parameters
+#'     to ensure diverse parameter combinations, selecting the best from each cluster
+#' }
+#' 
+#' If fewer excellent discriminants exist than requested, returns all available
+#' with a warning.
+#' 
+#' @note The "diverse" criteria requires at least 3 discriminants and uses
+#' k-means clustering with seed=42 for reproducibility.
+#' 
+#' @examples
+#' \dontrun{
+#' # Get top 10 discriminants by score
+#' top10 <- get_recommended_discriminants(n = 10, criteria = "top_score")
+#' 
+#' # Get discriminants with balanced test performance
+#' balanced <- get_recommended_discriminants(n = 5, criteria = "balanced")
+#' 
+#' # Get diverse parameter combinations
+#' diverse <- get_recommended_discriminants(n = 20, criteria = "diverse")
+#' }
+#' 
+#' @seealso \code{\link{load_excellent_discriminants}}, \code{\link{create_excellent_prng_config}}
+#' 
+#' @export
 get_recommended_discriminants <- function(n = 10, 
                                         results_file = "discriminant_analysis_results/raw_results.rds",
                                         criteria = "top_score") {
@@ -123,10 +218,53 @@ get_recommended_discriminants <- function(n = 10,
 
 #' Create PRNG configuration using excellent discriminant
 #'
-#' @param discriminant_params Single row from excellent discriminants data frame
-#' @param precision MPFR precision (default 256)
-#' @param use_crypto Enable cryptographic mixing (default TRUE)
-#' @return PRNG configuration list
+#' Creates a complete PRNG configuration object from a single excellent
+#' discriminant parameter set. The configuration is optimized for high-quality
+#' random number generation.
+#'
+#' @param discriminant_params A single-row data frame from excellent discriminants
+#'   containing columns a, b, c, discriminant, and overall_score
+#' @param precision MPFR precision in bits for calculations (default: 256)
+#' @param use_crypto Enable cryptographic mixing with ChaCha20 (default: TRUE)
+#' 
+#' @return A list containing PRNG configuration:
+#'   \describe{
+#'     \item{a}{Quadratic coefficient}
+#'     \item{b}{Linear coefficient}
+#'     \item{c}{Constant term}
+#'     \item{precision}{MPFR precision in bits}
+#'     \item{use_parallel_filling}{Set to FALSE for stability}
+#'     \item{use_cryptographic_mixing}{ChaCha20 mixing flag}
+#'   }
+#'   
+#' @details
+#' The function creates a configuration optimized for production use:
+#' \itemize{
+#'   \item Parallel filling is disabled to avoid performance issues
+#'   \item Cryptographic mixing is enabled by default for enhanced security
+#'   \item The discriminant parameters are validated to be from excellent set
+#' }
+#' 
+#' The function also prints a summary of the configuration including the
+#' discriminant value and quality score.
+#' 
+#' @note The discriminant_params must be a single row. Use indexing or
+#' subset operations if working with multiple discriminants.
+#' 
+#' @examples
+#' \dontrun{
+#' # Get the best discriminant and create config
+#' excellent <- load_excellent_discriminants()
+#' best_discriminant <- excellent[1, ]
+#' config <- create_excellent_prng_config(best_discriminant)
+#' 
+#' # Create config with custom precision
+#' config_512 <- create_excellent_prng_config(best_discriminant, precision = 512)
+#' }
+#' 
+#' @seealso \code{\link{createPRNG}}, \code{\link{get_recommended_discriminants}}
+#' 
+#' @export
 create_excellent_prng_config <- function(discriminant_params, precision = 256, use_crypto = TRUE) {
   
   if (nrow(discriminant_params) != 1) {
@@ -154,11 +292,51 @@ create_excellent_prng_config <- function(discriminant_params, precision = 256, u
 
 #' Generate random numbers using an excellent discriminant
 #'
-#' @param n Number of random numbers to generate
-#' @param discriminant_index Index of discriminant to use (1 = best, 2 = second best, etc.)
-#' @param results_file Path to the analysis results RDS file
-#' @param precision MPFR precision (default 256)
-#' @return Vector of random numbers
+#' Convenience function that loads excellent discriminants, selects one by index,
+#' creates a PRNG configuration, and generates random numbers. Combines the
+#' functionality of multiple functions for ease of use.
+#'
+#' @param n Number of random numbers to generate (default: 10000)
+#' @param discriminant_index Index of discriminant to use where 1 = best, 
+#'   2 = second best, etc. (default: 1)
+#' @param results_file Path to the analysis results RDS file 
+#'   (default: "discriminant_analysis_results/raw_results.rds")
+#' @param precision MPFR precision in bits (default: 256)
+#' 
+#' @return A numeric vector of n random numbers uniformly distributed on [0,1]
+#' 
+#' @details
+#' This function:
+#' 1. Loads the excellent discriminants from the results file
+#' 2. Selects the discriminant at the specified index (sorted by score)
+#' 3. Creates a PRNG configuration with cryptographic mixing enabled
+#' 4. Initializes the PRNG
+#' 5. Generates the requested random numbers
+#' 
+#' The discriminants are ordered by overall_score, so index 1 gives the
+#' highest-scoring discriminant.
+#' 
+#' @note Requires that discriminant analysis has been run and results saved.
+#' The discriminant_index must not exceed the number of available excellent
+#' discriminants (typically 370).
+#' 
+#' @examples
+#' \dontrun{
+#' # Generate random numbers using the best discriminant
+#' samples <- generate_excellent_random(n = 50000)
+#' hist(samples, breaks = 50)
+#' 
+#' # Use the 10th best discriminant
+#' samples <- generate_excellent_random(n = 10000, discriminant_index = 10)
+#' 
+#' # Use higher precision
+#' samples <- generate_excellent_random(n = 5000, precision = 512)
+#' }
+#' 
+#' @seealso \code{\link{load_excellent_discriminants}}, \code{\link{create_excellent_prng_config}},
+#'   \code{\link{createPRNG}}, \code{\link{generatePRNG}}
+#' 
+#' @export
 generate_excellent_random <- function(n = 10000, 
                                     discriminant_index = 1,
                                     results_file = "discriminant_analysis_results/raw_results.rds",
@@ -189,7 +367,42 @@ generate_excellent_random <- function(n = 10000,
 
 #' Print summary of excellent discriminants analysis
 #'
-#' @param results_file Path to the analysis results RDS file
+#' Displays a comprehensive summary of the excellent discriminants found in the
+#' analysis, including count, score ranges, test performance, parameter ranges,
+#' and usage recommendations.
+#'
+#' @param results_file Path to the analysis results RDS file 
+#'   (default: "discriminant_analysis_results/raw_results.rds")
+#'   
+#' @return NULL (invisibly). Function is called for its side effect of printing
+#'   a formatted summary to the console.
+#'   
+#' @details
+#' The summary includes:
+#' \itemize{
+#'   \item Total count of excellent discriminants
+#'   \item Overall score range
+#'   \item Test performance summary (pass rates for each test type)
+#'   \item Parameter ranges (min/max for a, b, c, and discriminant)
+#'   \item Top 5 discriminants by score
+#'   \item Usage recommendations with example function calls
+#' }
+#' 
+#' @note This function is primarily for interactive use to quickly assess
+#' the results of discriminant analysis.
+#' 
+#' @examples
+#' \dontrun{
+#' # Print summary of excellent discriminants
+#' print_excellent_summary()
+#' 
+#' # Print summary from custom results file
+#' print_excellent_summary("my_analysis/results.rds")
+#' }
+#' 
+#' @seealso \code{\link{load_excellent_discriminants}}, \code{\link{get_recommended_discriminants}}
+#' 
+#' @export
 print_excellent_summary <- function(results_file = "discriminant_analysis_results/raw_results.rds") {
   
   excellent <- load_excellent_discriminants(results_file)

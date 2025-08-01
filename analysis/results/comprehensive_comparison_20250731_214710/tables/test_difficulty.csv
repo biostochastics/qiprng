@@ -1,0 +1,7 @@
+"test","avg_pass_rate","sd_pass_rate","generators_failed"
+"basic_tests_Autocorrelation",0.945925925925926,0.0666876277320067,0
+"basic_tests_Runs Test",0.948518518518519,0.0600128101861848,0
+"basic_tests_Chi-squared",0.952592592592593,0.0571388637917818,0
+"advanced_tests_Gap Test",0.964444444444444,0.0419643454531126,0
+"basic_tests_Kolmogorov-Smirnov",0.968888888888889,0.0387866280530194,0
+"advanced_tests_Spectral Test",0.991111111111111,0.0361687171548692,0

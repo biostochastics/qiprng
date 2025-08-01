@@ -6,11 +6,11 @@ test_that("Same seed produces identical sequences", {
     cfg1 <- list(seed = 12345)
     createPRNG(cfg1)
     seq1 <- generatePRNG(1000)
-    cleanup_prng()
+    cleanupPRNG()
     
     createPRNG(cfg1)
     seq2 <- generatePRNG(1000)
-    cleanup_prng()
+    cleanupPRNG()
     
     expect_identical(seq1, seq2)
 })
@@ -21,11 +21,11 @@ test_that("Different seeds produce different sequences", {
     
     createPRNG(cfg1)
     seq1 <- generatePRNG(1000)
-    cleanup_prng()
+    cleanupPRNG()
     
     createPRNG(cfg2)
     seq2 <- generatePRNG(1000)
-    cleanup_prng()
+    cleanupPRNG()
     
     expect_false(all(seq1 == seq2))
 })
@@ -36,13 +36,13 @@ test_that("Deterministic mode works with jump-ahead", {
     # Generate reference sequence
     createPRNG(cfg)
     ref_seq <- generatePRNG(2000)
-    cleanup_prng()
+    cleanupPRNG()
     
     # Generate with jump
     createPRNG(cfg)
     jumpAheadPRNG(1000)
     jump_seq <- generatePRNG(1000)
-    cleanup_prng()
+    cleanupPRNG()
     
     # Should match the second half of reference
     expect_equal(jump_seq, ref_seq[1001:2000])
@@ -57,13 +57,13 @@ test_that("Same seed works across different R sessions", {
     createPRNG(cfg)
     seq1_part1 <- generatePRNG(500)
     seq1_part2 <- generatePRNG(500)
-    cleanup_prng()
+    cleanupPRNG()
     
     # "Session 2" - complete restart
     createPRNG(cfg)
     seq2_part1 <- generatePRNG(500)
     seq2_part2 <- generatePRNG(500)
-    cleanup_prng()
+    cleanupPRNG()
     
     expect_identical(seq1_part1, seq2_part1)
     expect_identical(seq1_part2, seq2_part2)
@@ -88,12 +88,12 @@ test_that("Deterministic mode works with all distributions", {
         # Generate first sequence
         createPRNG(cfg)
         seq1 <- generatePRNG(100)
-        cleanup_prng()
+        cleanupPRNG()
         
         # Generate second sequence with same config
         createPRNG(cfg)
         seq2 <- generatePRNG(100)
-        cleanup_prng()
+        cleanupPRNG()
         
         expect_identical(seq1, seq2, 
             info = paste("Failed for distribution:", dist_cfg$distribution))
@@ -110,12 +110,12 @@ test_that("Thread-safe deterministic mode", {
     cfg_no_thread$use_threading <- FALSE
     createPRNG(cfg_no_thread)
     ref_seq <- generatePRNG(1000)
-    cleanup_prng()
+    cleanupPRNG()
     
     # Generate with threading enabled
     createPRNG(cfg)
     thread_seq <- generatePRNG(1000)
-    cleanup_prng()
+    cleanupPRNG()
     
     # Results should be identical even with threading
     expect_identical(ref_seq, thread_seq)
@@ -135,11 +135,11 @@ test_that("Zero seed is valid", {
     
     createPRNG(cfg)
     seq1 <- generatePRNG(100)
-    cleanup_prng()
+    cleanupPRNG()
     
     createPRNG(cfg)
     seq2 <- generatePRNG(100)
-    cleanup_prng()
+    cleanupPRNG()
     
     expect_identical(seq1, seq2)
     expect_true(all(seq1 >= 0 & seq1 <= 1))
@@ -151,11 +151,11 @@ test_that("Large seeds work correctly", {
     
     createPRNG(cfg)
     seq1 <- generatePRNG(100)
-    cleanup_prng()
+    cleanupPRNG()
     
     createPRNG(cfg)
     seq2 <- generatePRNG(100)
-    cleanup_prng()
+    cleanupPRNG()
     
     expect_identical(seq1, seq2)
     expect_true(all(seq1 >= 0 & seq1 <= 1))
@@ -173,11 +173,11 @@ test_that("Deterministic mode with custom parameters", {
     
     createPRNG(cfg)
     seq1 <- generatePRNG(500)
-    cleanup_prng()
+    cleanupPRNG()
     
     createPRNG(cfg)
     seq2 <- generatePRNG(500)
-    cleanup_prng()
+    cleanupPRNG()
     
     expect_identical(seq1, seq2)
 })
@@ -187,11 +187,11 @@ test_that("Deterministic mode with reseeding", {
     
     createPRNG(cfg)
     seq1 <- generatePRNG(300)  # Will trigger reseeds at 100 and 200
-    cleanup_prng()
+    cleanupPRNG()
     
     createPRNG(cfg)
     seq2 <- generatePRNG(300)
-    cleanup_prng()
+    cleanupPRNG()
     
     # Even with reseeding, deterministic mode should produce same sequence
     expect_identical(seq1, seq2)
@@ -203,11 +203,11 @@ test_that("NULL seed uses random initialization", {
     
     createPRNG(cfg)
     seq1 <- generatePRNG(100)
-    cleanup_prng()
+    cleanupPRNG()
     
     createPRNG(cfg)
     seq2 <- generatePRNG(100)
-    cleanup_prng()
+    cleanupPRNG()
     
     # With very high probability, these should be different
     expect_false(all(seq1 == seq2))
@@ -217,11 +217,11 @@ test_that("Default config (no seed) uses random initialization", {
     # Using default config without seed specification
     createPRNG()
     seq1 <- generatePRNG(100)
-    cleanup_prng()
+    cleanupPRNG()
     
     createPRNG()
     seq2 <- generatePRNG(100)
-    cleanup_prng()
+    cleanupPRNG()
     
     # With very high probability, these should be different
     expect_false(all(seq1 == seq2))

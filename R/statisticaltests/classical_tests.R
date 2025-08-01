@@ -95,10 +95,14 @@ run_classical_tests <- function(suite) {
                    "PASS", ifelse(is.na(cc_result$p.value), "INCONCLUSIVE", "FAIL")),
     p_value = cc_result$p.value,
     statistic = cc_result$statistic,
-    details = paste("Tests distribution of times to collect all coupons.",
-                   "Mean time:", round(cc_result$mean_time, 2),
-                   "/ Expected:", round(cc_result$expected_time, 2),
-                   "Trials:", cc_result$num_trials)
+    details = if(!is.na(cc_result$p.value)) {
+      paste("Tests distribution of times to collect all coupons.",
+            "Mean time:", round(cc_result$mean_time, 2),
+            "/ Expected:", round(cc_result$expected_time, 2),
+            "Trials:", cc_result$num_trials)
+    } else {
+      cc_result$details
+    }
   )
   
   # 2. Poker Hand Test
@@ -239,9 +243,13 @@ run_classical_tests <- function(suite) {
                    "PASS", ifelse(is.na(poker_result$p.value), "INCONCLUSIVE", "FAIL")),
     p_value = poker_result$p.value,
     statistic = poker_result$statistic,
-    details = paste("Tests distribution of poker hand types.",
-                   "Chi-square:", round(poker_result$statistic, 2),
-                   "with", poker_result$df, "degrees of freedom")
+    details = if(!is.na(poker_result$p.value)) {
+      paste("Tests distribution of poker hand types.",
+            "Chi-square:", round(poker_result$statistic, 2),
+            "with", poker_result$df, "degrees of freedom")
+    } else {
+      poker_result$details
+    }
   )
   
   # 3. Birthday Spacing Test
@@ -330,15 +338,19 @@ run_classical_tests <- function(suite) {
                    "PASS", ifelse(is.na(birthday_result$p.value), "INCONCLUSIVE", "FAIL")),
     p_value = birthday_result$p.value,
     statistic = birthday_result$statistic,
-    details = paste("Tests distribution of 'birthday' collisions.",
-                   "Mean collisions:", round(birthday_result$mean_collisions, 2),
-                   "/ Expected:", round(birthday_result$expected_collisions, 2),
-                   "Chi-square:", round(birthday_result$statistic, 2),
-                   "with", birthday_result$df, "degrees of freedom")
+    details = if(!is.na(birthday_result$p.value)) {
+      paste("Tests distribution of 'birthday' collisions.",
+            "Mean collisions:", round(birthday_result$mean_collisions, 2),
+            "/ Expected:", round(birthday_result$expected_collisions, 2),
+            "Chi-square:", round(birthday_result$statistic, 2),
+            "with", birthday_result$df, "degrees of freedom")
+    } else {
+      birthday_result$details
+    }
   )
   
   # Generate visualizations
-  if (require(ggplot2) && suite$config$save_visualizations) {
+  if (suite$config$save_visualizations && requireNamespace("ggplot2", quietly = TRUE)) {
     suite <- visualize_classical_tests(suite, x, 
                                      cc_result$collection_times,
                                      cc_result$expected_time)

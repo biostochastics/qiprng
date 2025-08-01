@@ -17,9 +17,52 @@ suppressPackageStartupMessages({
 
 #' Shannon entropy test
 #'
-#' @param samples Vector of random samples
-#' @param bins Number of bins for discretization
-#' @return List with entropy test results
+#' Tests the information content of a random sequence using Shannon entropy.
+#' High entropy indicates good randomness, while low entropy suggests patterns
+#' or predictability in the data.
+#'
+#' @param samples Numeric vector of random samples to test
+#' @param bins Number of bins for discretization (default: 256)
+#' 
+#' @return A list containing entropy test results:
+#'   \describe{
+#'     \item{test_name}{Name of the test}
+#'     \item{shannon_entropy}{Calculated Shannon entropy in bits}
+#'     \item{max_entropy}{Maximum possible entropy for given bin count}
+#'     \item{normalized_entropy}{Ratio of observed to maximum entropy (0-1)}
+#'     \item{passed}{Logical; TRUE if normalized entropy > 0.95}
+#'     \item{interpretation}{Human-readable interpretation of results}
+#'   }
+#'   
+#' @details
+#' The Shannon entropy is calculated as:
+#' \deqn{H = -\sum_{i=1}^{n} p_i \log_2(p_i)}
+#' 
+#' where p_i is the probability of bin i. The samples are discretized into
+#' the specified number of bins, and the entropy is calculated from the
+#' resulting frequency distribution.
+#' 
+#' For a perfectly uniform distribution, the entropy equals log2(bins).
+#' The test passes if the normalized entropy (H/H_max) exceeds 0.95,
+#' indicating high randomness.
+#' 
+#' @note The choice of bin count affects the test sensitivity. Too few bins
+#' may miss fine-grained patterns, while too many bins may lead to sparse
+#' data issues.
+#' 
+#' @examples
+#' \dontrun{
+#' # Test entropy of uniform random numbers
+#' samples <- runif(10000)
+#' result <- test_entropy(samples)
+#' print(paste("Normalized entropy:", round(result$normalized_entropy, 4)))
+#' 
+#' # Test with fewer bins
+#' result <- test_entropy(samples, bins = 128)
+#' }
+#' 
+#' @importFrom entropy entropy
+#' @export
 test_entropy <- function(samples, bins = 256) {
   # Discretize samples into bins
   discretized <- cut(samples, breaks = bins, labels = FALSE)
@@ -50,10 +93,56 @@ test_entropy <- function(samples, bins = 256) {
 
 #' Gap test for randomness
 #'
-#' @param samples Vector of random samples
-#' @param alpha Lower bound for gap
-#' @param beta Upper bound for gap
-#' @return List with gap test results
+#' Tests the distribution of gaps between occurrences of values in a specified
+#' range. The test analyzes how far apart values within [alpha, beta] appear
+#' in the sequence, which should follow a geometric distribution for truly
+#' random data.
+#'
+#' @param samples Numeric vector of random samples to test
+#' @param alpha Lower bound for the gap range (default: 0.3)
+#' @param beta Upper bound for the gap range (default: 0.7)
+#' 
+#' @return A list containing gap test results:
+#'   \describe{
+#'     \item{test_name}{Name of the test}
+#'     \item{statistic}{Chi-squared test statistic}
+#'     \item{p_value}{P-value from chi-squared test}
+#'     \item{passed}{Logical; TRUE if p-value > 0.05}
+#'     \item{gaps_analyzed}{Number of gaps found and analyzed}
+#'     \item{interpretation}{Human-readable interpretation of results}
+#'   }
+#'   
+#' @details
+#' The gap test examines the distances between consecutive occurrences of
+#' values within the range [alpha, beta]. For a uniform random sequence,
+#' these gaps should follow a geometric distribution with parameter p = beta - alpha.
+#' 
+#' The test procedure:
+#' 1. Identifies all positions where samples fall within [alpha, beta]
+#' 2. Calculates gaps between consecutive positions
+#' 3. Compares observed gap distribution to expected geometric distribution
+#' 4. Uses chi-squared test to assess goodness-of-fit
+#' 
+#' The expected frequency for gap length k is:
+#' \deqn{E[k] = n \cdot (1-p)^{k-1} \cdot p}
+#' 
+#' where n is the number of gaps and p = beta - alpha.
+#' 
+#' @note The test requires at least 10 gaps for reliable results. If fewer
+#' gaps are found, the test returns INCONCLUSIVE.
+#' 
+#' @examples
+#' \dontrun{
+#' # Test gaps in uniform random numbers
+#' samples <- runif(10000)
+#' result <- test_gaps(samples)
+#' print(paste("Gap test p-value:", round(result$p_value, 4)))
+#' 
+#' # Test with different range
+#' result <- test_gaps(samples, alpha = 0.2, beta = 0.8)
+#' }
+#' 
+#' @export
 test_gaps <- function(samples, alpha = 0.3, beta = 0.7) {
   n <- length(samples)
   
@@ -103,9 +192,63 @@ test_gaps <- function(samples, alpha = 0.3, beta = 0.7) {
 
 #' Serial correlation test at multiple lags
 #'
-#' @param samples Vector of random samples
-#' @param max_lag Maximum lag to test
-#' @return List with serial correlation test results
+#' Tests for serial correlation (autocorrelation) in a random sequence at
+#' multiple lag values. This test detects dependencies between values
+#' separated by various distances in the sequence.
+#'
+#' @param samples Numeric vector of random samples to test
+#' @param max_lag Maximum lag to test (default: 50)
+#' 
+#' @return A list containing serial correlation test results:
+#'   \describe{
+#'     \item{test_name}{Name of the test}
+#'     \item{correlations}{Vector of correlation coefficients for each lag}
+#'     \item{p_values}{Vector of p-values for each lag}
+#'     \item{significant_lags}{Vector of lag indices with significant correlation}
+#'     \item{num_significant}{Count of lags with significant correlation}
+#'     \item{expected_significant}{Expected number of significant lags by chance}
+#'     \item{passed}{Logical; TRUE if num_significant <= expected_significant}
+#'     \item{interpretation}{Human-readable interpretation of results}
+#'   }
+#'   
+#' @details
+#' Serial correlation measures the relationship between values in a sequence
+#' and their lagged counterparts. For a truly random sequence, correlations
+#' at all lags should be near zero.
+#' 
+#' For each lag k from 1 to max_lag, the test:
+#' 1. Computes Pearson correlation between x[1:(n-k)] and x[(k+1):n]
+#' 2. Tests if the correlation is significantly different from zero
+#' 3. Records correlations and p-values
+#' 
+#' The test passes if the proportion of significant correlations (p < 0.05)
+#' does not exceed 5%, which is the expected false positive rate.
+#' 
+#' High serial correlation indicates:
+#' - Predictable patterns in the sequence
+#' - Poor randomness quality
+#' - Potential issues with the PRNG algorithm
+#' 
+#' @note Lags approaching the sample size may have unreliable results due
+#' to reduced sample size for correlation calculation.
+#' 
+#' @examples
+#' \dontrun{
+#' # Test serial correlation in uniform random numbers
+#' samples <- runif(10000)
+#' result <- test_serial_correlation(samples)
+#' print(paste("Significant correlations found:", result$num_significant))
+#' 
+#' # Test with more lags
+#' result <- test_serial_correlation(samples, max_lag = 100)
+#' 
+#' # Plot correlation values
+#' plot(result$correlations, type = "h", 
+#'      main = "Serial Correlations by Lag",
+#'      xlab = "Lag", ylab = "Correlation")
+#' }
+#' 
+#' @export
 test_serial_correlation <- function(samples, max_lag = 50) {
   n <- length(samples)
   correlations <- numeric(max_lag)
@@ -152,9 +295,61 @@ test_serial_correlation <- function(samples, max_lag = 50) {
 
 #' Poker test for randomness
 #'
-#' @param samples Vector of random samples
-#' @param m Length of each hand (default 5)
-#' @return List with poker test results
+#' Tests randomness by examining patterns in "hands" of digits, similar to
+#' poker hands. The test converts continuous values to digits and checks if
+#' the distribution of unique digits per hand matches theoretical expectations.
+#'
+#' @param samples Numeric vector of random samples to test (values in [0,1])
+#' @param m Length of each hand in digits (default: 5)
+#' 
+#' @return A list containing poker test results:
+#'   \describe{
+#'     \item{test_name}{Name of the test}
+#'     \item{statistic}{Chi-squared test statistic}
+#'     \item{p_value}{P-value from chi-squared test}
+#'     \item{passed}{Logical; TRUE if p-value > 0.05}
+#'     \item{hands_analyzed}{Number of complete hands analyzed}
+#'     \item{interpretation}{Human-readable interpretation of results}
+#'   }
+#'   
+#' @details
+#' The poker test is inspired by the card game and examines patterns in
+#' groups of digits:
+#' 
+#' 1. Converts each sample to a digit (0-9) by multiplying by 10 and flooring
+#' 2. Groups consecutive digits into "hands" of size m
+#' 3. Counts unique digits in each hand
+#' 4. Compares observed distribution to theoretical probabilities
+#' 
+#' For m=5 (default), the theoretical probabilities are:
+#' - 1 unique digit (five of a kind): 0.0001
+#' - 2 unique digits: 0.0045
+#' - 3 unique digits: 0.0270
+#' - 4 unique digits: 0.1080
+#' - 5 unique digits (all different): 0.3024
+#' 
+#' These probabilities are based on the multinomial distribution for
+#' sampling with replacement from 10 digits.
+#' 
+#' @note The test requires at least 100 hands for reliable results. For
+#' hand sizes other than 5, simplified uniform probabilities are used.
+#' 
+#' @examples
+#' \dontrun{
+#' # Standard poker test with 5-digit hands
+#' samples <- runif(10000)
+#' result <- test_poker(samples)
+#' print(paste("Poker test p-value:", round(result$p_value, 4)))
+#' 
+#' # Test with 3-digit hands
+#' result <- test_poker(samples, m = 3)
+#' }
+#' 
+#' @references
+#' Knuth, D. E. (1997). The Art of Computer Programming, Volume 2:
+#' Seminumerical Algorithms (3rd ed.). Addison-Wesley.
+#' 
+#' @export
 test_poker <- function(samples, m = 5) {
   n <- length(samples)
   
@@ -227,8 +422,67 @@ test_poker <- function(samples, m = 5) {
 
 #' Comprehensive advanced test suite
 #'
-#' @param samples Vector of random samples
-#' @return List with all advanced test results
+#' Runs all advanced statistical tests on a set of random samples, including
+#' entropy, gap, serial correlation, and poker tests. Each test evaluates
+#' different aspects of randomness quality.
+#'
+#' @param samples Numeric vector of random samples to test (values in [0,1])
+#' 
+#' @return A list containing results from all advanced tests:
+#'   \describe{
+#'     \item{entropy}{Results from Shannon entropy test}
+#'     \item{gaps}{Results from gap test}
+#'     \item{serial_correlation}{Results from serial correlation test}
+#'     \item{poker}{Results from poker test}
+#'   }
+#'   Each test result includes test_name, passed status, and interpretation.
+#'   Failed tests include error messages in the interpretation field.
+#'   
+#' @details
+#' This function serves as a comprehensive test battery for advanced
+#' randomness evaluation. It runs the following tests:
+#' 
+#' \itemize{
+#'   \item **Shannon Entropy Test**: Measures information content and
+#'     unpredictability. High entropy indicates good randomness.
+#'   \item **Gap Test**: Analyzes spacing between values in a range.
+#'     Tests if gaps follow expected geometric distribution.
+#'   \item **Serial Correlation Test**: Checks for dependencies between
+#'     values at various lags. Low correlation indicates independence.
+#'   \item **Poker Test**: Examines digit patterns in groups.
+#'     Tests if patterns match theoretical probabilities.
+#' }
+#' 
+#' All tests include error handling to ensure the suite completes even
+#' if individual tests fail. Failed tests return an error message in the
+#' interpretation field.
+#' 
+#' @note For best results, provide at least 10,000 samples. Smaller sample
+#' sizes may lead to inconclusive results for some tests.
+#' 
+#' @examples
+#' \dontrun{
+#' # Run all advanced tests on uniform random data
+#' samples <- runif(50000)
+#' results <- run_advanced_tests(samples)
+#' 
+#' # Check which tests passed
+#' lapply(results, function(test) {
+#'   paste(test$test_name, "-", test$result)
+#' })
+#' 
+#' # Run tests on PRNG output
+#' library(qiprng)
+#' createPRNG()
+#' samples <- generatePRNG(50000)
+#' results <- run_advanced_tests(samples)
+#' }
+#' 
+#' @seealso 
+#' \code{\link{test_entropy}}, \code{\link{test_gaps}},
+#' \code{\link{test_serial_correlation}}, \code{\link{test_poker}}
+#' 
+#' @export
 run_advanced_tests <- function(samples) {
   results <- list()
   

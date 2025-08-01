@@ -1,0 +1,402 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QIPRNG Test Results - 2025-07-31 16:34:01</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background-color: white; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #333; }
+        .summary { background-color: #e8f4f8; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .pass { color: #28a745; font-weight: bold; }
+        .fail { color: #dc3545; font-weight: bold; }
+        .error { color: #ff6b6b; font-weight: bold; }
+        .warning { color: #ffc107; font-weight: bold; }
+        .skip { color: #6c757d; font-weight: bold; }
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; font-weight: bold; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .metric { display: inline-block; margin: 10px 20px 10px 0; }
+        .metric-value { font-size: 24px; font-weight: bold; }
+        .metric-label { color: #666; }
+        .chart { margin: 20px 0; }
+        .progress-bar { width: 100%; height: 30px; background-color: #e0e0e0; border-radius: 15px; overflow: hidden; display: flex; }
+        .progress-fill-pass { height: 100%; background-color: #28a745; }
+        .progress-fill-fail { height: 100%; background-color: #dc3545; }
+        .progress-fill-skip { height: 100%; background-color: #6c757d; }
+        .category-section { margin: 30px 0; padding: 20px; background-color: #f9f9f9; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>QIPRNG Comprehensive Test Results V2</h1>
+        <p>Generated on 2025-07-31 16:35:50</p>
+        
+        <div class="summary">
+            <h2>Summary</h2>
+            <div class="metric">
+                <div class="metric-value">22</div>
+                <div class="metric-label">Test Files</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value">119</div>
+                <div class="metric-label">Total Tests</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value class="pass">87</div>
+                <div class="metric-label">Passed</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value class="fail">20</div>
+                <div class="metric-label">Failed</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value class="skip">12</div>
+                <div class="metric-label">Skipped</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value class="error">0</div>
+                <div class="metric-label">Errors</div>
+            </div>
+            
+            <h3>Test Results Distribution</h3>
+            <div class="progress-bar">
+                <div class="progress-fill-pass" style="width: 73.1%;"></div>
+                <div class="progress-fill-fail" style="width: 16.8%;"></div>
+                <div class="progress-fill-skip" style="width: 10.1%;"></div>
+            </div>
+            <p>Pass: 73.1% | Fail: 16.8% | Skip: 10.1%</p>
+        </div>
+        
+        <div class="summary">
+            <h2>Statistical Improvements Validation</h2>
+            <table>
+                <tr>
+                    <th>Phase</th>
+                    <th>Feature</th>
+                    <th>Status</th>
+                    <th>Details</th>
+                </tr>
+                <tr>
+                    <td>Phase 1</td>
+                    <td>P-value Adjustment</td>
+                    <td class="pass">PASS</td>
+                    <td>P-value adjustment working correctly. Original: 0.010, Adjusted: 0.020</td>
+                </tr>
+                <tr>
+                    <td>Phase 2</td>
+                    <td>Weighting System</td>
+                    <td class="pass">PASS</td>
+                    <td>Weighting system working correctly. Unweighted: 90.00%, Weighted: 96.00%</td>
+                </tr>
+                <tr>
+                    <td>Phase 3</td>
+                    <td>Effect Sizes</td>
+                    <td class="pass">PASS</td>
+                    <td>Effect size calculations working correctly. Cohen's d = 0.500 (medium)</td>
+                </tr>
+            </table>
+        </div>
+        
+        <h2>Test Results by Category</h2>
+
+        <div class="category-section">
+            <h3>Core Functionality</h3>
+            <table>
+                <tr>
+                    <th>Test File</th>
+                    <th>Status</th>
+                    <th>Passed</th>
+                    <th>Failed</th>
+                    <th>Skipped</th>
+                    <th>Warnings</th>
+                    <th>Time (s)</th>
+                </tr>
+
+                <tr>
+                    <td>test-basic.R</td>
+                    <td class="pass">PASS</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0.25</td>
+                </tr>
+
+                <tr>
+                    <td>test-config.R</td>
+                    <td class="pass">PASS</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0.22</td>
+                </tr>
+
+                <tr>
+                    <td>test-validation-suite.R</td>
+                    <td class="pass">PASS</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>2.32</td>
+                </tr>
+
+                <tr>
+                    <td>test-caching-framework.R</td>
+                    <td class="pass">PASS</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0.27</td>
+                </tr>
+
+                <tr>
+                    <td>test-threading.R</td>
+                    <td class="pass">PASS</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0.49</td>
+                </tr>
+
+                <tr>
+                    <td>test-distributions.R</td>
+                    <td class="pass">PASS</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0.12</td>
+                </tr>
+
+            </table>
+        </div>
+
+        <div class="category-section">
+            <h3>Statistical Improvements (Phases 1-3)</h3>
+            <table>
+                <tr>
+                    <th>Test File</th>
+                    <th>Status</th>
+                    <th>Passed</th>
+                    <th>Failed</th>
+                    <th>Skipped</th>
+                    <th>Warnings</th>
+                    <th>Time (s)</th>
+                </tr>
+
+                <tr>
+                    <td>test-p-value-adjustment.R</td>
+                    <td class="pass">PASS</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0.05</td>
+                </tr>
+
+                <tr>
+                    <td>test-comprehensive-improvements.R</td>
+                    <td class="fail">FAIL</td>
+                    <td>87</td>
+                    <td>20</td>
+                    <td>12</td>
+                    <td>2</td>
+                    <td>51.36</td>
+                </tr>
+
+                <tr>
+                    <td>test-data-structure-fixes.R</td>
+                    <td class="pass">PASS</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>3.12</td>
+                </tr>
+
+            </table>
+        </div>
+
+        <div class="category-section">
+            <h3>Statistical Tests</h3>
+            <table>
+                <tr>
+                    <th>Test File</th>
+                    <th>Status</th>
+                    <th>Passed</th>
+                    <th>Failed</th>
+                    <th>Skipped</th>
+                    <th>Warnings</th>
+                    <th>Time (s)</th>
+                </tr>
+
+                <tr>
+                    <td>test-compression-bootstrap.R</td>
+                    <td class="pass">PASS</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0.62</td>
+                </tr>
+
+                <tr>
+                    <td>test-bootstrap-framework.R</td>
+                    <td class="pass">PASS</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0.32</td>
+                </tr>
+
+                <tr>
+                    <td>test-multidim-tests.R</td>
+                    <td class="pass">PASS</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0.75</td>
+                </tr>
+
+                <tr>
+                    <td>test-nist-frequency-cusum.R</td>
+                    <td class="pass">PASS</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>44.16</td>
+                </tr>
+
+                <tr>
+                    <td>test-nist-excursions.R</td>
+                    <td class="pass">PASS</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0.11</td>
+                </tr>
+
+                <tr>
+                    <td>test-external-wrappers.R</td>
+                    <td class="pass">PASS</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0.75</td>
+                </tr>
+
+            </table>
+        </div>
+
+        <div class="category-section">
+            <h3>Advanced Features</h3>
+            <table>
+                <tr>
+                    <th>Test File</th>
+                    <th>Status</th>
+                    <th>Passed</th>
+                    <th>Failed</th>
+                    <th>Skipped</th>
+                    <th>Warnings</th>
+                    <th>Time (s)</th>
+                </tr>
+
+                <tr>
+                    <td>test-advanced.R</td>
+                    <td class="pass">PASS</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0.57</td>
+                </tr>
+
+                <tr>
+                    <td>test-ziggurat-thread-safety.R</td>
+                    <td class="pass">PASS</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>1.19</td>
+                </tr>
+
+                <tr>
+                    <td>test-ziggurat-thread-safety-fix.R</td>
+                    <td class="pass">PASS</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0.12</td>
+                </tr>
+
+                <tr>
+                    <td>test-parallel-buffer.R</td>
+                    <td class="pass">PASS</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0.09</td>
+                </tr>
+
+                <tr>
+                    <td>test-parallel-thread-safety-stress.R</td>
+                    <td class="pass">PASS</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>1.31</td>
+                </tr>
+
+                <tr>
+                    <td>test-persistent-thread-pool.R</td>
+                    <td class="pass">PASS</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0.09</td>
+                </tr>
+
+                <tr>
+                    <td>test-thread-pool-efficiency.R</td>
+                    <td class="pass">PASS</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0.10</td>
+                </tr>
+
+            </table>
+        </div>
+
+        <div class="summary">
+            <h2>Test Environment</h2>
+            <table>
+                <tr><th>Property</th><th>Value</th></tr>
+                <tr><td>Package Version</td><td>0.2.8</td></tr>
+                <tr><td>R Version</td><td>R version 4.4.2 (2024-10-31)</td></tr>
+                <tr><td>Platform</td><td>Darwin</td></tr>
+                <tr><td>Hostname</td><td>Sergeys-MacBook-Pro.local</td></tr>
+                <tr><td>Total Duration</td><td>108.42 seconds</td></tr>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
+

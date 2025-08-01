@@ -46,8 +46,39 @@ suppressPackageStartupMessages({
 
 #' Load discriminants from CSV file
 #'
-#' @param file_path Path to discriminants.csv file
-#' @return Data frame with discriminant parameters
+#' Loads discriminant parameters from a CSV file and validates their mathematical properties.
+#' The function checks that discriminants are correctly calculated and that all parameters
+#' meet the required constraints for the quadratic irrational PRNG.
+#'
+#' @param file_path Path to discriminants.csv file (default: "discriminants.csv")
+#' 
+#' @return A data frame containing discriminant parameters with columns:
+#'   \describe{
+#'     \item{a}{Quadratic coefficient (must be > 0)}
+#'     \item{b}{Linear coefficient}
+#'     \item{c}{Constant term (must be < 0)}
+#'     \item{Discriminant}{The discriminant value b² - 4ac (must be > 0)}
+#'   }
+#'   
+#' @details
+#' The function performs several validation checks:
+#' \itemize{
+#'   \item Verifies that calculated discriminants match stored values
+#'   \item Checks that a > 0 (required for proper quadratic behavior)
+#'   \item Checks that c < 0 (required for the recurrence relation)
+#'   \item Checks that discriminant > 0 (required for irrational roots)
+#' }
+#' 
+#' @examples
+#' \dontrun{
+#' # Load default discriminants file
+#' discriminants <- load_discriminants()
+#' 
+#' # Load from custom path
+#' discriminants <- load_discriminants("custom_discriminants.csv")
+#' }
+#' 
+#' @export
 load_discriminants <- function(file_path = "discriminants.csv") {
   if (!file.exists(file_path)) {
     stop("Discriminants file not found: ", file_path)
@@ -81,12 +112,41 @@ load_discriminants <- function(file_path = "discriminants.csv") {
 
 #' Generate random numbers using specific discriminant parameters
 #'
-#' @param a Parameter a
-#' @param b Parameter b  
-#' @param c Parameter c
-#' @param n Number of samples to generate
-#' @param precision MPFR precision (default 256)
-#' @return Vector of random numbers
+#' Creates a PRNG instance with the specified quadratic parameters and generates
+#' random numbers. The function uses cryptographic mixing for enhanced quality.
+#'
+#' @param a Quadratic coefficient (must be > 0)
+#' @param b Linear coefficient  
+#' @param c Constant term (must be < 0)
+#' @param n Number of samples to generate (default: 50000)
+#' @param precision MPFR precision in bits (default: 256)
+#' 
+#' @return A numeric vector of n random numbers uniformly distributed on [0,1]
+#' 
+#' @details
+#' The function creates a PRNG using the quadratic recurrence relation:
+#' \deqn{x_{n+1} = (a x_n^2 + b x_n + c) \mod 1}
+#' 
+#' Key configuration:
+#' \itemize{
+#'   \item Cryptographic mixing is enabled for better randomness quality
+#'   \item Parallel filling is disabled to avoid performance issues
+#'   \item The PRNG uses the specified MPFR precision for calculations
+#' }
+#' 
+#' @note The discriminant b² - 4ac must be positive and not a perfect square
+#' for the generator to produce high-quality random numbers.
+#' 
+#' @examples
+#' \dontrun{
+#' # Generate random numbers with specific parameters
+#' samples <- generate_with_discriminant(a = 2, b = 5, c = -2, n = 10000)
+#' hist(samples, breaks = 50)
+#' }
+#' 
+#' @seealso \code{\link{createPRNG}}, \code{\link{generatePRNG}}
+#' 
+#' @export
 generate_with_discriminant <- function(a, b, c, n = 50000, precision = 256) {
   # Create PRNG with specific parameters
   config <- list(
@@ -107,10 +167,46 @@ generate_with_discriminant <- function(a, b, c, n = 50000, precision = 256) {
   return(samples)
 }
 
-#' Test uniformity using Kolmogorov-Smirnov test
+#' Test uniformity using Kolmogorov-Smirnov and Chi-squared tests
 #'
-#' @param samples Vector of random samples
-#' @return List with test results
+#' Performs comprehensive uniformity testing on a sample of random numbers using
+#' both the Kolmogorov-Smirnov test and Chi-squared goodness-of-fit test.
+#'
+#' @param samples Numeric vector of random samples to test
+#' @param bins Number of bins for the Chi-squared test (default: 20)
+#' 
+#' @return A list containing test results:
+#'   \describe{
+#'     \item{test_name}{Name of the test suite}
+#'     \item{ks_statistic}{Kolmogorov-Smirnov test statistic}
+#'     \item{ks_p_value}{Kolmogorov-Smirnov p-value}
+#'     \item{chi_sq_statistic}{Chi-squared test statistic}
+#'     \item{chi_sq_p_value}{Chi-squared p-value}
+#'     \item{passed}{Logical; TRUE if both tests pass at 0.05 significance}
+#'     \item{interpretation}{Human-readable interpretation of results}
+#'   }
+#'   
+#' @details
+#' The function performs two complementary tests:
+#' \itemize{
+#'   \item **Kolmogorov-Smirnov test**: Compares the empirical CDF against uniform[0,1]
+#'   \item **Chi-squared test**: Tests if bin frequencies match expected uniform distribution
+#' }
+#' 
+#' A warning is issued if expected bin counts are less than 5, as this may
+#' affect the validity of the Chi-squared test.
+#' 
+#' @note Both tests must pass (p-value > 0.05) for the overall test to pass.
+#' 
+#' @examples
+#' \dontrun{
+#' # Test uniform random numbers
+#' samples <- runif(10000)
+#' result <- test_uniformity(samples)
+#' print(result$interpretation)
+#' }
+#' 
+#' @export
 test_uniformity <- function(samples, bins = 20) {
   # 1. Kolmogorov-Smirnov test
   ks_test <- ks.test(samples, "punif", 0, 1)
@@ -148,8 +244,43 @@ test_uniformity <- function(samples, bins = 20) {
 
 #' Test independence using runs test
 #'
-#' @param samples Vector of random samples
-#' @return List with test results
+#' Tests for independence in a sequence of random numbers by analyzing runs
+#' above and below the median. A run is a consecutive sequence of values
+#' that are all above or all below the median.
+#'
+#' @param samples Numeric vector of random samples to test
+#' 
+#' @return A list containing test results:
+#'   \describe{
+#'     \item{test_name}{Name of the test}
+#'     \item{statistic}{Z-score test statistic}
+#'     \item{p_value}{Two-tailed p-value}
+#'     \item{passed}{Logical; TRUE if p-value > 0.05}
+#'     \item{interpretation}{Human-readable interpretation}
+#'   }
+#'   
+#' @details
+#' The runs test converts the sequence to binary (above/below median) and
+#' counts the number of runs. Under independence, the number of runs follows
+#' approximately a normal distribution with:
+#' \itemize{
+#'   \item Expected runs: E[R] = (2 * n1 * n0) / n + 1
+#'   \item Variance: Var[R] = (2 * n1 * n0 * (2 * n1 * n0 - n)) / (n² * (n - 1))
+#' }
+#' where n1 = count above median, n0 = count below median, n = total count.
+#' 
+#' @note A sequence with zero variance in runs (e.g., all values above median)
+#' is definitively non-random and will return p-value = 0.
+#' 
+#' @examples
+#' \dontrun{
+#' # Test independence of random sequence
+#' samples <- runif(1000)
+#' result <- test_independence(samples)
+#' print(result$interpretation)
+#' }
+#' 
+#' @export
 test_independence <- function(samples) {
   # Convert to binary sequence (above/below median)
   binary_seq <- as.numeric(samples > median(samples))
@@ -187,9 +318,50 @@ test_independence <- function(samples) {
 
 #' Test for autocorrelation
 #'
-#' @param samples Vector of random samples
-#' @param max_lag Maximum lag to test
-#' @return List with test results
+#' Performs comprehensive autocorrelation testing using both statistical significance
+#' bounds and empirical thresholds. This enhanced test is designed to detect even
+#' subtle autocorrelation patterns that might affect PRNG quality.
+#'
+#' @param samples Numeric vector of random samples to test
+#' @param max_lag Maximum lag to test (default: 50)
+#' 
+#' @return A list containing test results:
+#'   \describe{
+#'     \item{test_name}{Name of the test}
+#'     \item{autocorrelations}{Vector of autocorrelation values at each lag}
+#'     \item{significant_lags}{Lags where autocorrelation exceeds threshold}
+#'     \item{n_sig_lags}{Number of significant lags}
+#'     \item{max_abs_acf}{Maximum absolute autocorrelation value}
+#'     \item{threshold_used}{Final threshold used for significance}
+#'     \item{stat_bound}{Statistical significance bound (99% confidence)}
+#'     \item{empirical_threshold}{Empirical threshold from analysis}
+#'     \item{passed}{Logical; TRUE if no significant autocorrelations}
+#'     \item{interpretation}{Human-readable interpretation}
+#'   }
+#'   
+#' @details
+#' The test uses two thresholds:
+#' \itemize{
+#'   \item **Statistical bound**: 99% confidence interval = 2.576/sqrt(n)
+#'   \item **Empirical threshold**: 0.010 (based on comprehensive discriminant analysis)
+#' }
+#' The stricter of the two thresholds is used to ensure rigorous testing.
+#' This approach helps identify high-quality PRNGs that show minimal
+#' autocorrelation across all lags.
+#' 
+#' @note The empirical threshold of 0.010 was determined through extensive
+#' testing of discriminants and represents a practical limit for
+#' cryptographic-quality randomness.
+#' 
+#' @examples
+#' \dontrun{
+#' # Test autocorrelation
+#' samples <- runif(10000)
+#' result <- test_autocorrelation(samples, max_lag = 30)
+#' print(paste("Max |ACF|:", round(result$max_abs_acf, 4)))
+#' }
+#' 
+#' @export
 test_autocorrelation <- function(samples, max_lag = 50) {
   autocorr <- acf(samples, lag.max = max_lag, plot = FALSE)
   
@@ -229,10 +401,55 @@ test_autocorrelation <- function(samples, max_lag = 50) {
   ))
 }
 
-#' Test moments (mean, variance, skewness, kurtosis)
+#' Test statistical moments (mean, variance, skewness, kurtosis)
 #'
-#' @param samples Vector of random samples
-#' @return List with test results
+#' Analyzes the first four statistical moments of a sample and compares them
+#' to the theoretical values expected for a uniform[0,1] distribution.
+#'
+#' @param samples Numeric vector of random samples to test
+#' 
+#' @return A list containing moment analysis results:
+#'   \describe{
+#'     \item{test_name}{Name of the test}
+#'     \item{sample_mean}{Calculated sample mean}
+#'     \item{sample_variance}{Calculated sample variance}
+#'     \item{sample_skewness}{Calculated sample skewness}
+#'     \item{sample_kurtosis}{Calculated sample kurtosis (non-excess)}
+#'     \item{expected_mean}{Expected mean for uniform[0,1] = 0.5}
+#'     \item{expected_variance}{Expected variance for uniform[0,1] = 1/12}
+#'     \item{expected_skewness}{Expected skewness for uniform[0,1] = 0}
+#'     \item{expected_kurtosis}{Expected kurtosis for uniform[0,1] = 1.8}
+#'     \item{mean_error}{Absolute deviation from expected mean}
+#'     \item{var_error}{Absolute deviation from expected variance}
+#'     \item{skew_error}{Absolute deviation from expected skewness}
+#'     \item{kurt_error}{Absolute deviation from expected kurtosis}
+#'   }
+#'   
+#' @details
+#' For a uniform distribution on [0,1], the theoretical moments are:
+#' \itemize{
+#'   \item Mean: μ = 0.5
+#'   \item Variance: σ² = 1/12 ≈ 0.0833
+#'   \item Skewness: γ₁ = 0 (symmetric distribution)
+#'   \item Kurtosis: γ₂ = 1.8 (platykurtic, flatter than normal)
+#' }
+#' 
+#' The function uses non-excess kurtosis (where normal distribution = 3).
+#' 
+#' @note This function provides descriptive statistics only. For hypothesis
+#' testing of moments, additional tests would be needed to determine if
+#' deviations are statistically significant.
+#' 
+#' @examples
+#' \dontrun{
+#' # Analyze moments of uniform random numbers
+#' samples <- runif(10000)
+#' moments <- test_moments(samples)
+#' print(paste("Mean error:", round(moments$mean_error, 4)))
+#' }
+#' 
+#' @importFrom moments skewness kurtosis
+#' @export
 test_moments <- function(samples) {
   sample_mean <- mean(samples)
   sample_var <- var(samples)
@@ -264,8 +481,56 @@ test_moments <- function(samples) {
 
 #' Enhanced periodicity testing using multiple spectral methods
 #'
-#' @param samples Vector of random samples
-#' @return List with comprehensive periodicity test results
+#' Performs comprehensive periodicity and pattern detection using multiple
+#' statistical tests including Fisher's g-test, Bartels rank test, Cox-Stuart
+#' test, turning points test, and Ljung-Box test.
+#'
+#' @param samples Numeric vector of random samples to test
+#' 
+#' @return A list containing comprehensive periodicity test results:
+#'   \describe{
+#'     \item{test_name}{Name of the test suite}
+#'     \item{fisher_g_stat}{Fisher's g-statistic for hidden periodicities}
+#'     \item{fisher_p_value}{P-value from Fisher's g-test}
+#'     \item{bartels_p_value}{P-value from Bartels rank test}
+#'     \item{cox_stuart_p_value}{P-value from Cox-Stuart trend test}
+#'     \item{turning_points_p_value}{P-value from turning points test}
+#'     \item{ljung_box_p_value}{P-value from Ljung-Box test}
+#'     \item{combined_p_value}{Mean of all valid p-values}
+#'     \item{passed}{Logical; TRUE if majority of tests pass}
+#'     \item{tests_passed}{String showing number of tests passed}
+#'     \item{interpretation}{Human-readable interpretation}
+#'   }
+#'   
+#' @details
+#' The function combines multiple tests to detect various types of patterns:
+#' \itemize{
+#'   \item **Fisher's g-test**: Detects hidden periodicities in the frequency domain
+#'   \item **Bartels rank test**: Tests for randomness using rank-based methods
+#'   \item **Cox-Stuart test**: Detects monotonic trends
+#'   \item **Turning points test**: Analyzes local extrema patterns
+#'   \item **Ljung-Box test**: Tests for serial correlation up to lag 20
+#' }
+#' 
+#' The overall assessment passes if the majority of individual tests pass
+#' (p-value > 0.05). This ensemble approach provides robust detection of
+#' various non-random patterns.
+#' 
+#' @note Some tests may fail with NA p-values if the sample size is too small
+#' or if required packages are not available. The overall assessment uses
+#' only valid test results.
+#' 
+#' @examples
+#' \dontrun{
+#' # Test for periodicity
+#' samples <- runif(5000)
+#' result <- test_periodicity(samples)
+#' print(result$interpretation)
+#' }
+#' 
+#' @importFrom randtests bartels.rank.test cox.stuart.test turning.point.test
+#' @importFrom stats Box.test
+#' @export
 test_periodicity <- function(samples) {
   n <- length(samples)
   results <- list(test_name = "Enhanced Periodicity Analysis")
@@ -348,12 +613,63 @@ test_periodicity <- function(samples) {
 
 #' Comprehensive test suite for a single discriminant
 #'
-#' @param a Parameter a
-#' @param b Parameter b
-#' @param c Parameter c
-#' @param discriminant Discriminant value
-#' @param n Number of samples to generate
-#' @return List with all test results
+#' Runs a complete battery of statistical tests on random numbers generated
+#' with specific discriminant parameters. Includes uniformity, independence,
+#' autocorrelation, moment analysis, periodicity, and advanced tests.
+#'
+#' @param a Quadratic coefficient (must be > 0)
+#' @param b Linear coefficient
+#' @param c Constant term (must be < 0)
+#' @param discriminant The discriminant value b² - 4ac
+#' @param n Number of samples to generate (default: 50000)
+#' 
+#' @return A comprehensive list containing:
+#'   \describe{
+#'     \item{parameters}{List of input parameters (a, b, c, discriminant)}
+#'     \item{sample_size}{Number of samples generated}
+#'     \item{uniformity}{Results from uniformity tests}
+#'     \item{independence}{Results from independence test}
+#'     \item{autocorrelation}{Results from autocorrelation test}
+#'     \item{moments}{Results from moment analysis}
+#'     \item{periodicity}{Results from periodicity tests}
+#'     \item{advanced}{Results from advanced test suite}
+#'     \item{overall_score}{Weighted score (0-1) combining all tests}
+#'     \item{quality_rating}{Rating: "Excellent", "Very-Good", "Good", "Fair", "Poor", or "Error"}
+#'   }
+#'   
+#' @details
+#' The function calculates a weighted overall score using:
+#' \itemize{
+#'   \item Uniformity: 20% weight
+#'   \item Independence: 20% weight
+#'   \item Autocorrelation: 25% weight (higher due to importance)
+#'   \item Periodicity: 20% weight
+#'   \item Advanced tests: 15% weight
+#' }
+#' 
+#' Quality ratings are assigned based on overall score:
+#' \itemize{
+#'   \item Excellent: score ≥ 0.85
+#'   \item Very-Good: 0.75 ≤ score < 0.85
+#'   \item Good: 0.60 ≤ score < 0.75
+#'   \item Fair: 0.45 ≤ score < 0.60
+#'   \item Poor: score < 0.45
+#' }
+#' 
+#' @note The function includes comprehensive error handling. If any test fails,
+#' it returns partial results with appropriate error messages.
+#' 
+#' @examples
+#' \dontrun{
+#' # Test a specific discriminant
+#' result <- test_discriminant(a = 2, b = 5, c = -2, discriminant = 41, n = 10000)
+#' print(paste("Quality:", result$quality_rating))
+#' print(paste("Score:", round(result$overall_score, 3)))
+#' }
+#' 
+#' @seealso \code{\link{run_discriminant_analysis}} for testing multiple discriminants
+#' 
+#' @export
 test_discriminant <- function(a, b, c, discriminant, n = 50000) {
   cat("Testing discriminant: a=", a, ", b=", b, ", c=", c, ", Δ=", discriminant, "\n")
   
@@ -496,12 +812,72 @@ test_discriminant <- function(a, b, c, discriminant, n = 50000) {
 
 #' Run tests on all discriminants and generate report (Parallel Implementation)
 #'
-#' @param discriminants_file Path to discriminants CSV file
-#' @param sample_size Number of samples per discriminant
-#' @param max_discriminants Maximum number of discriminants to test (for speed)
-#' @param n_cores Number of cores to use (defaults to detected cores - 1)
-#' @param chunk_size Discriminants per parallel chunk (for progress tracking)
-#' @return List with all results
+#' Performs comprehensive statistical testing on multiple discriminants using
+#' parallel processing for efficiency. Tests each discriminant with the full
+#' battery of randomness tests and compiles results.
+#'
+#' @param discriminants_file Path to discriminants CSV file (default: "discriminants.csv")
+#' @param sample_size Number of samples to generate per discriminant (default: 50000)
+#' @param max_discriminants Maximum number of discriminants to test, NULL for all (default: NULL)
+#' @param n_cores Number of CPU cores to use for parallel processing (default: auto-detect - 3)
+#' @param chunk_size Number of discriminants per parallel chunk for progress tracking (default: 50)
+#' 
+#' @return A list containing test results for all discriminants. Each element contains:
+#'   \describe{
+#'     \item{index}{Index of the discriminant in the input file}
+#'     \item{parameters}{Discriminant parameters (a, b, c, discriminant)}
+#'     \item{sample_size}{Number of samples tested}
+#'     \item{uniformity}{Uniformity test results}
+#'     \item{independence}{Independence test results}
+#'     \item{autocorrelation}{Autocorrelation test results}
+#'     \item{moments}{Moment analysis results}
+#'     \item{periodicity}{Periodicity test results}
+#'     \item{advanced}{Advanced test results}
+#'     \item{overall_score}{Combined score (0-1)}
+#'     \item{quality_rating}{Quality classification}
+#'     \item{error}{Error message if test failed}
+#'   }
+#'   
+#' @details
+#' The function uses parallel processing to efficiently test multiple discriminants:
+#' \itemize{
+#'   \item Automatically detects available CPU cores
+#'   \item Processes discriminants in chunks for memory efficiency
+#'   \item Provides progress updates during execution
+#'   \item Includes timeout protection (300s default + dynamic adjustment)
+#'   \item Handles errors gracefully without stopping the entire analysis
+#' }
+#' 
+#' Runtime estimation is provided based on sample size:
+#' \itemize{
+#'   \item ≤50,000 samples: ~15 seconds per discriminant
+#'   \item ≤100,000 samples: ~25 seconds per discriminant
+#'   \item >100,000 samples: ~0.00025 * sample_size seconds
+#' }
+#' 
+#' @note The function requires the 'parallel' package. Each worker process
+#' loads required libraries independently. Memory is cleared between chunks
+#' to prevent overflow on large analyses.
+#' 
+#' @examples
+#' \dontrun{
+#' # Test first 10 discriminants with default settings
+#' results <- run_discriminant_analysis(max_discriminants = 10)
+#' 
+#' # Test all discriminants with custom settings
+#' results <- run_discriminant_analysis(
+#'   sample_size = 100000,
+#'   n_cores = 8,
+#'   chunk_size = 100
+#' )
+#' 
+#' # Analyze results
+#' excellent <- sapply(results, function(r) r$quality_rating == "Excellent")
+#' cat("Excellent discriminants:", sum(excellent), "\n")
+#' }
+#' 
+#' @importFrom parallel makeCluster stopCluster clusterExport clusterEvalQ parLapply detectCores
+#' @export
 run_discriminant_analysis <- function(discriminants_file = "discriminants.csv", 
                                     sample_size = 50000, 
                                     max_discriminants = NULL,

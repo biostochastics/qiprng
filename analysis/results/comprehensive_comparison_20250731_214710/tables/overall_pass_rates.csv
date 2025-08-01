@@ -1,0 +1,19 @@
+"generator_name","overall_pass_rate","tests_run"
+"dqrng (Threefry)",1,18
+"dqrng (Xoshiro256+)",0.987777777777778,18
+"dqrng (Xoshiro256++)",0.987777777777778,18
+"dqrng (Xoroshiro128++)",0.985555555555556,18
+"dqrng (PCG64)",0.973333333333333,18
+"QIPRNG (High Precision)",0.967777777777778,18
+"R L'Ecuyer-CMRG",0.963333333333333,18
+"R Knuth-TAOCP",0.962222222222222,18
+"R Wichmann-Hill",0.962222222222222,18
+"QIPRNG (No Crypto)",0.958888888888889,18
+"QIPRNG (Default Config)",0.957777777777778,18
+"R Marsaglia-Multicarry",0.956666666666667,18
+"R Knuth-TAOCP-2002",0.955555555555555,18
+"R Mersenne Twister",0.955555555555555,18
+"Crypto (OpenSSL)",0.954444444444444,18
+"QIPRNG (With Crypto)",0.952222222222222,18
+"R Super-Duper",0.948888888888889,18
+"dqrng (Xoroshiro128+)",0.884444444444444,18

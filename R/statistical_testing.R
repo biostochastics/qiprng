@@ -31,6 +31,20 @@
 #' @importFrom grDevices png dev.off
 NULL
 
+# Source parallel runner if available
+if (file.exists(system.file("R/statisticaltests/parallel_runner.R", package = "qiprng"))) {
+  source(system.file("R/statisticaltests/parallel_runner.R", package = "qiprng"))
+} else if (file.exists("R/statisticaltests/parallel_runner.R")) {
+  source("R/statisticaltests/parallel_runner.R")
+}
+
+# Source caching framework if available
+if (file.exists(system.file("R/caching_framework.R", package = "qiprng"))) {
+  source(system.file("R/caching_framework.R", package = "qiprng"))
+} else if (file.exists("R/caching_framework.R")) {
+  source("R/caching_framework.R")
+}
+
 #' List of available test categories
 #'
 #' A named list of available test categories for PRNG testing.
@@ -111,9 +125,29 @@ default_test_config <- list(
   use_dieharder_quick = TRUE,  # If FALSE, runs all tests (-a)
   use_ent = TRUE,
   
+  # External tool configuration
+  external_tools_config_file = NULL,  # Path to external tools config file
+  external_tools_enabled = c("dieharder", "ent"),  # Which tools to use
+  
   # Processing options
   parallel = TRUE,
-  cores = parallel::detectCores() - 1
+  cores = parallel::detectCores() - 1,
+  
+  # Caching options
+  cache_enabled = TRUE,
+  cache_dir = tempdir(),
+  cache_ttl_hours = 24,
+  cache_max_size_mb = 500,
+  
+  # Test result caching
+  cache_test_results = TRUE,
+  cache_ttl_basic_hours = 24,
+  cache_ttl_correlation_hours = 12,
+  cache_ttl_compression_hours = 6,
+  cache_ttl_binary_hours = 12,
+  cache_ttl_classical_hours = 24,
+  cache_ttl_runs_hours = 12,
+  cache_ttl_external_hours = 48
 )
 
 #' Create a PRNG test suite
@@ -175,6 +209,21 @@ create_prng_test_suite <- function(prng_func,
   # Create output directory if needed
   if (config$save_results || config$save_visualizations) {
     dir.create(config$output_dir, showWarnings = FALSE, recursive = TRUE)
+  }
+  
+  # Initialize cache if available and enabled
+  if (exists("init_cache", mode = "function") && config$cache_enabled) {
+    tryCatch({
+      init_cache(cache_dir = config$cache_dir, enabled = TRUE)
+      if (exists("set_cache_ttl", mode = "function")) {
+        set_cache_ttl(hours = config$cache_ttl_hours)
+      }
+    }, error = function(e) {
+      if (config$verbose) {
+        cat("Warning: Could not initialize cache:", e$message, "\n")
+        cat("Continuing without cache.\n")
+      }
+    })
   }
   
   # Create the test suite

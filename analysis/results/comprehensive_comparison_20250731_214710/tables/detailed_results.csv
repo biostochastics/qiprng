@@ -1,0 +1,325 @@
+"generator","generator_name","n_samples","test","pass_rate","mean_p_value","n_valid"
+"R_mersenne","R Mersenne Twister",10000,"basic_tests_Kolmogorov-Smirnov",0.96,0.42810207843483,50
+"R_mersenne","R Mersenne Twister",10000,"basic_tests_Chi-squared",0.96,0.538129893605556,50
+"R_mersenne","R Mersenne Twister",10000,"basic_tests_Runs Test",0.94,0.448311147480352,50
+"R_mersenne","R Mersenne Twister",10000,"basic_tests_Autocorrelation",0.94,0.51956567713556,50
+"R_mersenne","R Mersenne Twister",10000,"advanced_tests_Spectral Test",0.98,0.654290736927546,50
+"R_mersenne","R Mersenne Twister",10000,"advanced_tests_Gap Test",0.92,0.426087046668836,50
+"R_lecuyer","R L'Ecuyer-CMRG",10000,"basic_tests_Kolmogorov-Smirnov",1,0.538882862628468,50
+"R_lecuyer","R L'Ecuyer-CMRG",10000,"basic_tests_Chi-squared",0.92,0.492398586813083,50
+"R_lecuyer","R L'Ecuyer-CMRG",10000,"basic_tests_Runs Test",0.94,0.499779585981133,50
+"R_lecuyer","R L'Ecuyer-CMRG",10000,"basic_tests_Autocorrelation",0.96,0.476259523228669,50
+"R_lecuyer","R L'Ecuyer-CMRG",10000,"advanced_tests_Spectral Test",0.98,0.561222764692327,50
+"R_lecuyer","R L'Ecuyer-CMRG",10000,"advanced_tests_Gap Test",0.98,0.460973087683712,50
+"R_wichmann","R Wichmann-Hill",10000,"basic_tests_Kolmogorov-Smirnov",0.98,0.532946113895186,50
+"R_wichmann","R Wichmann-Hill",10000,"basic_tests_Chi-squared",0.96,0.475297850861015,50
+"R_wichmann","R Wichmann-Hill",10000,"basic_tests_Runs Test",0.96,0.521507973614798,50
+"R_wichmann","R Wichmann-Hill",10000,"basic_tests_Autocorrelation",0.96,0.50149093673065,50
+"R_wichmann","R Wichmann-Hill",10000,"advanced_tests_Spectral Test",1,0.64488499767903,50
+"R_wichmann","R Wichmann-Hill",10000,"advanced_tests_Gap Test",0.98,0.569156174381417,50
+"R_marsaglia","R Marsaglia-Multicarry",10000,"basic_tests_Kolmogorov-Smirnov",0.96,0.475771230272347,50
+"R_marsaglia","R Marsaglia-Multicarry",10000,"basic_tests_Chi-squared",0.94,0.480511355586545,50
+"R_marsaglia","R Marsaglia-Multicarry",10000,"basic_tests_Runs Test",0.98,0.566413554649062,50
+"R_marsaglia","R Marsaglia-Multicarry",10000,"basic_tests_Autocorrelation",0.94,0.459252993466456,50
+"R_marsaglia","R Marsaglia-Multicarry",10000,"advanced_tests_Spectral Test",1,0.695093345107223,50
+"R_marsaglia","R Marsaglia-Multicarry",10000,"advanced_tests_Gap Test",0.98,0.526927656781216,50
+"R_superduper","R Super-Duper",10000,"basic_tests_Kolmogorov-Smirnov",0.94,0.430891035017578,50
+"R_superduper","R Super-Duper",10000,"basic_tests_Chi-squared",0.94,0.447982422207645,50
+"R_superduper","R Super-Duper",10000,"basic_tests_Runs Test",0.96,0.537361452243762,50
+"R_superduper","R Super-Duper",10000,"basic_tests_Autocorrelation",0.98,0.505626591093905,50
+"R_superduper","R Super-Duper",10000,"advanced_tests_Spectral Test",1,0.675400034199452,50
+"R_superduper","R Super-Duper",10000,"advanced_tests_Gap Test",0.94,0.534209850566509,50
+"R_knuth","R Knuth-TAOCP",10000,"basic_tests_Kolmogorov-Smirnov",0.94,0.547081501813854,50
+"R_knuth","R Knuth-TAOCP",10000,"basic_tests_Chi-squared",0.96,0.554518860339878,50
+"R_knuth","R Knuth-TAOCP",10000,"basic_tests_Runs Test",0.94,0.540636190319559,50
+"R_knuth","R Knuth-TAOCP",10000,"basic_tests_Autocorrelation",0.94,0.523413423014311,50
+"R_knuth","R Knuth-TAOCP",10000,"advanced_tests_Spectral Test",1,0.730072129594237,50
+"R_knuth","R Knuth-TAOCP",10000,"advanced_tests_Gap Test",0.96,0.489617663406215,50
+"R_knuth2002","R Knuth-TAOCP-2002",10000,"basic_tests_Kolmogorov-Smirnov",0.98,0.505319188449118,50
+"R_knuth2002","R Knuth-TAOCP-2002",10000,"basic_tests_Chi-squared",0.9,0.439685467370433,50
+"R_knuth2002","R Knuth-TAOCP-2002",10000,"basic_tests_Runs Test",0.96,0.528297561306359,50
+"R_knuth2002","R Knuth-TAOCP-2002",10000,"basic_tests_Autocorrelation",0.96,0.499121510675562,50
+"R_knuth2002","R Knuth-TAOCP-2002",10000,"advanced_tests_Spectral Test",1,0.66987964536303,50
+"R_knuth2002","R Knuth-TAOCP-2002",10000,"advanced_tests_Gap Test",0.94,0.476963715874566,50
+"qiprng_default","QIPRNG (Default Config)",10000,"basic_tests_Kolmogorov-Smirnov",0.9,0.462621058328795,50
+"qiprng_default","QIPRNG (Default Config)",10000,"basic_tests_Chi-squared",0.98,0.483165640893767,50
+"qiprng_default","QIPRNG (Default Config)",10000,"basic_tests_Runs Test",0.92,0.615849487174457,50
+"qiprng_default","QIPRNG (Default Config)",10000,"basic_tests_Autocorrelation",0.94,0.588854370027195,50
+"qiprng_default","QIPRNG (Default Config)",10000,"advanced_tests_Spectral Test",1,0.64226171508206,50
+"qiprng_default","QIPRNG (Default Config)",10000,"advanced_tests_Gap Test",0.96,0.550667299234035,50
+"qiprng_nocrypto","QIPRNG (No Crypto)",10000,"basic_tests_Kolmogorov-Smirnov",0.96,0.48043809464825,50
+"qiprng_nocrypto","QIPRNG (No Crypto)",10000,"basic_tests_Chi-squared",0.94,0.49938481575306,50
+"qiprng_nocrypto","QIPRNG (No Crypto)",10000,"basic_tests_Runs Test",0.92,0.434592923516666,50
+"qiprng_nocrypto","QIPRNG (No Crypto)",10000,"basic_tests_Autocorrelation",0.92,0.492324999448078,50
+"qiprng_nocrypto","QIPRNG (No Crypto)",10000,"advanced_tests_Spectral Test",1,0.682035011432189,50
+"qiprng_nocrypto","QIPRNG (No Crypto)",10000,"advanced_tests_Gap Test",0.96,0.492535807438704,50
+"qiprng_crypto","QIPRNG (With Crypto)",10000,"basic_tests_Kolmogorov-Smirnov",0.94,0.530700807676443,50
+"qiprng_crypto","QIPRNG (With Crypto)",10000,"basic_tests_Chi-squared",0.94,0.528127333786396,50
+"qiprng_crypto","QIPRNG (With Crypto)",10000,"basic_tests_Runs Test",0.96,0.501790958895556,50
+"qiprng_crypto","QIPRNG (With Crypto)",10000,"basic_tests_Autocorrelation",0.96,0.484698643392968,50
+"qiprng_crypto","QIPRNG (With Crypto)",10000,"advanced_tests_Spectral Test",1,0.724096181471394,50
+"qiprng_crypto","QIPRNG (With Crypto)",10000,"advanced_tests_Gap Test",0.94,0.509951455780593,50
+"qiprng_highprec","QIPRNG (High Precision)",10000,"basic_tests_Kolmogorov-Smirnov",1,0.484554749321744,50
+"qiprng_highprec","QIPRNG (High Precision)",10000,"basic_tests_Chi-squared",0.94,0.515454247454825,50
+"qiprng_highprec","QIPRNG (High Precision)",10000,"basic_tests_Runs Test",0.9,0.495049222738747,50
+"qiprng_highprec","QIPRNG (High Precision)",10000,"basic_tests_Autocorrelation",0.96,0.508006727590251,50
+"qiprng_highprec","QIPRNG (High Precision)",10000,"advanced_tests_Spectral Test",1,0.668113772287857,50
+"qiprng_highprec","QIPRNG (High Precision)",10000,"advanced_tests_Gap Test",0.96,0.496751598834008,50
+"crypto_openssl","Crypto (OpenSSL)",10000,"basic_tests_Kolmogorov-Smirnov",0.98,0.4935920380071,50
+"crypto_openssl","Crypto (OpenSSL)",10000,"basic_tests_Chi-squared",0.98,0.489128039724809,50
+"crypto_openssl","Crypto (OpenSSL)",10000,"basic_tests_Runs Test",0.94,0.459452794389006,50
+"crypto_openssl","Crypto (OpenSSL)",10000,"basic_tests_Autocorrelation",0.9,0.460093994190551,50
+"crypto_openssl","Crypto (OpenSSL)",10000,"advanced_tests_Spectral Test",1,0.63366165898626,50
+"crypto_openssl","Crypto (OpenSSL)",10000,"advanced_tests_Gap Test",0.96,0.512480681870737,50
+"dqrng_pcg64","dqrng (PCG64)",10000,"basic_tests_Kolmogorov-Smirnov",1,0.459938696607793,50
+"dqrng_pcg64","dqrng (PCG64)",10000,"basic_tests_Chi-squared",1,0.818948824352641,50
+"dqrng_pcg64","dqrng (PCG64)",10000,"basic_tests_Runs Test",0.78,0.291935317209384,50
+"dqrng_pcg64","dqrng (PCG64)",10000,"basic_tests_Autocorrelation",1,0.410184112995835,50
+"dqrng_pcg64","dqrng (PCG64)",10000,"advanced_tests_Spectral Test",1,0.629219883627188,50
+"dqrng_pcg64","dqrng (PCG64)",10000,"advanced_tests_Gap Test",0.74,0.506795345224242,50
+"dqrng_xoroshiro128pp","dqrng (Xoroshiro128++)",10000,"basic_tests_Kolmogorov-Smirnov",1,0.564902737384142,50
+"dqrng_xoroshiro128pp","dqrng (Xoroshiro128++)",10000,"basic_tests_Chi-squared",1,0.618337371254861,50
+"dqrng_xoroshiro128pp","dqrng (Xoroshiro128++)",10000,"basic_tests_Runs Test",1,0.594598255688073,50
+"dqrng_xoroshiro128pp","dqrng (Xoroshiro128++)",10000,"basic_tests_Autocorrelation",0.74,0.381366528651201,50
+"dqrng_xoroshiro128pp","dqrng (Xoroshiro128++)",10000,"advanced_tests_Spectral Test",1,0.717508166231237,50
+"dqrng_xoroshiro128pp","dqrng (Xoroshiro128++)",10000,"advanced_tests_Gap Test",1,0.300718765326896,50
+"dqrng_xoshiro256pp","dqrng (Xoshiro256++)",10000,"basic_tests_Kolmogorov-Smirnov",0.78,0.453981036211863,50
+"dqrng_xoshiro256pp","dqrng (Xoshiro256++)",10000,"basic_tests_Chi-squared",1,0.382575094946544,50
+"dqrng_xoshiro256pp","dqrng (Xoshiro256++)",10000,"basic_tests_Runs Test",1,0.368615551293353,50
+"dqrng_xoshiro256pp","dqrng (Xoshiro256++)",10000,"basic_tests_Autocorrelation",1,0.317363035285237,50
+"dqrng_xoshiro256pp","dqrng (Xoshiro256++)",10000,"advanced_tests_Spectral Test",1,0.523970583964511,50
+"dqrng_xoshiro256pp","dqrng (Xoshiro256++)",10000,"advanced_tests_Gap Test",1,0.501747997572136,50
+"dqrng_threefry","dqrng (Threefry)",10000,"basic_tests_Kolmogorov-Smirnov",1,0.477010658439692,50
+"dqrng_threefry","dqrng (Threefry)",10000,"basic_tests_Chi-squared",1,0.515954636914052,50
+"dqrng_threefry","dqrng (Threefry)",10000,"basic_tests_Runs Test",1,0.500246395014653,50
+"dqrng_threefry","dqrng (Threefry)",10000,"basic_tests_Autocorrelation",1,0.435367425768224,50
+"dqrng_threefry","dqrng (Threefry)",10000,"advanced_tests_Spectral Test",1,0.638413205608181,50
+"dqrng_threefry","dqrng (Threefry)",10000,"advanced_tests_Gap Test",1,0.627938591852308,50
+"dqrng_xoroshiro128p","dqrng (Xoroshiro128+)",10000,"basic_tests_Kolmogorov-Smirnov",1,0.515175614183556,50
+"dqrng_xoroshiro128p","dqrng (Xoroshiro128+)",10000,"basic_tests_Chi-squared",1,0.495135667459505,50
+"dqrng_xoroshiro128p","dqrng (Xoroshiro128+)",10000,"basic_tests_Runs Test",0.74,0.272268736153844,50
+"dqrng_xoroshiro128p","dqrng (Xoroshiro128+)",10000,"basic_tests_Autocorrelation",0.74,0.506013583922079,50
+"dqrng_xoroshiro128p","dqrng (Xoroshiro128+)",10000,"advanced_tests_Spectral Test",1,0.634219469330285,50
+"dqrng_xoroshiro128p","dqrng (Xoroshiro128+)",10000,"advanced_tests_Gap Test",1,0.587082215463312,50
+"dqrng_xoshiro256p","dqrng (Xoshiro256+)",10000,"basic_tests_Kolmogorov-Smirnov",1,0.506881381536425,50
+"dqrng_xoshiro256p","dqrng (Xoshiro256+)",10000,"basic_tests_Chi-squared",1,0.630102388223838,50
+"dqrng_xoshiro256p","dqrng (Xoshiro256+)",10000,"basic_tests_Runs Test",1,0.756073291005157,50
+"dqrng_xoshiro256p","dqrng (Xoshiro256+)",10000,"basic_tests_Autocorrelation",1,0.549505994211732,50
+"dqrng_xoshiro256p","dqrng (Xoshiro256+)",10000,"advanced_tests_Spectral Test",1,0.39185180130231,50
+"dqrng_xoshiro256p","dqrng (Xoshiro256+)",10000,"advanced_tests_Gap Test",1,0.406263722172732,50
+"R_mersenne","R Mersenne Twister",1e+05,"basic_tests_Kolmogorov-Smirnov",0.94,0.494979754723838,50
+"R_mersenne","R Mersenne Twister",1e+05,"basic_tests_Chi-squared",0.98,0.549840304024028,50
+"R_mersenne","R Mersenne Twister",1e+05,"basic_tests_Runs Test",0.92,0.412556578479425,50
+"R_mersenne","R Mersenne Twister",1e+05,"basic_tests_Autocorrelation",0.9,0.439982172295214,50
+"R_mersenne","R Mersenne Twister",1e+05,"advanced_tests_Spectral Test",0.98,0.680567717241487,50
+"R_mersenne","R Mersenne Twister",1e+05,"advanced_tests_Gap Test",1,0.535279760073108,50
+"R_lecuyer","R L'Ecuyer-CMRG",1e+05,"basic_tests_Kolmogorov-Smirnov",0.96,0.512355637369381,50
+"R_lecuyer","R L'Ecuyer-CMRG",1e+05,"basic_tests_Chi-squared",0.92,0.482587888137105,50
+"R_lecuyer","R L'Ecuyer-CMRG",1e+05,"basic_tests_Runs Test",0.92,0.473192956294162,50
+"R_lecuyer","R L'Ecuyer-CMRG",1e+05,"basic_tests_Autocorrelation",0.98,0.479771737565495,50
+"R_lecuyer","R L'Ecuyer-CMRG",1e+05,"advanced_tests_Spectral Test",1,0.689042440905925,50
+"R_lecuyer","R L'Ecuyer-CMRG",1e+05,"advanced_tests_Gap Test",0.94,0.500018330054045,50
+"R_wichmann","R Wichmann-Hill",1e+05,"basic_tests_Kolmogorov-Smirnov",0.98,0.473124596006341,50
+"R_wichmann","R Wichmann-Hill",1e+05,"basic_tests_Chi-squared",0.98,0.436834604199364,50
+"R_wichmann","R Wichmann-Hill",1e+05,"basic_tests_Runs Test",0.98,0.484724674528947,50
+"R_wichmann","R Wichmann-Hill",1e+05,"basic_tests_Autocorrelation",0.88,0.512771717154822,50
+"R_wichmann","R Wichmann-Hill",1e+05,"advanced_tests_Spectral Test",1,0.61149412624893,50
+"R_wichmann","R Wichmann-Hill",1e+05,"advanced_tests_Gap Test",0.98,0.561648964828138,50
+"R_marsaglia","R Marsaglia-Multicarry",1e+05,"basic_tests_Kolmogorov-Smirnov",0.96,0.489153638827725,50
+"R_marsaglia","R Marsaglia-Multicarry",1e+05,"basic_tests_Chi-squared",0.94,0.502941704317134,50
+"R_marsaglia","R Marsaglia-Multicarry",1e+05,"basic_tests_Runs Test",0.94,0.480096968620039,50
+"R_marsaglia","R Marsaglia-Multicarry",1e+05,"basic_tests_Autocorrelation",0.96,0.494604320328019,50
+"R_marsaglia","R Marsaglia-Multicarry",1e+05,"advanced_tests_Spectral Test",1,0.66281773128947,50
+"R_marsaglia","R Marsaglia-Multicarry",1e+05,"advanced_tests_Gap Test",0.98,0.524005614821639,50
+"R_superduper","R Super-Duper",1e+05,"basic_tests_Kolmogorov-Smirnov",0.98,0.537208265752021,50
+"R_superduper","R Super-Duper",1e+05,"basic_tests_Chi-squared",0.92,0.530358676325093,50
+"R_superduper","R Super-Duper",1e+05,"basic_tests_Runs Test",0.86,0.505114840309755,50
+"R_superduper","R Super-Duper",1e+05,"basic_tests_Autocorrelation",0.88,0.417677782184695,50
+"R_superduper","R Super-Duper",1e+05,"advanced_tests_Spectral Test",1,0.58966751352787,50
+"R_superduper","R Super-Duper",1e+05,"advanced_tests_Gap Test",0.98,0.540806291121454,50
+"R_knuth","R Knuth-TAOCP",1e+05,"basic_tests_Kolmogorov-Smirnov",0.92,0.527837052947365,50
+"R_knuth","R Knuth-TAOCP",1e+05,"basic_tests_Chi-squared",0.94,0.547132617416033,50
+"R_knuth","R Knuth-TAOCP",1e+05,"basic_tests_Runs Test",0.98,0.629474219183267,50
+"R_knuth","R Knuth-TAOCP",1e+05,"basic_tests_Autocorrelation",0.96,0.567262735275811,50
+"R_knuth","R Knuth-TAOCP",1e+05,"advanced_tests_Spectral Test",1,0.6247899467985,50
+"R_knuth","R Knuth-TAOCP",1e+05,"advanced_tests_Gap Test",0.94,0.451255287782515,50
+"R_knuth2002","R Knuth-TAOCP-2002",1e+05,"basic_tests_Kolmogorov-Smirnov",0.94,0.53980005688923,50
+"R_knuth2002","R Knuth-TAOCP-2002",1e+05,"basic_tests_Chi-squared",0.94,0.392079467034475,50
+"R_knuth2002","R Knuth-TAOCP-2002",1e+05,"basic_tests_Runs Test",0.92,0.365690037501617,50
+"R_knuth2002","R Knuth-TAOCP-2002",1e+05,"basic_tests_Autocorrelation",0.94,0.465044248863959,50
+"R_knuth2002","R Knuth-TAOCP-2002",1e+05,"advanced_tests_Spectral Test",0.98,0.661042322640327,50
+"R_knuth2002","R Knuth-TAOCP-2002",1e+05,"advanced_tests_Gap Test",0.96,0.499566675576815,50
+"qiprng_default","QIPRNG (Default Config)",1e+05,"basic_tests_Kolmogorov-Smirnov",0.98,0.53954904203805,50
+"qiprng_default","QIPRNG (Default Config)",1e+05,"basic_tests_Chi-squared",0.98,0.508693972663262,50
+"qiprng_default","QIPRNG (Default Config)",1e+05,"basic_tests_Runs Test",1,0.533361459459198,50
+"qiprng_default","QIPRNG (Default Config)",1e+05,"basic_tests_Autocorrelation",0.92,0.529694282565677,50
+"qiprng_default","QIPRNG (Default Config)",1e+05,"advanced_tests_Spectral Test",0.98,0.628600072237424,50
+"qiprng_default","QIPRNG (Default Config)",1e+05,"advanced_tests_Gap Test",0.94,0.45426698001314,50
+"qiprng_nocrypto","QIPRNG (No Crypto)",1e+05,"basic_tests_Kolmogorov-Smirnov",0.98,0.490108168902503,50
+"qiprng_nocrypto","QIPRNG (No Crypto)",1e+05,"basic_tests_Chi-squared",0.92,0.485270565458762,50
+"qiprng_nocrypto","QIPRNG (No Crypto)",1e+05,"basic_tests_Runs Test",1,0.532902702517131,50
+"qiprng_nocrypto","QIPRNG (No Crypto)",1e+05,"basic_tests_Autocorrelation",0.98,0.504470392985254,50
+"qiprng_nocrypto","QIPRNG (No Crypto)",1e+05,"advanced_tests_Spectral Test",1,0.70500205758255,50
+"qiprng_nocrypto","QIPRNG (No Crypto)",1e+05,"advanced_tests_Gap Test",0.92,0.456863944167587,50
+"qiprng_crypto","QIPRNG (With Crypto)",1e+05,"basic_tests_Kolmogorov-Smirnov",0.94,0.553127156607736,50
+"qiprng_crypto","QIPRNG (With Crypto)",1e+05,"basic_tests_Chi-squared",0.98,0.518029361936438,50
+"qiprng_crypto","QIPRNG (With Crypto)",1e+05,"basic_tests_Runs Test",0.9,0.46145890128774,50
+"qiprng_crypto","QIPRNG (With Crypto)",1e+05,"basic_tests_Autocorrelation",0.96,0.503034924451115,50
+"qiprng_crypto","QIPRNG (With Crypto)",1e+05,"advanced_tests_Spectral Test",1,0.596579808784618,50
+"qiprng_crypto","QIPRNG (With Crypto)",1e+05,"advanced_tests_Gap Test",0.94,0.430980973026791,50
+"qiprng_highprec","QIPRNG (High Precision)",1e+05,"basic_tests_Kolmogorov-Smirnov",0.94,0.473747387254984,50
+"qiprng_highprec","QIPRNG (High Precision)",1e+05,"basic_tests_Chi-squared",0.96,0.518104066602099,50
+"qiprng_highprec","QIPRNG (High Precision)",1e+05,"basic_tests_Runs Test",0.96,0.460662391437415,50
+"qiprng_highprec","QIPRNG (High Precision)",1e+05,"basic_tests_Autocorrelation",0.96,0.46002515327032,50
+"qiprng_highprec","QIPRNG (High Precision)",1e+05,"advanced_tests_Spectral Test",1,0.724370319271181,50
+"qiprng_highprec","QIPRNG (High Precision)",1e+05,"advanced_tests_Gap Test",0.94,0.521218946397448,50
+"crypto_openssl","Crypto (OpenSSL)",1e+05,"basic_tests_Kolmogorov-Smirnov",1,0.562154908325014,50
+"crypto_openssl","Crypto (OpenSSL)",1e+05,"basic_tests_Chi-squared",0.96,0.495937963163679,50
+"crypto_openssl","Crypto (OpenSSL)",1e+05,"basic_tests_Runs Test",0.92,0.5311451100896,50
+"crypto_openssl","Crypto (OpenSSL)",1e+05,"basic_tests_Autocorrelation",0.94,0.517934646011536,50
+"crypto_openssl","Crypto (OpenSSL)",1e+05,"advanced_tests_Spectral Test",0.96,0.660702169232272,50
+"crypto_openssl","Crypto (OpenSSL)",1e+05,"advanced_tests_Gap Test",0.92,0.508955858509683,50
+"dqrng_pcg64","dqrng (PCG64)",1e+05,"basic_tests_Kolmogorov-Smirnov",1,0.495448560954885,50
+"dqrng_pcg64","dqrng (PCG64)",1e+05,"basic_tests_Chi-squared",1,0.485502055220681,50
+"dqrng_pcg64","dqrng (PCG64)",1e+05,"basic_tests_Runs Test",1,0.436043250554891,50
+"dqrng_pcg64","dqrng (PCG64)",1e+05,"basic_tests_Autocorrelation",1,0.379057025849688,50
+"dqrng_pcg64","dqrng (PCG64)",1e+05,"advanced_tests_Spectral Test",1,0.745715121920112,50
+"dqrng_pcg64","dqrng (PCG64)",1e+05,"advanced_tests_Gap Test",1,0.526529855032998,50
+"dqrng_xoroshiro128pp","dqrng (Xoroshiro128++)",1e+05,"basic_tests_Kolmogorov-Smirnov",1,0.598759733747572,50
+"dqrng_xoroshiro128pp","dqrng (Xoroshiro128++)",1e+05,"basic_tests_Chi-squared",1,0.360600988385899,50
+"dqrng_xoroshiro128pp","dqrng (Xoroshiro128++)",1e+05,"basic_tests_Runs Test",1,0.493297957127922,50
+"dqrng_xoroshiro128pp","dqrng (Xoroshiro128++)",1e+05,"basic_tests_Autocorrelation",1,0.570721975819285,50
+"dqrng_xoroshiro128pp","dqrng (Xoroshiro128++)",1e+05,"advanced_tests_Spectral Test",1,0.680018414537724,50
+"dqrng_xoroshiro128pp","dqrng (Xoroshiro128++)",1e+05,"advanced_tests_Gap Test",1,0.552198222859897,50
+"dqrng_xoshiro256pp","dqrng (Xoshiro256++)",1e+05,"basic_tests_Kolmogorov-Smirnov",1,0.840024075153752,50
+"dqrng_xoshiro256pp","dqrng (Xoshiro256++)",1e+05,"basic_tests_Chi-squared",1,0.735322215413039,50
+"dqrng_xoshiro256pp","dqrng (Xoshiro256++)",1e+05,"basic_tests_Runs Test",1,0.557780365055772,50
+"dqrng_xoshiro256pp","dqrng (Xoshiro256++)",1e+05,"basic_tests_Autocorrelation",1,0.607384240262206,50
+"dqrng_xoshiro256pp","dqrng (Xoshiro256++)",1e+05,"advanced_tests_Spectral Test",1,0.569037772348072,50
+"dqrng_xoshiro256pp","dqrng (Xoshiro256++)",1e+05,"advanced_tests_Gap Test",1,0.716292302439398,50
+"dqrng_threefry","dqrng (Threefry)",1e+05,"basic_tests_Kolmogorov-Smirnov",1,0.388965775214783,50
+"dqrng_threefry","dqrng (Threefry)",1e+05,"basic_tests_Chi-squared",1,0.752118748404802,50
+"dqrng_threefry","dqrng (Threefry)",1e+05,"basic_tests_Runs Test",1,0.416558425659627,50
+"dqrng_threefry","dqrng (Threefry)",1e+05,"basic_tests_Autocorrelation",1,0.555420133918636,50
+"dqrng_threefry","dqrng (Threefry)",1e+05,"advanced_tests_Spectral Test",1,0.48530296874517,50
+"dqrng_threefry","dqrng (Threefry)",1e+05,"advanced_tests_Gap Test",1,0.4826257823803,50
+"dqrng_xoroshiro128p","dqrng (Xoroshiro128+)",1e+05,"basic_tests_Kolmogorov-Smirnov",1,0.471141907677276,50
+"dqrng_xoroshiro128p","dqrng (Xoroshiro128+)",1e+05,"basic_tests_Chi-squared",0.74,0.243443048353439,50
+"dqrng_xoroshiro128p","dqrng (Xoroshiro128+)",1e+05,"basic_tests_Runs Test",1,0.312642872910948,50
+"dqrng_xoroshiro128p","dqrng (Xoroshiro128+)",1e+05,"basic_tests_Autocorrelation",0.74,0.263550289757332,50
+"dqrng_xoroshiro128p","dqrng (Xoroshiro128+)",1e+05,"advanced_tests_Spectral Test",0.74,0.521935114749665,50
+"dqrng_xoroshiro128p","dqrng (Xoroshiro128+)",1e+05,"advanced_tests_Gap Test",1,0.480243235796529,50
+"dqrng_xoshiro256p","dqrng (Xoshiro256+)",1e+05,"basic_tests_Kolmogorov-Smirnov",1,0.444429448181151,50
+"dqrng_xoshiro256p","dqrng (Xoshiro256+)",1e+05,"basic_tests_Chi-squared",0.78,0.522451483200288,50
+"dqrng_xoshiro256p","dqrng (Xoshiro256+)",1e+05,"basic_tests_Runs Test",1,0.709605954251829,50
+"dqrng_xoshiro256p","dqrng (Xoshiro256+)",1e+05,"basic_tests_Autocorrelation",1,0.587884620594459,50
+"dqrng_xoshiro256p","dqrng (Xoshiro256+)",1e+05,"advanced_tests_Spectral Test",1,0.657286945055656,50
+"dqrng_xoshiro256p","dqrng (Xoshiro256+)",1e+05,"advanced_tests_Gap Test",1,0.749667704935499,50
+"R_mersenne","R Mersenne Twister",1e+06,"basic_tests_Kolmogorov-Smirnov",1,0.577035803047052,50
+"R_mersenne","R Mersenne Twister",1e+06,"basic_tests_Chi-squared",0.94,0.517032374292992,50
+"R_mersenne","R Mersenne Twister",1e+06,"basic_tests_Runs Test",0.94,0.473900720239758,50
+"R_mersenne","R Mersenne Twister",1e+06,"basic_tests_Autocorrelation",0.96,0.434471544417652,50
+"R_mersenne","R Mersenne Twister",1e+06,"advanced_tests_Spectral Test",0.98,0.589564787479465,50
+"R_mersenne","R Mersenne Twister",1e+06,"advanced_tests_Gap Test",0.96,0.478982757586968,50
+"R_lecuyer","R L'Ecuyer-CMRG",1e+06,"basic_tests_Kolmogorov-Smirnov",0.98,0.603773422831097,50
+"R_lecuyer","R L'Ecuyer-CMRG",1e+06,"basic_tests_Chi-squared",0.96,0.533732135530701,50
+"R_lecuyer","R L'Ecuyer-CMRG",1e+06,"basic_tests_Runs Test",0.98,0.522428056329001,50
+"R_lecuyer","R L'Ecuyer-CMRG",1e+06,"basic_tests_Autocorrelation",1,0.513930039449414,50
+"R_lecuyer","R L'Ecuyer-CMRG",1e+06,"advanced_tests_Spectral Test",1,0.630648255991827,50
+"R_lecuyer","R L'Ecuyer-CMRG",1e+06,"advanced_tests_Gap Test",0.92,0.456948946648472,50
+"R_wichmann","R Wichmann-Hill",1e+06,"basic_tests_Kolmogorov-Smirnov",0.94,0.497981552224623,50
+"R_wichmann","R Wichmann-Hill",1e+06,"basic_tests_Chi-squared",0.94,0.463118566500781,50
+"R_wichmann","R Wichmann-Hill",1e+06,"basic_tests_Runs Test",0.92,0.532111366671636,50
+"R_wichmann","R Wichmann-Hill",1e+06,"basic_tests_Autocorrelation",0.96,0.485024853433037,50
+"R_wichmann","R Wichmann-Hill",1e+06,"advanced_tests_Spectral Test",0.96,0.620421024549647,50
+"R_wichmann","R Wichmann-Hill",1e+06,"advanced_tests_Gap Test",0.96,0.517775312949407,50
+"R_marsaglia","R Marsaglia-Multicarry",1e+06,"basic_tests_Kolmogorov-Smirnov",0.96,0.438535433675035,50
+"R_marsaglia","R Marsaglia-Multicarry",1e+06,"basic_tests_Chi-squared",0.92,0.499349923348889,50
+"R_marsaglia","R Marsaglia-Multicarry",1e+06,"basic_tests_Runs Test",0.9,0.432012517245321,50
+"R_marsaglia","R Marsaglia-Multicarry",1e+06,"basic_tests_Autocorrelation",0.94,0.491081886214441,50
+"R_marsaglia","R Marsaglia-Multicarry",1e+06,"advanced_tests_Spectral Test",1,0.686543416331674,50
+"R_marsaglia","R Marsaglia-Multicarry",1e+06,"advanced_tests_Gap Test",0.92,0.428616780192187,50
+"R_superduper","R Super-Duper",1e+06,"basic_tests_Kolmogorov-Smirnov",0.92,0.495186273926889,50
+"R_superduper","R Super-Duper",1e+06,"basic_tests_Chi-squared",0.96,0.481111548316904,50
+"R_superduper","R Super-Duper",1e+06,"basic_tests_Runs Test",0.92,0.444681227040998,50
+"R_superduper","R Super-Duper",1e+06,"basic_tests_Autocorrelation",0.96,0.493815882736835,50
+"R_superduper","R Super-Duper",1e+06,"advanced_tests_Spectral Test",1,0.628071852762832,50
+"R_superduper","R Super-Duper",1e+06,"advanced_tests_Gap Test",0.94,0.526888578485305,50
+"R_knuth","R Knuth-TAOCP",1e+06,"basic_tests_Kolmogorov-Smirnov",0.98,0.460454494567279,50
+"R_knuth","R Knuth-TAOCP",1e+06,"basic_tests_Chi-squared",1,0.481528525718613,50
+"R_knuth","R Knuth-TAOCP",1e+06,"basic_tests_Runs Test",0.96,0.49245822748565,50
+"R_knuth","R Knuth-TAOCP",1e+06,"basic_tests_Autocorrelation",0.96,0.528438149858709,50
+"R_knuth","R Knuth-TAOCP",1e+06,"advanced_tests_Spectral Test",1,0.641198414490611,50
+"R_knuth","R Knuth-TAOCP",1e+06,"advanced_tests_Gap Test",0.94,0.505325743849349,50
+"R_knuth2002","R Knuth-TAOCP-2002",1e+06,"basic_tests_Kolmogorov-Smirnov",0.96,0.506906896588569,50
+"R_knuth2002","R Knuth-TAOCP-2002",1e+06,"basic_tests_Chi-squared",0.94,0.529984810120816,50
+"R_knuth2002","R Knuth-TAOCP-2002",1e+06,"basic_tests_Runs Test",0.94,0.497522154071719,50
+"R_knuth2002","R Knuth-TAOCP-2002",1e+06,"basic_tests_Autocorrelation",0.94,0.517706747736637,50
+"R_knuth2002","R Knuth-TAOCP-2002",1e+06,"advanced_tests_Spectral Test",1,0.60744736389112,50
+"R_knuth2002","R Knuth-TAOCP-2002",1e+06,"advanced_tests_Gap Test",1,0.520473979956601,50
+"qiprng_default","QIPRNG (Default Config)",1e+06,"basic_tests_Kolmogorov-Smirnov",0.96,0.541625988785266,50
+"qiprng_default","QIPRNG (Default Config)",1e+06,"basic_tests_Chi-squared",0.94,0.516200282473945,50
+"qiprng_default","QIPRNG (Default Config)",1e+06,"basic_tests_Runs Test",0.94,0.437827596544928,50
+"qiprng_default","QIPRNG (Default Config)",1e+06,"basic_tests_Autocorrelation",0.96,0.430343307346703,50
+"qiprng_default","QIPRNG (Default Config)",1e+06,"advanced_tests_Spectral Test",1,0.726766348486468,50
+"qiprng_default","QIPRNG (Default Config)",1e+06,"advanced_tests_Gap Test",0.94,0.47480069916111,50
+"qiprng_nocrypto","QIPRNG (No Crypto)",1e+06,"basic_tests_Kolmogorov-Smirnov",0.98,0.569733223820256,50
+"qiprng_nocrypto","QIPRNG (No Crypto)",1e+06,"basic_tests_Chi-squared",0.96,0.524630443094603,50
+"qiprng_nocrypto","QIPRNG (No Crypto)",1e+06,"basic_tests_Runs Test",0.92,0.465678383742287,50
+"qiprng_nocrypto","QIPRNG (No Crypto)",1e+06,"basic_tests_Autocorrelation",0.94,0.463916530019922,50
+"qiprng_nocrypto","QIPRNG (No Crypto)",1e+06,"advanced_tests_Spectral Test",1,0.619495854044406,50
+"qiprng_nocrypto","QIPRNG (No Crypto)",1e+06,"advanced_tests_Gap Test",0.96,0.579226492555093,50
+"qiprng_crypto","QIPRNG (With Crypto)",1e+06,"basic_tests_Kolmogorov-Smirnov",0.9,0.496086267928993,50
+"qiprng_crypto","QIPRNG (With Crypto)",1e+06,"basic_tests_Chi-squared",0.94,0.480040653684051,50
+"qiprng_crypto","QIPRNG (With Crypto)",1e+06,"basic_tests_Runs Test",0.96,0.506141346057598,50
+"qiprng_crypto","QIPRNG (With Crypto)",1e+06,"basic_tests_Autocorrelation",0.94,0.444068070518815,50
+"qiprng_crypto","QIPRNG (With Crypto)",1e+06,"advanced_tests_Spectral Test",1,0.719968408467104,50
+"qiprng_crypto","QIPRNG (With Crypto)",1e+06,"advanced_tests_Gap Test",0.94,0.454455877178043,50
+"qiprng_highprec","QIPRNG (High Precision)",1e+06,"basic_tests_Kolmogorov-Smirnov",0.96,0.505074644586516,50
+"qiprng_highprec","QIPRNG (High Precision)",1e+06,"basic_tests_Chi-squared",0.98,0.505549254905768,50
+"qiprng_highprec","QIPRNG (High Precision)",1e+06,"basic_tests_Runs Test",1,0.446238496929968,50
+"qiprng_highprec","QIPRNG (High Precision)",1e+06,"basic_tests_Autocorrelation",0.98,0.500978549374649,50
+"qiprng_highprec","QIPRNG (High Precision)",1e+06,"advanced_tests_Spectral Test",1,0.696200248210065,50
+"qiprng_highprec","QIPRNG (High Precision)",1e+06,"advanced_tests_Gap Test",0.98,0.54152472137072,50
+"crypto_openssl","Crypto (OpenSSL)",1e+06,"basic_tests_Kolmogorov-Smirnov",0.94,0.512883732973525,50
+"crypto_openssl","Crypto (OpenSSL)",1e+06,"basic_tests_Chi-squared",0.92,0.500097411465504,50
+"crypto_openssl","Crypto (OpenSSL)",1e+06,"basic_tests_Runs Test",0.96,0.463974210710982,50
+"crypto_openssl","Crypto (OpenSSL)",1e+06,"basic_tests_Autocorrelation",0.96,0.438066398151101,50
+"crypto_openssl","Crypto (OpenSSL)",1e+06,"advanced_tests_Spectral Test",0.98,0.601644649188637,50
+"crypto_openssl","Crypto (OpenSSL)",1e+06,"advanced_tests_Gap Test",0.96,0.546118849859572,50
+"dqrng_pcg64","dqrng (PCG64)",1e+06,"basic_tests_Kolmogorov-Smirnov",1,0.421181684101409,50
+"dqrng_pcg64","dqrng (PCG64)",1e+06,"basic_tests_Chi-squared",1,0.741669463035773,50
+"dqrng_pcg64","dqrng (PCG64)",1e+06,"basic_tests_Runs Test",1,0.355582432290612,50
+"dqrng_pcg64","dqrng (PCG64)",1e+06,"basic_tests_Autocorrelation",1,0.281137658978605,50
+"dqrng_pcg64","dqrng (PCG64)",1e+06,"advanced_tests_Spectral Test",1,0.732823389729701,50
+"dqrng_pcg64","dqrng (PCG64)",1e+06,"advanced_tests_Gap Test",1,0.432484229744651,50
+"dqrng_xoroshiro128pp","dqrng (Xoroshiro128++)",1e+06,"basic_tests_Kolmogorov-Smirnov",1,0.550041318225213,50
+"dqrng_xoroshiro128pp","dqrng (Xoroshiro128++)",1e+06,"basic_tests_Chi-squared",1,0.689606059124983,50
+"dqrng_xoroshiro128pp","dqrng (Xoroshiro128++)",1e+06,"basic_tests_Runs Test",1,0.274351979946298,50
+"dqrng_xoroshiro128pp","dqrng (Xoroshiro128++)",1e+06,"basic_tests_Autocorrelation",1,0.583718641725436,50
+"dqrng_xoroshiro128pp","dqrng (Xoroshiro128++)",1e+06,"advanced_tests_Spectral Test",1,0.712083282848508,50
+"dqrng_xoroshiro128pp","dqrng (Xoroshiro128++)",1e+06,"advanced_tests_Gap Test",1,0.470459818722935,50
+"dqrng_xoshiro256pp","dqrng (Xoshiro256++)",1e+06,"basic_tests_Kolmogorov-Smirnov",1,0.384814644383077,50
+"dqrng_xoshiro256pp","dqrng (Xoshiro256++)",1e+06,"basic_tests_Chi-squared",1,0.239457490265685,50
+"dqrng_xoshiro256pp","dqrng (Xoshiro256++)",1e+06,"basic_tests_Runs Test",1,0.551993970404209,50
+"dqrng_xoshiro256pp","dqrng (Xoshiro256++)",1e+06,"basic_tests_Autocorrelation",1,0.413965627030261,50
+"dqrng_xoshiro256pp","dqrng (Xoshiro256++)",1e+06,"advanced_tests_Spectral Test",1,0.716371347146261,50
+"dqrng_xoshiro256pp","dqrng (Xoshiro256++)",1e+06,"advanced_tests_Gap Test",1,0.594785030626699,50
+"dqrng_threefry","dqrng (Threefry)",1e+06,"basic_tests_Kolmogorov-Smirnov",1,0.471868299488679,50
+"dqrng_threefry","dqrng (Threefry)",1e+06,"basic_tests_Chi-squared",1,0.564181720083764,50
+"dqrng_threefry","dqrng (Threefry)",1e+06,"basic_tests_Runs Test",1,0.711626493503841,50
+"dqrng_threefry","dqrng (Threefry)",1e+06,"basic_tests_Autocorrelation",1,0.621872201376644,50
+"dqrng_threefry","dqrng (Threefry)",1e+06,"advanced_tests_Spectral Test",1,0.465641053468043,50
+"dqrng_threefry","dqrng (Threefry)",1e+06,"advanced_tests_Gap Test",1,0.463349402407689,50
+"dqrng_xoroshiro128p","dqrng (Xoroshiro128+)",1e+06,"basic_tests_Kolmogorov-Smirnov",1,0.623558358319253,50
+"dqrng_xoroshiro128p","dqrng (Xoroshiro128+)",1e+06,"basic_tests_Chi-squared",0.74,0.339012029346742,50
+"dqrng_xoroshiro128p","dqrng (Xoroshiro128+)",1e+06,"basic_tests_Runs Test",0.74,0.319569605768244,50
+"dqrng_xoroshiro128p","dqrng (Xoroshiro128+)",1e+06,"basic_tests_Autocorrelation",0.74,0.340250732890107,50
+"dqrng_xoroshiro128p","dqrng (Xoroshiro128+)",1e+06,"advanced_tests_Spectral Test",1,0.765460908618546,50
+"dqrng_xoroshiro128p","dqrng (Xoroshiro128+)",1e+06,"advanced_tests_Gap Test",1,0.349986764798395,50
+"dqrng_xoshiro256p","dqrng (Xoshiro256+)",1e+06,"basic_tests_Kolmogorov-Smirnov",1,0.495782337862507,50
+"dqrng_xoshiro256p","dqrng (Xoshiro256+)",1e+06,"basic_tests_Chi-squared",1,0.384463063276824,50
+"dqrng_xoshiro256p","dqrng (Xoshiro256+)",1e+06,"basic_tests_Runs Test",1,0.401287803838638,50
+"dqrng_xoshiro256p","dqrng (Xoshiro256+)",1e+06,"basic_tests_Autocorrelation",1,0.51201307464875,50
+"dqrng_xoshiro256p","dqrng (Xoshiro256+)",1e+06,"advanced_tests_Spectral Test",1,0.75907387344289,50
+"dqrng_xoshiro256p","dqrng (Xoshiro256+)",1e+06,"advanced_tests_Gap Test",1,0.29659782967084,50

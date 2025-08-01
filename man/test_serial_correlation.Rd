@@ -7,13 +7,68 @@
 test_serial_correlation(samples, max_lag = 50)
 }
 \arguments{
-\item{samples}{Vector of random samples}
+\item{samples}{Numeric vector of random samples to test}
 
-\item{max_lag}{Maximum lag to test}
+\item{max_lag}{Maximum lag to test (default: 50)}
 }
 \value{
-List with serial correlation test results
+A list containing serial correlation test results:
+\describe{
+\item{test_name}{Name of the test}
+\item{correlations}{Vector of correlation coefficients for each lag}
+\item{p_values}{Vector of p-values for each lag}
+\item{significant_lags}{Vector of lag indices with significant correlation}
+\item{num_significant}{Count of lags with significant correlation}
+\item{expected_significant}{Expected number of significant lags by chance}
+\item{passed}{Logical; TRUE if num_significant <= expected_significant}
+\item{interpretation}{Human-readable interpretation of results}
+}
 }
 \description{
-Serial correlation test at multiple lags
+Tests for serial correlation (autocorrelation) in a random sequence at
+multiple lag values. This test detects dependencies between values
+separated by various distances in the sequence.
+}
+\details{
+Serial correlation measures the relationship between values in a sequence
+and their lagged counterparts. For a truly random sequence, correlations
+at all lags should be near zero.
+
+For each lag k from 1 to max_lag, the test:
+\enumerate{
+\item Computes Pearson correlation between x\link{1:(n-k)} and x\link{(k+1):n}
+\item Tests if the correlation is significantly different from zero
+\item Records correlations and p-values
+}
+
+The test passes if the proportion of significant correlations (p < 0.05)
+does not exceed 5\%, which is the expected false positive rate.
+
+High serial correlation indicates:
+\itemize{
+\item Predictable patterns in the sequence
+\item Poor randomness quality
+\item Potential issues with the PRNG algorithm
+}
+}
+\note{
+Lags approaching the sample size may have unreliable results due
+to reduced sample size for correlation calculation.
+}
+\examples{
+\dontrun{
+# Test serial correlation in uniform random numbers
+samples <- runif(10000)
+result <- test_serial_correlation(samples)
+print(paste("Significant correlations found:", result$num_significant))
+
+# Test with more lags
+result <- test_serial_correlation(samples, max_lag = 100)
+
+# Plot correlation values
+plot(result$correlations, type = "h", 
+     main = "Serial Correlations by Lag",
+     xlab = "Lag", ylab = "Correlation")
+}
+
 }

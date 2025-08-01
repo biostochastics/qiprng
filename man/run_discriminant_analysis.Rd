@@ -13,19 +13,75 @@ run_discriminant_analysis(
 )
 }
 \arguments{
-\item{discriminants_file}{Path to discriminants CSV file}
+\item{discriminants_file}{Path to discriminants CSV file (default: "discriminants.csv")}
 
-\item{sample_size}{Number of samples per discriminant}
+\item{sample_size}{Number of samples to generate per discriminant (default: 50000)}
 
-\item{max_discriminants}{Maximum number of discriminants to test (for speed)}
+\item{max_discriminants}{Maximum number of discriminants to test, NULL for all (default: NULL)}
 
-\item{n_cores}{Number of cores to use (defaults to detected cores - 1)}
+\item{n_cores}{Number of CPU cores to use for parallel processing (default: auto-detect - 3)}
 
-\item{chunk_size}{Discriminants per parallel chunk (for progress tracking)}
+\item{chunk_size}{Number of discriminants per parallel chunk for progress tracking (default: 50)}
 }
 \value{
-List with all results
+A list containing test results for all discriminants. Each element contains:
+\describe{
+\item{index}{Index of the discriminant in the input file}
+\item{parameters}{Discriminant parameters (a, b, c, discriminant)}
+\item{sample_size}{Number of samples tested}
+\item{uniformity}{Uniformity test results}
+\item{independence}{Independence test results}
+\item{autocorrelation}{Autocorrelation test results}
+\item{moments}{Moment analysis results}
+\item{periodicity}{Periodicity test results}
+\item{advanced}{Advanced test results}
+\item{overall_score}{Combined score (0-1)}
+\item{quality_rating}{Quality classification}
+\item{error}{Error message if test failed}
+}
 }
 \description{
-Run tests on all discriminants and generate report (Parallel Implementation)
+Performs comprehensive statistical testing on multiple discriminants using
+parallel processing for efficiency. Tests each discriminant with the full
+battery of randomness tests and compiles results.
+}
+\details{
+The function uses parallel processing to efficiently test multiple discriminants:
+\itemize{
+\item Automatically detects available CPU cores
+\item Processes discriminants in chunks for memory efficiency
+\item Provides progress updates during execution
+\item Includes timeout protection (300s default + dynamic adjustment)
+\item Handles errors gracefully without stopping the entire analysis
+}
+
+Runtime estimation is provided based on sample size:
+\itemize{
+\item ≤50,000 samples: ~15 seconds per discriminant
+\item ≤100,000 samples: ~25 seconds per discriminant
+\item >100,000 samples: ~0.00025 * sample_size seconds
+}
+}
+\note{
+The function requires the 'parallel' package. Each worker process
+loads required libraries independently. Memory is cleared between chunks
+to prevent overflow on large analyses.
+}
+\examples{
+\dontrun{
+# Test first 10 discriminants with default settings
+results <- run_discriminant_analysis(max_discriminants = 10)
+
+# Test all discriminants with custom settings
+results <- run_discriminant_analysis(
+  sample_size = 100000,
+  n_cores = 8,
+  chunk_size = 100
+)
+
+# Analyze results
+excellent <- sapply(results, function(r) r$quality_rating == "Excellent")
+cat("Excellent discriminants:", sum(excellent), "\n")
+}
+
 }

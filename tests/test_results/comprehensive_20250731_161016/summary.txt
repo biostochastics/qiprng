@@ -1,0 +1,57 @@
+QIPRNG COMPREHENSIVE TEST RESULTS V2
+===================================
+
+Test Run Information:
+  Start Time: 2025-07-31 16:10:16 
+  End Time: 2025-07-31 16:12:05 
+  Duration: 109.70 seconds 
+  Package Version: 0.2.8 
+  R Version: R version 4.4.2 (2024-10-31) 
+  Platform: Darwin 
+
+Summary Statistics:
+  Total Test Files: 22 
+  Total Tests Run: 119 
+  Passed Tests: 87 
+  Failed Tests: 20 
+  Skipped Tests: 12 
+  Error Files: 22 
+  Files with Warnings: 1 
+  Test Success Rate: 73.1% 
+
+Statistical Improvements Validation:
+  p value adjustment: PASS
+  weighting system: PASS
+  effect sizes: PASS
+
+Detailed Results by Category:
+
+Core Functionality:
+  test-basic.R                             ERROR (P:0 F:0 S:0) 0.24s
+  test-config.R                            ERROR (P:0 F:0 S:0) 0.20s
+  test-validation-suite.R                  ERROR (P:0 F:0 S:0) 2.29s
+  test-caching-framework.R                 ERROR (P:0 F:0 S:0) 0.27s
+  test-threading.R                         ERROR (P:0 F:0 S:0) 0.52s
+  test-distributions.R                     ERROR (P:0 F:0 S:0) 0.09s
+
+Statistical Improvements (Phases 1-3):
+  test-p-value-adjustment.R                ERROR (P:0 F:0 S:0) 0.02s
+  test-comprehensive-improvements.R        ERROR (P:87 F:20 S:12) 52.34s
+  test-data-structure-fixes.R              ERROR (P:0 F:0 S:0) 3.20s
+
+Statistical Tests:
+  test-compression-bootstrap.R             ERROR (P:0 F:0 S:0) 0.53s
+  test-bootstrap-framework.R               ERROR (P:0 F:0 S:0) 0.24s
+  test-multidim-tests.R                    ERROR (P:0 F:0 S:0) 0.70s
+  test-nist-frequency-cusum.R              ERROR (P:0 F:0 S:0) 44.97s
+  test-nist-excursions.R                   ERROR (P:0 F:0 S:0) 0.02s
+  test-external-wrappers.R                 ERROR (P:0 F:0 S:0) 0.73s
+
+Advanced Features:
+  test-advanced.R                          ERROR (P:0 F:0 S:0) 0.86s
+  test-ziggurat-thread-safety.R            ERROR (P:0 F:0 S:0) 1.06s
+  test-ziggurat-thread-safety-fix.R        ERROR (P:0 F:0 S:0) 0.04s
+  test-parallel-buffer.R                   ERROR (P:0 F:0 S:0) 0.01s
+  test-parallel-thread-safety-stress.R     ERROR (P:0 F:0 S:0) 1.29s
+  test-persistent-thread-pool.R            ERROR (P:0 F:0 S:0) 0.01s
+  test-thread-pool-efficiency.R            ERROR (P:0 F:0 S:0) 0.01s

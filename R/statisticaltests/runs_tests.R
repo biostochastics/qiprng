@@ -51,6 +51,20 @@ run_runs_tests <- function(suite) {
   n <- suite$config$runs_sample_size
   x <- suite$prng_func(n)
   
+  # Check for constant data
+  unique_vals <- length(unique(x))
+  if (unique_vals < 2) {
+    suite$results$runs <- list(
+      constant_check = list(
+        result = 'FAIL',
+        p_value = 0,
+        description = 'Constant data detected',
+        details = 'Data has less than 2 unique values'
+      )
+    )
+    return(suite)
+  }
+  
   # Initialize results
   suite$results$runs <- list()
   
@@ -64,7 +78,13 @@ run_runs_tests <- function(suite) {
       runs_test <- randtests::runs.test(x, threshold = median_x)
       suite$results$runs$runs_test <- list(
         description = "Runs Test (Above/Below Median)",
-        result = ifelse(runs_test$p.value >= suite$config$significance_level, "PASS", "FAIL"),
+        result = if (is.na(runs_test$p.value)) {
+      "INCONCLUSIVE"
+    } else if (runs_test$p.value >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
         p_value = runs_test$p.value,
         statistic = runs_test$statistic,
         details = paste("Tests if runs of values above/below median have expected length.",
@@ -85,7 +105,13 @@ run_runs_tests <- function(suite) {
       tp_test <- randtests::turning.point.test(x)
       suite$results$runs$turning_points <- list(
         description = "Turning Points Test",
-        result = ifelse(tp_test$p.value >= suite$config$significance_level, "PASS", "FAIL"),
+        result = if (is.na(tp_test$p.value)) {
+      "INCONCLUSIVE"
+    } else if (tp_test$p.value >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
         p_value = tp_test$p.value,
         statistic = tp_test$statistic,
         details = paste("Tests the number of turning points (local extrema) in the sequence.",
@@ -106,7 +132,13 @@ run_runs_tests <- function(suite) {
       diff_sign_test <- randtests::difference.sign.test(x)
       suite$results$runs$difference_sign <- list(
         description = "Difference Sign Test",
-        result = ifelse(diff_sign_test$p.value >= suite$config$significance_level, "PASS", "FAIL"),
+        result = if (is.na(diff_sign_test$p.value)) {
+      "INCONCLUSIVE"
+    } else if (diff_sign_test$p.value >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
         p_value = diff_sign_test$p.value,
         statistic = diff_sign_test$statistic,
         details = "Tests the signs of differences between consecutive values."
@@ -126,7 +158,13 @@ run_runs_tests <- function(suite) {
       rank_test <- randtests::rank.test(x)
       suite$results$runs$rank_test <- list(
         description = "Rank Test",
-        result = ifelse(rank_test$p.value >= suite$config$significance_level, "PASS", "FAIL"),
+        result = if (is.na(rank_test$p.value)) {
+      "INCONCLUSIVE"
+    } else if (rank_test$p.value >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
         p_value = rank_test$p.value,
         statistic = rank_test$statistic,
         details = "Tests for trends based on the ranks of values."
@@ -146,7 +184,13 @@ run_runs_tests <- function(suite) {
       bartels_test <- randtests::bartels.rank.test(x)
       suite$results$runs$bartels_test <- list(
         description = "Bartels Rank Test",
-        result = ifelse(bartels_test$p.value >= suite$config$significance_level, "PASS", "FAIL"),
+        result = if (is.na(bartels_test$p.value)) {
+      "INCONCLUSIVE"
+    } else if (bartels_test$p.value >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
         p_value = bartels_test$p.value,
         statistic = bartels_test$statistic,
         details = "Tests for randomness using Bartels rank approach."
@@ -166,7 +210,13 @@ run_runs_tests <- function(suite) {
       cs_test <- randtests::cox.stuart.test(x)
       suite$results$runs$cox_stuart <- list(
         description = "Cox-Stuart Test",
-        result = ifelse(cs_test$p.value >= suite$config$significance_level, "PASS", "FAIL"),
+        result = if (is.na(cs_test$p.value)) {
+      "INCONCLUSIVE"
+    } else if (cs_test$p.value >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
         p_value = cs_test$p.value,
         statistic = cs_test$statistic,
         details = "Tests for trend by comparing first half with second half of data."
@@ -208,7 +258,13 @@ run_runs_tests <- function(suite) {
     runs_result <- runs_up_down(x)
     suite$results$runs$simple_runs <- list(
       description = "Simple Runs Test",
-      result = ifelse(runs_result$p.value >= suite$config$significance_level, "PASS", "FAIL"),
+      result = if (is.na(runs_result$p.value)) {
+      "INCONCLUSIVE"
+    } else if (runs_result$p.value >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
       p_value = runs_result$p.value,
       statistic = runs_result$statistic,
       details = paste("Basic runs test. Number of runs:", runs_result$n.runs)

@@ -10,13 +10,56 @@ load_excellent_discriminants(
 )
 }
 \arguments{
-\item{results_file}{Path to the analysis results RDS file}
+\item{results_file}{Path to the analysis results RDS file containing test results
+(default: "discriminant_analysis_results/raw_results.rds")}
 
-\item{min_score}{Minimum score threshold for excellent discriminants (default 0.85)}
+\item{min_score}{Minimum overall score threshold for excellent discriminants
+(default: 0.85)}
 }
 \value{
-Data frame with excellent discriminants only
+A data frame containing excellent discriminants with columns:
+\describe{
+\item{a}{Quadratic coefficient}
+\item{b}{Linear coefficient}
+\item{c}{Constant term}
+\item{discriminant}{The discriminant value b² - 4ac}
+\item{overall_score}{Combined test score (0-1)}
+\item{quality_rating}{Quality classification ("Excellent")}
+\item{uniformity_passed}{Logical; uniformity test result}
+\item{independence_passed}{Logical; independence test result}
+\item{autocorrelation_passed}{Logical; autocorrelation test result}
+\item{periodicity_passed}{Logical; periodicity test result}
+}
 }
 \description{
-Load and filter excellent discriminants from analysis results
+Loads discriminant analysis results and filters for those rated as "Excellent"
+based on comprehensive statistical testing. These discriminants have passed
+all major randomness tests and are suitable for production use.
+}
+\details{
+The function filters discriminants that:
+\itemize{
+\item Have quality_rating == "Excellent"
+\item Have overall_score >= min_score (default 0.85)
+\item Have valid (non-NA) scores
+}
+
+Results are sorted by overall_score in descending order.
+}
+\note{
+Requires that discriminant analysis has been run and results saved.
+Run \code{run_discriminant_analysis()} first if results file doesn't exist.
+}
+\examples{
+\dontrun{
+# Load excellent discriminants
+excellent <- load_excellent_discriminants()
+
+# Load with higher threshold
+top_excellent <- load_excellent_discriminants(min_score = 0.90)
+}
+
+}
+\seealso{
+\code{\link{run_discriminant_analysis}}, \code{\link{get_recommended_discriminants}}
 }

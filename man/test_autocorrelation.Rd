@@ -7,13 +7,51 @@
 test_autocorrelation(samples, max_lag = 50)
 }
 \arguments{
-\item{samples}{Vector of random samples}
+\item{samples}{Numeric vector of random samples to test}
 
-\item{max_lag}{Maximum lag to test}
+\item{max_lag}{Maximum lag to test (default: 50)}
 }
 \value{
-List with test results
+A list containing test results:
+\describe{
+\item{test_name}{Name of the test}
+\item{autocorrelations}{Vector of autocorrelation values at each lag}
+\item{significant_lags}{Lags where autocorrelation exceeds threshold}
+\item{n_sig_lags}{Number of significant lags}
+\item{max_abs_acf}{Maximum absolute autocorrelation value}
+\item{threshold_used}{Final threshold used for significance}
+\item{stat_bound}{Statistical significance bound (99\% confidence)}
+\item{empirical_threshold}{Empirical threshold from analysis}
+\item{passed}{Logical; TRUE if no significant autocorrelations}
+\item{interpretation}{Human-readable interpretation}
+}
 }
 \description{
-Test for autocorrelation
+Performs comprehensive autocorrelation testing using both statistical significance
+bounds and empirical thresholds. This enhanced test is designed to detect even
+subtle autocorrelation patterns that might affect PRNG quality.
+}
+\details{
+The test uses two thresholds:
+\itemize{
+\item \strong{Statistical bound}: 99\% confidence interval = 2.576/sqrt(n)
+\item \strong{Empirical threshold}: 0.010 (based on comprehensive discriminant analysis)
+}
+The stricter of the two thresholds is used to ensure rigorous testing.
+This approach helps identify high-quality PRNGs that show minimal
+autocorrelation across all lags.
+}
+\note{
+The empirical threshold of 0.010 was determined through extensive
+testing of discriminants and represents a practical limit for
+cryptographic-quality randomness.
+}
+\examples{
+\dontrun{
+# Test autocorrelation
+samples <- runif(10000)
+result <- test_autocorrelation(samples, max_lag = 30)
+print(paste("Max |ACF|:", round(result$max_abs_acf, 4)))
+}
+
 }

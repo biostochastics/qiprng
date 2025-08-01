@@ -1,0 +1,57 @@
+QIPRNG COMPREHENSIVE TEST RESULTS V2
+===================================
+
+Test Run Information:
+  Start Time: 2025-07-31 16:47:08 
+  End Time: 2025-07-31 16:48:05 
+  Duration: 57.35 seconds 
+  Package Version: 0.2.8 
+  R Version: R version 4.4.2 (2024-10-31) 
+  Platform: Darwin 
+
+Summary Statistics:
+  Total Test Files: 22 
+  Total Tests Run: 0 
+  Passed Tests: 0 
+  Failed Tests: 0 
+  Skipped Tests: 0 
+  Error Files: 0 
+  Files with Warnings: 0 
+  Test Success Rate: 0.0% 
+
+Statistical Improvements Validation:
+  p value adjustment: PASS
+  weighting system: PASS
+  effect sizes: PASS
+
+Detailed Results by Category:
+
+Core Functionality:
+  test-basic.R                             PASS (P:0 F:0 S:0) 0.29s
+  test-config.R                            PASS (P:0 F:0 S:0) 0.26s
+  test-validation-suite.R                  PASS (P:0 F:0 S:0) 2.34s
+  test-caching-framework.R                 PASS (P:0 F:0 S:0) 0.29s
+  test-threading.R                         PASS (P:0 F:0 S:0) 0.50s
+  test-deterministic-mode.R                PASS (P:0 F:0 S:0) 0.47s
+  test-distributions.R                     PASS (P:0 F:0 S:0) 0.12s
+
+Statistical Improvements (Phases 1-3):
+  test-p-value-adjustment.R                PASS (P:0 F:0 S:0) 0.07s
+  test-comprehensive-improvements.R        PASS (P:0 F:0 S:0) 0.20s
+  test-data-structure-fixes.R              PASS (P:0 F:0 S:0) 3.21s
+
+Statistical Tests:
+  test-compression-bootstrap.R             PASS (P:0 F:0 S:0) 0.57s
+  test-bootstrap-framework.R               PASS (P:0 F:0 S:0) 0.30s
+  test-multidim-tests.R                    PASS (P:0 F:0 S:0) 0.78s
+  test-nist-frequency-cusum.R              PASS (P:0 F:0 S:0) 44.18s
+  test-nist-excursions.R                   PASS (P:0 F:0 S:0) 0.07s
+  test-external-wrappers.R                 PASS (P:0 F:0 S:0) 0.78s
+
+Advanced Features:
+  test-advanced.R                          PASS (P:0 F:0 S:0) 1.04s
+  test-ziggurat-thread-safety-fix.R        PASS (P:0 F:0 S:0) 0.10s
+  test-parallel-buffer.R                   PASS (P:0 F:0 S:0) 0.07s
+  test-parallel-thread-safety-stress.R     PASS (P:0 F:0 S:0) 1.38s
+  test-persistent-thread-pool.R            PASS (P:0 F:0 S:0) 0.06s
+  test-thread-pool-efficiency.R            PASS (P:0 F:0 S:0) 0.06s
