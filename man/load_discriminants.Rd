@@ -7,11 +7,38 @@
 load_discriminants(file_path = "discriminants.csv")
 }
 \arguments{
-\item{file_path}{Path to discriminants.csv file}
+\item{file_path}{Path to discriminants.csv file (default: "discriminants.csv")}
 }
 \value{
-Data frame with discriminant parameters
+A data frame containing discriminant parameters with columns:
+\describe{
+\item{a}{Quadratic coefficient (must be > 0)}
+\item{b}{Linear coefficient}
+\item{c}{Constant term (must be < 0)}
+\item{Discriminant}{The discriminant value b² - 4ac (must be > 0)}
+}
 }
 \description{
-Load discriminants from CSV file
+Loads discriminant parameters from a CSV file and validates their mathematical properties.
+The function checks that discriminants are correctly calculated and that all parameters
+meet the required constraints for the quadratic irrational PRNG.
+}
+\details{
+The function performs several validation checks:
+\itemize{
+\item Verifies that calculated discriminants match stored values
+\item Checks that a > 0 (required for proper quadratic behavior)
+\item Checks that c < 0 (required for the recurrence relation)
+\item Checks that discriminant > 0 (required for irrational roots)
+}
+}
+\examples{
+\dontrun{
+# Load default discriminants file
+discriminants <- load_discriminants()
+
+# Load from custom path
+discriminants <- load_discriminants("custom_discriminants.csv")
+}
+
 }

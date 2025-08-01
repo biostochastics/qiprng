@@ -22,6 +22,13 @@
 #' @aliases basic-tests
 #' @keywords internal
 
+# Source effect size calculations if available
+if (file.exists(system.file("R/statisticaltests/effect_sizes.R", package = "qiprng"))) {
+  source(system.file("R/statisticaltests/effect_sizes.R", package = "qiprng"))
+} else if (file.exists("R/statisticaltests/effect_sizes.R")) {
+  source("R/statisticaltests/effect_sizes.R")
+}
+
 #' Run basic distribution tests on random number generator
 #'
 #' Executes a comprehensive set of basic statistical tests on a random
@@ -64,14 +71,31 @@ run_basic_tests <- function(suite) {
   
   # Kolmogorov-Smirnov test for uniformity
   ks_result <- ks.test(x, "punif", 0, 1)
-  suite$results$basic$ks_test <- list(
+  ks_test_result <- list(
     description = "Kolmogorov-Smirnov Test for Uniformity",
-    result = ifelse(ks_result$p.value >= suite$config$significance_level, "PASS", "FAIL"),
+    result = if (is.na(ks_result$p.value)) {
+      "INCONCLUSIVE"
+    } else if (ks_result$p.value >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
     p_value = ks_result$p.value,
     statistic = ks_result$statistic,
     details = paste("Tests if the distribution is uniform on [0,1].",
                    "p-value should be above significance level for uniformity.")
   )
+  
+  # KS D statistic is already an effect size
+  if (exists("add_effect_size")) {
+    ks_test_result <- add_effect_size(
+      ks_test_result, 
+      ks_result$statistic, 
+      "ks"
+    )
+  }
+  
+  suite$results$basic$ks_test <- ks_test_result
   
   # Chi-squared goodness-of-fit test
   # Make sure chi_squared_bins is a single numeric value
@@ -108,11 +132,15 @@ run_basic_tests <- function(suite) {
       method = "Chi-squared test (failed)"
     )
   })
-  suite$results$basic$chi_squared <- list(
+  chi_test_result <- list(
     description = "Chi-squared Goodness-of-Fit Test",
-    result = ifelse(!is.na(chi_result$p.value) && 
-                   chi_result$p.value >= suite$config$significance_level, 
-                   "PASS", ifelse(is.na(chi_result$p.value), "INCONCLUSIVE", "FAIL")),
+    result = if (is.na(chi_result$p.value)) {
+      "INCONCLUSIVE"
+    } else if (chi_result$p.value >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
     p_value = chi_result$p.value,
     statistic = chi_result$statistic,
     diagnostics = list(bins_used = bins_count, sample_size = n),
@@ -120,19 +148,58 @@ run_basic_tests <- function(suite) {
                    "bins match expected uniform frequencies.")
   )
   
+  # Calculate Cramér's V for chi-squared test
+  if (exists("calculate_cramers_v") && !is.na(chi_result$statistic)) {
+    cramers_v <- calculate_cramers_v(
+      chi_result$statistic, 
+      n, 
+      bins_count - 1  # df for goodness-of-fit
+    )
+    chi_test_result <- add_effect_size(
+      chi_test_result, 
+      cramers_v, 
+      "v", 
+      df = bins_count - 1
+    )
+  }
+  
+  suite$results$basic$chi_squared <- chi_test_result
+  
   # Mean test (should be close to 0.5 for uniform[0,1])
   mean_x <- mean(x)
   expected_mean <- 0.5
   z_mean <- (mean_x - expected_mean) / (1/sqrt(12 * n))  # Using variance of uniform(0,1)
   p_mean <- 2 * (1 - pnorm(abs(z_mean)))
-  suite$results$basic$mean_test <- list(
+  mean_test_result <- list(
     description = "Mean Test",
-    result = ifelse(p_mean >= suite$config$significance_level, "PASS", "FAIL"),
+    result = if (is.na(p_mean)) {
+      "INCONCLUSIVE"
+    } else if (p_mean >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
     p_value = p_mean,
     statistic = z_mean,
     details = paste("Tests if mean =", format(mean_x, digits = 6), 
                    "is close to expected 0.5 for uniform distribution.")
   )
+  
+  # Calculate Cohen's d for mean test
+  if (exists("calculate_cohens_d")) {
+    cohens_d <- calculate_cohens_d(
+      mean_x, 
+      expected_mean, 
+      1/sqrt(12)  # SD of uniform(0,1)
+    )
+    mean_test_result <- add_effect_size(
+      mean_test_result, 
+      cohens_d, 
+      "d"
+    )
+  }
+  
+  suite$results$basic$mean_test <- mean_test_result
   
   # Variance test (should be close to 1/12 for uniform[0,1])
   var_x <- var(x)
@@ -140,14 +207,32 @@ run_basic_tests <- function(suite) {
   # Chi-squared distribution for variance
   chi_var <- (n - 1) * var_x / expected_var
   p_var <- 2 * min(pchisq(chi_var, n - 1), 1 - pchisq(chi_var, n - 1))
-  suite$results$basic$variance_test <- list(
+  variance_test_result <- list(
     description = "Variance Test",
-    result = ifelse(p_var >= suite$config$significance_level, "PASS", "FAIL"),
+    result = if (is.na(p_var)) {
+      "INCONCLUSIVE"
+    } else if (p_var >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
     p_value = p_var,
     statistic = chi_var,
     details = paste("Tests if variance =", format(var_x, digits = 6), 
                    "is close to expected 1/12 for uniform distribution.")
   )
+  
+  # Calculate variance ratio effect size
+  if (exists("calculate_variance_ratio")) {
+    var_ratio <- calculate_variance_ratio(var_x, expected_var)
+    variance_test_result <- add_effect_size(
+      variance_test_result, 
+      var_ratio, 
+      "variance_ratio"
+    )
+  }
+  
+  suite$results$basic$variance_test <- variance_test_result
   
   # Min/Max tests - checking for proper range coverage
   min_x <- min(x)
@@ -159,23 +244,55 @@ run_basic_tests <- function(suite) {
   p_min <- pbeta(min_x, 1, n)
   p_max <- 1 - pbeta(max_x, n, 1)
   
-  suite$results$basic$min_test <- list(
+  min_test_result <- list(
     description = "Minimum Value Test",
-    result = ifelse(p_min >= suite$config$significance_level, "PASS", "FAIL"),
+    result = if (is.na(p_min)) {
+      "INCONCLUSIVE"
+    } else if (p_min >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
     p_value = p_min,
     statistic = min_x,
     details = paste("Tests if minimum value =", format(min_x, digits = 6), 
                    "is not too far from expected minimum for uniform distribution.")
   )
   
-  suite$results$basic$max_test <- list(
+  # Calculate standardized effect size for min test
+  if (exists("calculate_standardized_range")) {
+    # Standard deviation of min for uniform(0,1)
+    sd_min <- sqrt(expected_min * (1 - expected_min) / (n + 2))
+    min_effect <- calculate_standardized_range(min_x, expected_min, sd_min)
+    min_test_result <- add_effect_size(min_test_result, min_effect, "d")
+  }
+  
+  suite$results$basic$min_test <- min_test_result
+  
+  max_test_result <- list(
     description = "Maximum Value Test",
-    result = ifelse(p_max >= suite$config$significance_level, "PASS", "FAIL"),
+    result = if (is.na(p_max)) {
+      "INCONCLUSIVE"
+    } else if (p_max >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
     p_value = p_max,
     statistic = max_x,
     details = paste("Tests if maximum value =", format(max_x, digits = 6), 
                    "is not too far from expected maximum for uniform distribution.")
   )
+  
+  # Calculate standardized effect size for max test
+  if (exists("calculate_standardized_range")) {
+    # Standard deviation of max for uniform(0,1)
+    sd_max <- sqrt(expected_max * (1 - expected_max) / (n + 2))
+    max_effect <- calculate_standardized_range(max_x, expected_max, sd_max)
+    max_test_result <- add_effect_size(max_test_result, max_effect, "d")
+  }
+  
+  suite$results$basic$max_test <- max_test_result
   
   # Generate visualizations
   if (require(ggplot2) && suite$config$save_visualizations) {

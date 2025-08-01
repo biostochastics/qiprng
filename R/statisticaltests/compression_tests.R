@@ -4,13 +4,90 @@
 #'
 #' This module provides tests that evaluate the compressibility
 #' of PRNG output, which is an important measure of randomness.
+#'
+#' @details
+#' **Bootstrap Method (Recommended)**: This module uses bootstrap methods by default
+#' for proper statistical p-value calculations. The bootstrap approach provides
+#' more accurate p-values by:
+#' \itemize{
+#'   \item Generating empirical null distributions through resampling
+#'   \item Accounting for the specific characteristics of compression algorithms
+#'   \item Providing robust estimates that don't rely on simplistic thresholds
+#' }
+#'
+#' **Legacy Method (Deprecated)**: The legacy binary threshold logic is preserved
+#' for backward compatibility but is not recommended for new analyses. It uses
+#' simple binary thresholds (e.g., compression ratio > 0.95) which may not
+#' accurately reflect the statistical significance of results.
+#'
+#' To explicitly use the bootstrap method (default):
+#' \code{suite$config$use_bootstrap_compression <- TRUE}
+#'
+#' To use the legacy method (not recommended):
+#' \code{suite$config$use_bootstrap_compression <- FALSE}
+
+# Source bootstrap implementation if available
+compression_bootstrap_path <- system.file("R", "statisticaltests", "compression_tests_bootstrap.R", 
+                                          package = "qiprng")
+if (file.exists(compression_bootstrap_path)) {
+  source(compression_bootstrap_path)
+} else if (file.exists("R/statisticaltests/compression_tests_bootstrap.R")) {
+  source("R/statisticaltests/compression_tests_bootstrap.R")
+}
 
 #' Run compression tests
 #'
-#' @param suite The test suite object
-#' @return Updated test suite with results
+#' Evaluates the compressibility of PRNG output using either bootstrap methods
+#' (recommended) or legacy threshold methods. The bootstrap method provides
+#' statistically rigorous p-values, while the legacy method uses simple
+#' binary thresholds.
+#'
+#' @param suite The test suite object containing PRNG function and configuration
+#' @return Updated test suite with compression test results added to suite$results$compression
+#' 
+#' @details
+#' The function automatically selects the bootstrap method unless explicitly
+#' configured otherwise via \code{suite$config$use_bootstrap_compression}.
+#' Bootstrap methods generate empirical null distributions for accurate
+#' statistical inference.
+#'
+#' @examples
+#' \dontrun{
+#' # Use bootstrap method (default)
+#' suite <- create_test_suite(prng_func = runif)
+#' suite <- run_compression_tests(suite)
+#' 
+#' # Force legacy method (not recommended)
+#' suite$config$use_bootstrap_compression <- FALSE
+#' suite <- run_compression_tests(suite)
+#' }
+#'
 #' @export
 run_compression_tests <- function(suite) {
+  # Check if bootstrap implementation is available and enabled
+  use_bootstrap <- if (is.null(suite$config$use_bootstrap_compression)) TRUE else suite$config$use_bootstrap_compression
+  
+  if (use_bootstrap && exists("run_compression_tests_bootstrap")) {
+    return(run_compression_tests_bootstrap(suite, use_legacy = FALSE))
+  } else {
+    # Fall back to legacy implementation
+    if (use_bootstrap) {
+      message("Bootstrap compression tests not available, using legacy implementation.")
+    }
+    return(run_compression_tests_legacy(suite))
+  }
+}
+
+#' Run legacy compression tests (deprecated)
+#'
+#' @deprecated This function uses simplistic binary thresholds for compression
+#' ratios and is maintained only for backward compatibility. Use the bootstrap
+#' method instead by ensuring \code{suite$config$use_bootstrap_compression = TRUE}.
+#'
+#' @param suite The test suite object
+#' @return Updated test suite with results
+#' @keywords internal
+run_compression_tests_legacy <- function(suite) {
   # Generate random numbers
   n <- suite$config$compression_sample_size
   x <- suite$prng_func(n)
@@ -27,9 +104,15 @@ run_compression_tests <- function(suite) {
     
     # Compress using different algorithms
     if (requireNamespace("memCompress", quietly = TRUE)) {
-      # Use base R's memCompress
-      comp_gzip <- memCompress(x_raw, "gzip")
-      comp_bzip2 <- memCompress(x_raw, "bzip2")
+      # Use cached compression if available
+      if (exists("cached_compress", mode = "function")) {
+        comp_gzip <- cached_compress(x_raw, "gzip")
+        comp_bzip2 <- cached_compress(x_raw, "bzip2")
+      } else {
+        # Fall back to regular memCompress
+        comp_gzip <- memCompress(x_raw, "gzip")
+        comp_bzip2 <- memCompress(x_raw, "bzip2")
+      }
       
       # Calculate compression ratios
       ratio_gzip <- length(comp_gzip) / length(x_raw)
@@ -67,7 +150,13 @@ run_compression_tests <- function(suite) {
   comp_result <- compression_ratio_test(x)
   suite$results$compression$compression_ratio <- list(
     description = "Compression Ratio Test",
-    result = ifelse(comp_result$p.value >= suite$config$significance_level, "PASS", "FAIL"),
+    result = if (is.na(comp_result$p.value)) {
+      "INCONCLUSIVE"
+    } else if (comp_result$p.value >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
     p_value = comp_result$p.value,
     details = if (requireNamespace("memCompress", quietly = TRUE)) {
       paste("Tests if compression ratio is close to 1.",
@@ -107,7 +196,13 @@ run_compression_tests <- function(suite) {
   entropy_result <- entropy_test(x)
   suite$results$compression$entropy <- list(
     description = "Entropy Test",
-    result = ifelse(entropy_result$p.value >= suite$config$significance_level, "PASS", "FAIL"),
+    result = if (is.na(entropy_result$p.value)) {
+      "INCONCLUSIVE"
+    } else if (entropy_result$p.value >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
     p_value = entropy_result$p.value,
     details = paste("Tests if entropy is close to maximum.",
                    "Entropy:", round(entropy_result$entropy, 3),
@@ -146,7 +241,13 @@ run_compression_tests <- function(suite) {
   chi_bytes_result <- chi_square_bytes_test(x)
   suite$results$compression$chi_square_bytes <- list(
     description = "Chi-Square Test for Byte Frequencies",
-    result = ifelse(chi_bytes_result$p.value >= suite$config$significance_level, "PASS", "FAIL"),
+    result = if (is.na(chi_bytes_result$p.value)) {
+      "INCONCLUSIVE"
+    } else if (chi_bytes_result$p.value >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
     p_value = chi_bytes_result$p.value,
     statistic = chi_bytes_result$statistic,
     details = paste("Tests distribution of byte values.",

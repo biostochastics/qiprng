@@ -29,6 +29,8 @@ Rplots.pdf
 qiprng.Rcheck/
 
 
+.roo
+.zed
 
 # Logs
 logs
@@ -48,7 +50,14 @@ node_modules/
 .mcp.json
 .taskmaster/
 .windsurf/
-
+.clinerules/
+.roomodes
+.rules
+.Rbuildignore
+test_results.rds
+.github/
+CLAUDE.md
+GEMINI.md
 
 .idea
 .vscode
@@ -65,3 +74,5 @@ node_modules/
 # Task files
 # tasks.json
 # tasks/ 
+ideas
+archive

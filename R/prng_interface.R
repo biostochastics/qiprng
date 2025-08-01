@@ -219,7 +219,7 @@ createPRNG <- function(config = default_config) {
         config$has_seed <- TRUE
         
         # Validate seed
-        if (config$seed < 0 || config$seed > 2^53 - 1) {
+        if (is.na(config$seed) || config$seed < 0 || config$seed > 2^53 - 1) {
             stop("Seed must be between 0 and 2^53-1")
         }
     } else {

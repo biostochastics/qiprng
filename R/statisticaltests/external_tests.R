@@ -5,6 +5,19 @@
 #' This module provides wrappers for tests from external packages
 #' to evaluate randomness quality.
 
+# Source external wrapper functions if available
+external_wrapper_path <- system.file("R/statisticaltests/external_wrappers.R", package = "qiprng")
+if (external_wrapper_path == "") {
+  # Try relative path for development
+  if (file.exists("external_wrappers.R")) {
+    source("external_wrappers.R")
+  } else if (file.exists("R/statisticaltests/external_wrappers.R")) {
+    source("R/statisticaltests/external_wrappers.R")
+  }
+} else if (file.exists(external_wrapper_path)) {
+  source(external_wrapper_path)
+}
+
 #' Run external package tests for randomness
 #'
 #' @param suite The test suite object
@@ -18,171 +31,44 @@ run_external_tests <- function(suite) {
   # Initialize results
   suite$results$external <- list()
   
-  # 1. Tests from randtests package
-  if (requireNamespace("randtests", quietly = TRUE)) {
-    # Try to run Bartels rank test
-    tryCatch({
-      bartels_test <- randtests::bartels.rank.test(x)
-      suite$results$external$bartels_rank <- list(
-        description = "Bartels Rank Test",
-        result = ifelse(bartels_test$p.value >= suite$config$significance_level, "PASS", "FAIL"),
-        p_value = bartels_test$p.value,
-        statistic = bartels_test$statistic,
-        details = "Tests for randomness using Bartels rank method"
-      )
-    }, error = function(e) {
-      suite$results$external$bartels_rank <- list(
-        description = "Bartels Rank Test",
-        result = "ERROR",
-        details = paste("Test failed with error:", e$message)
-      )
-    })
-    
-    # Try to run Cox-Stuart test
-    tryCatch({
-      cox_stuart_test <- randtests::cox.stuart.test(x)
-      suite$results$external$cox_stuart <- list(
-        description = "Cox-Stuart Test",
-        result = ifelse(cox_stuart_test$p.value >= suite$config$significance_level, "PASS", "FAIL"),
-        p_value = cox_stuart_test$p.value,
-        statistic = cox_stuart_test$statistic,
-        details = "Tests for trend using Cox-Stuart method"
-      )
-    }, error = function(e) {
-      suite$results$external$cox_stuart <- list(
-        description = "Cox-Stuart Test",
-        result = "ERROR",
-        details = paste("Test failed with error:", e$message)
-      )
-    })
-    
-    # Try to run difference sign test
-    tryCatch({
-      diff_sign_test <- randtests::difference.sign.test(x)
-      suite$results$external$difference_sign <- list(
-        description = "Difference Sign Test",
-        result = ifelse(diff_sign_test$p.value >= suite$config$significance_level, "PASS", "FAIL"),
-        p_value = diff_sign_test$p.value,
-        statistic = diff_sign_test$statistic,
-        details = "Tests randomness using difference sign method"
-      )
-    }, error = function(e) {
-      suite$results$external$difference_sign <- list(
-        description = "Difference Sign Test",
-        result = "ERROR",
-        details = paste("Test failed with error:", e$message)
-      )
-    })
-    
-    # Try to run turning point test
-    tryCatch({
-      turning_point_test <- randtests::turning.point.test(x)
-      suite$results$external$turning_point <- list(
-        description = "Turning Point Test",
-        result = ifelse(turning_point_test$p.value >= suite$config$significance_level, "PASS", "FAIL"),
-        p_value = turning_point_test$p.value,
-        statistic = turning_point_test$statistic,
-        details = "Tests randomness using turning point method"
-      )
-    }, error = function(e) {
-      suite$results$external$turning_point <- list(
-        description = "Turning Point Test",
-        result = "ERROR",
-        details = paste("Test failed with error:", e$message)
-      )
-    })
-    
-    # Runs test (above and below median)
-    tryCatch({
-      runs_test <- randtests::runs.test(x)
-      suite$results$external$runs_above_below <- list(
-        description = "Runs Test (Above/Below Median)",
-        result = ifelse(runs_test$p.value >= suite$config$significance_level, "PASS", "FAIL"),
-        p_value = runs_test$p.value,
-        statistic = runs_test$statistic,
-        details = "Tests randomness using runs above and below median"
-      )
-    }, error = function(e) {
-      suite$results$external$runs_above_below <- list(
-        description = "Runs Test (Above/Below Median)",
-        result = "ERROR",
-        details = paste("Test failed with error:", e$message)
-      )
-    })
-  } else {
-    suite$results$external$package_missing <- list(
-      description = "External Package Tests",
-      result = "SKIPPED",
-      details = "The 'randtests' package is not installed. Install it for additional randomness tests."
-    )
-  }
+  # Always use the wrapper-based approach
+  suite <- run_external_wrapper_tests(suite, 
+                                      include_cryptrndtest = TRUE,
+                                      include_randtests = TRUE)
   
-  # 2. Tests from nortest package
-  if (requireNamespace("nortest", quietly = TRUE)) {
-    # Anderson-Darling normality test on uniform-to-normal transformed data
-    # Note: For uniformly distributed data, applying qnorm(uniform data) should give normal data
-    tryCatch({
-      normal_x <- stats::qnorm(x)
-      ad_test <- nortest::ad.test(normal_x)
-      suite$results$external$anderson_darling <- list(
-        description = "Anderson-Darling Normality Test (on transformed data)",
-        result = ifelse(ad_test$p.value >= suite$config$significance_level, "PASS", "FAIL"),
-        p_value = ad_test$p.value,
-        statistic = ad_test$statistic,
-        details = paste("Tests if transformed data follows normal distribution.",
-                        "Low p-value suggests non-uniformity in original data.")
-      )
-    }, error = function(e) {
-      suite$results$external$anderson_darling <- list(
-        description = "Anderson-Darling Normality Test",
-        result = "ERROR",
-        details = paste("Test failed with error:", e$message)
-      )
-    })
+  # Extract wrapper results into external results format
+  if (!is.null(suite$results$external_wrappers)) {
+    wrapper_results <- suite$results$external_wrappers
     
-    # Lilliefors test on uniform-to-normal transformed data
-    tryCatch({
-      normal_x <- stats::qnorm(x)
-      lillie_test <- nortest::lillie.test(normal_x)
-      suite$results$external$lilliefors <- list(
-        description = "Lilliefors Normality Test (on transformed data)",
-        result = ifelse(lillie_test$p.value >= suite$config$significance_level, "PASS", "FAIL"),
-        p_value = lillie_test$p.value,
-        statistic = lillie_test$statistic,
-        details = paste("Tests if transformed data follows normal distribution.",
-                        "Low p-value suggests non-uniformity in original data.")
-      )
-    }, error = function(e) {
-      suite$results$external$lilliefors <- list(
-        description = "Lilliefors Normality Test",
-        result = "ERROR",
-        details = paste("Test failed with error:", e$message)
-      )
-    })
-  } else {
-    if (!exists("suite$results$external$package_missing")) {
-      suite$results$external$package_missing <- list(
-        description = "External Package Tests",
-        result = "SKIPPED",
-        details = "The 'nortest' package is not installed. Install it for additional normality tests."
-      )
-    } else {
-      suite$results$external$package_missing$details <- paste(
-        suite$results$external$package_missing$details,
-        "The 'nortest' package is not installed. Install it for additional normality tests.",
-        sep = " "
-      )
+    # Add CryptRndTest results
+    if (!is.null(wrapper_results$cryptrndtest)) {
+      for (test_name in names(wrapper_results$cryptrndtest)) {
+        suite$results$external[[test_name]] <- wrapper_results$cryptrndtest[[test_name]]
+      }
+    }
+    
+    # Add randtests results
+    if (!is.null(wrapper_results$randtests)) {
+      for (test_name in names(wrapper_results$randtests)) {
+        suite$results$external[[test_name]] <- wrapper_results$randtests[[test_name]]
+      }
     }
   }
   
-  # 3. Tests from the base stats package
+  # Add standard base R tests that aren't in wrappers
   
   # Kolmogorov-Smirnov test (comparing to uniform distribution)
   tryCatch({
     ks_test <- stats::ks.test(x, "punif")
     suite$results$external$kolmogorov_smirnov <- list(
       description = "Kolmogorov-Smirnov Test",
-      result = ifelse(ks_test$p.value >= suite$config$significance_level, "PASS", "FAIL"),
+      result = if (is.na(ks_test$p.value)) {
+      "INCONCLUSIVE"
+    } else if (ks_test$p.value >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
       p_value = ks_test$p.value,
       statistic = ks_test$statistic,
       details = "Tests if data follows uniform distribution"
@@ -205,7 +91,13 @@ run_external_tests <- function(suite) {
     chi_test <- stats::chisq.test(as.numeric(bin_counts), p = rep(1/bins, bins))
     suite$results$external$chi_square <- list(
       description = "Chi-Square Test",
-      result = ifelse(chi_test$p.value >= suite$config$significance_level, "PASS", "FAIL"),
+      result = if (is.na(chi_test$p.value)) {
+      "INCONCLUSIVE"
+    } else if (chi_test$p.value >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
       p_value = chi_test$p.value,
       statistic = chi_test$statistic,
       details = paste("Tests uniformity using chi-square test with", bins, "bins")
@@ -226,7 +118,13 @@ run_external_tests <- function(suite) {
     shapiro_test <- stats::shapiro.test(normal_x)
     suite$results$external$shapiro_wilk <- list(
       description = "Shapiro-Wilk Normality Test (on transformed data)",
-      result = ifelse(shapiro_test$p.value >= suite$config$significance_level, "PASS", "FAIL"),
+      result = if (is.na(shapiro_test$p.value)) {
+      "INCONCLUSIVE"
+    } else if (shapiro_test$p.value >= suite$config$significance_level) {
+      "PASS"
+    } else {
+      "FAIL"
+    },
       p_value = shapiro_test$p.value,
       statistic = shapiro_test$statistic,
       details = paste("Tests if transformed data follows normal distribution.",
@@ -240,6 +138,7 @@ run_external_tests <- function(suite) {
       details = paste("Test failed with error:", e$message)
     )
   })
+  
   
   # Generate visualizations if requested
   if (suite$config$save_visualizations) {

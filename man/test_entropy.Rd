@@ -7,13 +7,52 @@
 test_entropy(samples, bins = 256)
 }
 \arguments{
-\item{samples}{Vector of random samples}
+\item{samples}{Numeric vector of random samples to test}
 
-\item{bins}{Number of bins for discretization}
+\item{bins}{Number of bins for discretization (default: 256)}
 }
 \value{
-List with entropy test results
+A list containing entropy test results:
+\describe{
+\item{test_name}{Name of the test}
+\item{shannon_entropy}{Calculated Shannon entropy in bits}
+\item{max_entropy}{Maximum possible entropy for given bin count}
+\item{normalized_entropy}{Ratio of observed to maximum entropy (0-1)}
+\item{passed}{Logical; TRUE if normalized entropy > 0.95}
+\item{interpretation}{Human-readable interpretation of results}
+}
 }
 \description{
-Shannon entropy test
+Tests the information content of a random sequence using Shannon entropy.
+High entropy indicates good randomness, while low entropy suggests patterns
+or predictability in the data.
+}
+\details{
+The Shannon entropy is calculated as:
+\deqn{H = -\sum_{i=1}^{n} p_i \log_2(p_i)}
+
+where p_i is the probability of bin i. The samples are discretized into
+the specified number of bins, and the entropy is calculated from the
+resulting frequency distribution.
+
+For a perfectly uniform distribution, the entropy equals log2(bins).
+The test passes if the normalized entropy (H/H_max) exceeds 0.95,
+indicating high randomness.
+}
+\note{
+The choice of bin count affects the test sensitivity. Too few bins
+may miss fine-grained patterns, while too many bins may lead to sparse
+data issues.
+}
+\examples{
+\dontrun{
+# Test entropy of uniform random numbers
+samples <- runif(10000)
+result <- test_entropy(samples)
+print(paste("Normalized entropy:", round(result$normalized_entropy, 4)))
+
+# Test with fewer bins
+result <- test_entropy(samples, bins = 128)
+}
+
 }

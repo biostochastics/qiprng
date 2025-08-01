@@ -2,16 +2,57 @@
 % Please edit documentation in R/discriminant_tests.R
 \name{test_moments}
 \alias{test_moments}
-\title{Test moments (mean, variance, skewness, kurtosis)}
+\title{Test statistical moments (mean, variance, skewness, kurtosis)}
 \usage{
 test_moments(samples)
 }
 \arguments{
-\item{samples}{Vector of random samples}
+\item{samples}{Numeric vector of random samples to test}
 }
 \value{
-List with test results
+A list containing moment analysis results:
+\describe{
+\item{test_name}{Name of the test}
+\item{sample_mean}{Calculated sample mean}
+\item{sample_variance}{Calculated sample variance}
+\item{sample_skewness}{Calculated sample skewness}
+\item{sample_kurtosis}{Calculated sample kurtosis (non-excess)}
+\item{expected_mean}{Expected mean for uniform\link{0,1} = 0.5}
+\item{expected_variance}{Expected variance for uniform\link{0,1} = 1/12}
+\item{expected_skewness}{Expected skewness for uniform\link{0,1} = 0}
+\item{expected_kurtosis}{Expected kurtosis for uniform\link{0,1} = 1.8}
+\item{mean_error}{Absolute deviation from expected mean}
+\item{var_error}{Absolute deviation from expected variance}
+\item{skew_error}{Absolute deviation from expected skewness}
+\item{kurt_error}{Absolute deviation from expected kurtosis}
+}
 }
 \description{
-Test moments (mean, variance, skewness, kurtosis)
+Analyzes the first four statistical moments of a sample and compares them
+to the theoretical values expected for a uniform\link{0,1} distribution.
+}
+\details{
+For a uniform distribution on \link{0,1}, the theoretical moments are:
+\itemize{
+\item Mean: μ = 0.5
+\item Variance: σ² = 1/12 ≈ 0.0833
+\item Skewness: γ₁ = 0 (symmetric distribution)
+\item Kurtosis: γ₂ = 1.8 (platykurtic, flatter than normal)
+}
+
+The function uses non-excess kurtosis (where normal distribution = 3).
+}
+\note{
+This function provides descriptive statistics only. For hypothesis
+testing of moments, additional tests would be needed to determine if
+deviations are statistically significant.
+}
+\examples{
+\dontrun{
+# Analyze moments of uniform random numbers
+samples <- runif(10000)
+moments <- test_moments(samples)
+print(paste("Mean error:", round(moments$mean_error, 4)))
+}
+
 }

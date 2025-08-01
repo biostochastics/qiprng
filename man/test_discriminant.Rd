@@ -7,19 +7,68 @@
 test_discriminant(a, b, c, discriminant, n = 50000)
 }
 \arguments{
-\item{a}{Parameter a}
+\item{a}{Quadratic coefficient (must be > 0)}
 
-\item{b}{Parameter b}
+\item{b}{Linear coefficient}
 
-\item{c}{Parameter c}
+\item{c}{Constant term (must be < 0)}
 
-\item{discriminant}{Discriminant value}
+\item{discriminant}{The discriminant value b² - 4ac}
 
-\item{n}{Number of samples to generate}
+\item{n}{Number of samples to generate (default: 50000)}
 }
 \value{
-List with all test results
+A comprehensive list containing:
+\describe{
+\item{parameters}{List of input parameters (a, b, c, discriminant)}
+\item{sample_size}{Number of samples generated}
+\item{uniformity}{Results from uniformity tests}
+\item{independence}{Results from independence test}
+\item{autocorrelation}{Results from autocorrelation test}
+\item{moments}{Results from moment analysis}
+\item{periodicity}{Results from periodicity tests}
+\item{advanced}{Results from advanced test suite}
+\item{overall_score}{Weighted score (0-1) combining all tests}
+\item{quality_rating}{Rating: "Excellent", "Very-Good", "Good", "Fair", "Poor", or "Error"}
+}
 }
 \description{
-Comprehensive test suite for a single discriminant
+Runs a complete battery of statistical tests on random numbers generated
+with specific discriminant parameters. Includes uniformity, independence,
+autocorrelation, moment analysis, periodicity, and advanced tests.
+}
+\details{
+The function calculates a weighted overall score using:
+\itemize{
+\item Uniformity: 20\% weight
+\item Independence: 20\% weight
+\item Autocorrelation: 25\% weight (higher due to importance)
+\item Periodicity: 20\% weight
+\item Advanced tests: 15\% weight
+}
+
+Quality ratings are assigned based on overall score:
+\itemize{
+\item Excellent: score ≥ 0.85
+\item Very-Good: 0.75 ≤ score < 0.85
+\item Good: 0.60 ≤ score < 0.75
+\item Fair: 0.45 ≤ score < 0.60
+\item Poor: score < 0.45
+}
+}
+\note{
+The function includes comprehensive error handling. If any test fails,
+it returns partial results with appropriate error messages.
+}
+\examples{
+\dontrun{
+# Test a specific discriminant
+result <- test_discriminant(a = 2, b = 5, c = -2, discriminant = 41, n = 10000)
+print(paste("Quality:", result$quality_rating))
+print(paste("Score:", round(result$overall_score, 3)))
+}
+
+}
+\seealso{
+\code{\link{run_discriminant_analysis}} for testing multiple discriminants
 }

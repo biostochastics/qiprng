@@ -12,17 +12,57 @@ generate_excellent_random(
 )
 }
 \arguments{
-\item{n}{Number of random numbers to generate}
+\item{n}{Number of random numbers to generate (default: 10000)}
 
-\item{discriminant_index}{Index of discriminant to use (1 = best, 2 = second best, etc.)}
+\item{discriminant_index}{Index of discriminant to use where 1 = best,
+2 = second best, etc. (default: 1)}
 
-\item{results_file}{Path to the analysis results RDS file}
+\item{results_file}{Path to the analysis results RDS file
+(default: "discriminant_analysis_results/raw_results.rds")}
 
-\item{precision}{MPFR precision (default 256)}
+\item{precision}{MPFR precision in bits (default: 256)}
 }
 \value{
-Vector of random numbers
+A numeric vector of n random numbers uniformly distributed on \link{0,1}
 }
 \description{
-Generate random numbers using an excellent discriminant
+Convenience function that loads excellent discriminants, selects one by index,
+creates a PRNG configuration, and generates random numbers. Combines the
+functionality of multiple functions for ease of use.
+}
+\details{
+This function:
+\enumerate{
+\item Loads the excellent discriminants from the results file
+\item Selects the discriminant at the specified index (sorted by score)
+\item Creates a PRNG configuration with cryptographic mixing enabled
+\item Initializes the PRNG
+\item Generates the requested random numbers
+}
+
+The discriminants are ordered by overall_score, so index 1 gives the
+highest-scoring discriminant.
+}
+\note{
+Requires that discriminant analysis has been run and results saved.
+The discriminant_index must not exceed the number of available excellent
+discriminants (typically 370).
+}
+\examples{
+\dontrun{
+# Generate random numbers using the best discriminant
+samples <- generate_excellent_random(n = 50000)
+hist(samples, breaks = 50)
+
+# Use the 10th best discriminant
+samples <- generate_excellent_random(n = 10000, discriminant_index = 10)
+
+# Use higher precision
+samples <- generate_excellent_random(n = 5000, precision = 512)
+}
+
+}
+\seealso{
+\code{\link{load_excellent_discriminants}}, \code{\link{create_excellent_prng_config}},
+\code{\link{createPRNG}}, \code{\link{generatePRNG}}
 }

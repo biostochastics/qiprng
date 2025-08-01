@@ -7,19 +7,46 @@
 generate_with_discriminant(a, b, c, n = 50000, precision = 256)
 }
 \arguments{
-\item{a}{Parameter a}
+\item{a}{Quadratic coefficient (must be > 0)}
 
-\item{b}{Parameter b}
+\item{b}{Linear coefficient}
 
-\item{c}{Parameter c}
+\item{c}{Constant term (must be < 0)}
 
-\item{n}{Number of samples to generate}
+\item{n}{Number of samples to generate (default: 50000)}
 
-\item{precision}{MPFR precision (default 256)}
+\item{precision}{MPFR precision in bits (default: 256)}
 }
 \value{
-Vector of random numbers
+A numeric vector of n random numbers uniformly distributed on \link{0,1}
 }
 \description{
-Generate random numbers using specific discriminant parameters
+Creates a PRNG instance with the specified quadratic parameters and generates
+random numbers. The function uses cryptographic mixing for enhanced quality.
+}
+\details{
+The function creates a PRNG using the quadratic recurrence relation:
+\deqn{x_{n+1} = (a x_n^2 + b x_n + c) \mod 1}
+
+Key configuration:
+\itemize{
+\item Cryptographic mixing is enabled for better randomness quality
+\item Parallel filling is disabled to avoid performance issues
+\item The PRNG uses the specified MPFR precision for calculations
+}
+}
+\note{
+The discriminant b² - 4ac must be positive and not a perfect square
+for the generator to produce high-quality random numbers.
+}
+\examples{
+\dontrun{
+# Generate random numbers with specific parameters
+samples <- generate_with_discriminant(a = 2, b = 5, c = -2, n = 10000)
+hist(samples, breaks = 50)
+}
+
+}
+\seealso{
+\code{\link{createPRNG}}, \code{\link{generatePRNG}}
 }

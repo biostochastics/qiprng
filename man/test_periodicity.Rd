@@ -7,11 +7,54 @@
 test_periodicity(samples)
 }
 \arguments{
-\item{samples}{Vector of random samples}
+\item{samples}{Numeric vector of random samples to test}
 }
 \value{
-List with comprehensive periodicity test results
+A list containing comprehensive periodicity test results:
+\describe{
+\item{test_name}{Name of the test suite}
+\item{fisher_g_stat}{Fisher's g-statistic for hidden periodicities}
+\item{fisher_p_value}{P-value from Fisher's g-test}
+\item{bartels_p_value}{P-value from Bartels rank test}
+\item{cox_stuart_p_value}{P-value from Cox-Stuart trend test}
+\item{turning_points_p_value}{P-value from turning points test}
+\item{ljung_box_p_value}{P-value from Ljung-Box test}
+\item{combined_p_value}{Mean of all valid p-values}
+\item{passed}{Logical; TRUE if majority of tests pass}
+\item{tests_passed}{String showing number of tests passed}
+\item{interpretation}{Human-readable interpretation}
+}
 }
 \description{
-Enhanced periodicity testing using multiple spectral methods
+Performs comprehensive periodicity and pattern detection using multiple
+statistical tests including Fisher's g-test, Bartels rank test, Cox-Stuart
+test, turning points test, and Ljung-Box test.
+}
+\details{
+The function combines multiple tests to detect various types of patterns:
+\itemize{
+\item \strong{Fisher's g-test}: Detects hidden periodicities in the frequency domain
+\item \strong{Bartels rank test}: Tests for randomness using rank-based methods
+\item \strong{Cox-Stuart test}: Detects monotonic trends
+\item \strong{Turning points test}: Analyzes local extrema patterns
+\item \strong{Ljung-Box test}: Tests for serial correlation up to lag 20
+}
+
+The overall assessment passes if the majority of individual tests pass
+(p-value > 0.05). This ensemble approach provides robust detection of
+various non-random patterns.
+}
+\note{
+Some tests may fail with NA p-values if the sample size is too small
+or if required packages are not available. The overall assessment uses
+only valid test results.
+}
+\examples{
+\dontrun{
+# Test for periodicity
+samples <- runif(5000)
+result <- test_periodicity(samples)
+print(result$interpretation)
+}
+
 }

@@ -732,8 +732,8 @@ double EnhancedPRNG::generate_poisson_normal_approx(double lambda) {
     double sigma = std::sqrt(lambda);
     
     // Use Box-Muller directly for a standard normal
-    double u1 = next();
-    double u2 = next();
+    double u1 = next_raw_uniform();
+    double u2 = next_raw_uniform();
     
     // Generate a standard normal using Box-Muller
     double r = std::sqrt(-2.0 * std::log(u1));
@@ -751,8 +751,8 @@ double EnhancedPRNG::generate_gamma_small_alpha(double alpha, double theta) {
     
     while (true) {
         // Get two uniform variates
-        double u1 = next();
-        double u2 = next();
+        double u1 = next_raw_uniform();
+        double u2 = next_raw_uniform();
         double p = b * u1;
         
         if (p <= 1.0) {
@@ -778,8 +778,8 @@ double EnhancedPRNG::generate_gamma_large_alpha(double alpha, double theta) {
         double z, v;
         do {
             // Generate standard normal directly with Box-Muller
-            double u1 = next();
-            double u2 = next();
+            double u1 = next_raw_uniform();
+            double u2 = next_raw_uniform();
             double r = std::sqrt(-2.0 * std::log(u1));
             double theta = 2.0 * M_PI * u2;
             z = r * std::cos(theta);
@@ -788,7 +788,7 @@ double EnhancedPRNG::generate_gamma_large_alpha(double alpha, double theta) {
         } while (v <= 0.0);
         
         v = v * v * v;
-        double u = next();
+        double u = next_raw_uniform();
         
         if (u < 1.0 - 0.0331 * (z * z) * (z * z)) {
             return theta * d * v;
@@ -805,8 +805,8 @@ double EnhancedPRNG::generate_beta_johnk(double alpha, double beta) {
     double x_pow_alpha, y_pow_beta;
     
     do {
-        double u = next();
-        double v = next();
+        double u = next_raw_uniform();
+        double v = next_raw_uniform();
         
         if (u <= 0.0) u = std::numeric_limits<double>::min();
         if (v <= 0.0) v = std::numeric_limits<double>::min();

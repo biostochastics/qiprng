@@ -1,0 +1,214 @@
+url: https://biostochastics.github.io/qiprng/
+template:
+  bootstrap: 5
+  bootswatch: flatly
+  theme: arrow-light
+  bslib:
+    pkgdown-nav-height: 100px
+
+home:
+  title: "QIPRNG - Quadratic Irrational Pseudo-Random Number Generator"
+  description: >
+    A high-performance PRNG based on quadratic irrationals with MPFR precision,
+    cryptographic mixing, and comprehensive statistical testing suite.
+  links:
+  - text: Browse source code
+    href: https://github.com/biostochastics/qiprng
+  - text: Report a bug
+    href: https://github.com/biostochastics/qiprng/issues
+
+authors:
+  Steven Tobin:
+    href: https://github.com/biostochastics
+
+navbar:
+  structure:
+    left: [intro, reference, articles, tutorials, news]
+    right: [search, github]
+  components:
+    home:
+      icon: fas fa-home fa-lg
+      href: index.html
+      aria-label: Home
+    reference:
+      text: "Reference"
+      href: reference/index.html
+    articles:
+      text: "Articles"
+      href: articles/index.html
+    github:
+      icon: fab fa-github fa-lg
+      href: https://github.com/biostochastics/qiprng
+      aria-label: View on GitHub
+
+reference:
+- title: "Core PRNG Functions"
+  desc: "Main functions for creating and using the Quadratic Irrational PRNG"
+  contents:
+  - createPRNG
+  - generatePRNG
+  - jumpAheadPRNG
+  - reseedPRNG
+  - cleanupPRNG
+  - cleanup_prng
+  - updatePRNG
+  - suppressMPFRWarnings
+  
+- title: "Discriminant Analysis and Management"
+  desc: "Functions for analyzing, validating, and managing discriminant parameters"
+  contents:
+  - load_discriminants
+  - load_excellent_discriminants
+  - get_excellent_discriminants
+  - get_recommended_discriminants
+  - get_hardcoded_excellent_discriminants
+  - create_excellent_prng_config
+  - generate_excellent_random
+  - print_excellent_summary
+  - generate_with_discriminant
+  - test_discriminant
+  - assess_discriminant_quality
+  - run_discriminant_analysis
+  - get_autocorrelation_thresholds
+
+- title: "Statistical Tests - Core"
+  desc: "Fundamental statistical tests for randomness evaluation"
+  contents:
+  - test_uniformity
+  - test_independence
+  - test_moments
+  - test_autocorrelation
+  - test_periodicity
+
+- title: "Statistical Tests - Advanced"
+  desc: "Advanced statistical tests for comprehensive randomness evaluation"
+  contents:
+  - test_entropy
+  - test_gaps
+  - test_serial_correlation
+  - test_poker
+  - run_advanced_tests
+
+- title: "Test Suite Framework"
+  desc: "Comprehensive test suite creation, execution, and management"
+  contents:
+  - create_prng_test_suite
+  - run_prng_test_suite
+  - test_prng
+  - test_qiprng
+  - save_test_report
+  - summarize_test_results
+  - default_test_config
+  - compare_rng_quality
+  - QPRNG_TEST_CATEGORIES
+
+- title: "Bootstrap and Statistical Methods"
+  desc: "Advanced statistical methods for hypothesis testing and confidence intervals"
+  contents:
+  - bootstrap_p_value
+  - bootstrap_conf_interval
+  - permutation_test
+  - monte_carlo_p_value
+
+- title: "Caching Framework"
+  desc: "Performance optimization through intelligent caching of computations"
+  contents:
+  - init_cache
+  - clear_qiprng_cache
+  - qiprng_cache_stats
+  - cached_acf
+  - cached_pacf
+  - cached_spectrum
+  - cached_compress
+  - cached_test_result
+  - clear_test_cache
+  - test_cache_stats
+  - export_cached_results
+  - set_cache_ttl
+  - set_cache_enabled
+  - is_cache_enabled
+
+- title: "Validation and Quality Assurance"
+  desc: "Framework validation, quality assurance, and test integrity verification"
+  contents:
+  - validate_qiprng_framework
+  - get_validation_config
+  - validate_basic_tests
+  - validate_classical_tests
+  - validate_external_tests
+  - validate_runs_tests
+  - validate_correlation_tests
+  - validate_binary_tests
+  - validate_compression_tests
+  - validate_multidim_tests
+  - validate_test_structure
+  - validate_edge_cases
+  - validate_performance
+  - validate_config
+  - validate_outputs
+  - validate_analysis_results
+  - generate_recommendations
+  - print_validation_summary
+
+- title: "Benchmarking and Performance"
+  desc: "Performance benchmarking and profiling tools"
+  contents:
+  - benchmark_qiprng
+  - benchmark_large_generation
+  - profile_qiprng_config
+
+- title: "Visualization and Reporting"
+  desc: "Data visualization and report generation functions"
+  contents:
+  - visualize_prng_tests
+  - create_visualizations
+  - generate_detailed_report
+  - generate_summary_stats
+  - generate_quarto_report
+  - run_complete_analysis_with_quarto
+  - convert_qmd_to_rmd
+  - save_analysis_results
+
+- title: "Configuration"
+  desc: "Configuration management and default settings"
+  contents:
+  - default_config
+
+- title: "Internal Functions"
+  desc: "Internal functions and utilities (not typically called directly)"
+  contents:
+  - qiprng-internal
+  - modifyList
+  - withTimeout
+
+- title: "Package Documentation"
+  desc: "Package-level documentation and overview"
+  contents:
+  - qiprng
+  - qiprng-testing
+  - qiprng-caching
+  - bootstrap_framework
+  - validation_suite
+
+development:
+  mode: auto
+  
+figures:
+  dev: ragg::agg_png
+  dpi: 96
+  dev.args: []
+  fig.ext: png
+  fig.width: 7
+  fig.height: 5
+  fig.retina: 2
+
+footer:
+  structure:
+    left: developed_by
+    right: built_with
+
+search:
+  exclude: ['news/index.html']
+  
+deploy:
+  install_metadata: true

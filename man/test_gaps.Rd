@@ -7,15 +7,60 @@
 test_gaps(samples, alpha = 0.3, beta = 0.7)
 }
 \arguments{
-\item{samples}{Vector of random samples}
+\item{samples}{Numeric vector of random samples to test}
 
-\item{alpha}{Lower bound for gap}
+\item{alpha}{Lower bound for the gap range (default: 0.3)}
 
-\item{beta}{Upper bound for gap}
+\item{beta}{Upper bound for the gap range (default: 0.7)}
 }
 \value{
-List with gap test results
+A list containing gap test results:
+\describe{
+\item{test_name}{Name of the test}
+\item{statistic}{Chi-squared test statistic}
+\item{p_value}{P-value from chi-squared test}
+\item{passed}{Logical; TRUE if p-value > 0.05}
+\item{gaps_analyzed}{Number of gaps found and analyzed}
+\item{interpretation}{Human-readable interpretation of results}
+}
 }
 \description{
-Gap test for randomness
+Tests the distribution of gaps between occurrences of values in a specified
+range. The test analyzes how far apart values within \link{alpha, beta} appear
+in the sequence, which should follow a geometric distribution for truly
+random data.
+}
+\details{
+The gap test examines the distances between consecutive occurrences of
+values within the range \link{alpha, beta}. For a uniform random sequence,
+these gaps should follow a geometric distribution with parameter p = beta - alpha.
+
+The test procedure:
+\enumerate{
+\item Identifies all positions where samples fall within \link{alpha, beta}
+\item Calculates gaps between consecutive positions
+\item Compares observed gap distribution to expected geometric distribution
+\item Uses chi-squared test to assess goodness-of-fit
+}
+
+The expected frequency for gap length k is:
+\deqn{E[k] = n \cdot (1-p)^{k-1} \cdot p}
+
+where n is the number of gaps and p = beta - alpha.
+}
+\note{
+The test requires at least 10 gaps for reliable results. If fewer
+gaps are found, the test returns INCONCLUSIVE.
+}
+\examples{
+\dontrun{
+# Test gaps in uniform random numbers
+samples <- runif(10000)
+result <- test_gaps(samples)
+print(paste("Gap test p-value:", round(result$p_value, 4)))
+
+# Test with different range
+result <- test_gaps(samples, alpha = 0.2, beta = 0.8)
+}
+
 }

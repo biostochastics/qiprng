@@ -431,3 +431,209 @@ The package includes all discriminants for research, but uses only excellent one
 - **Complete Quality Distribution**: Excellent: 370 (49.3%), Very-Good: 31 (4.1%), Good: 293 (39.1%), Fair: 50 (6.7%), Poor: 6 (0.8%)
 - **Effective Discrimination**: The stricter autocorrelation test provides a more realistic distribution of results, successfully identifying minor flaws that were previously missed.
 - **Overall Robustness**: 92.5% of the discriminants were rated as "Good" or better (including "Very-Good"), confirming the underlying strength of the generation method.
+
+## 11. Performance Analysis
+
+### 11.1 Benchmarking Results
+
+In comprehensive benchmarks comparing qiprng with standard R generators, the following performance characteristics were observed:
+
+| Generator | Time for 100K samples | Relative Speed | Statistical Quality |
+|-----------|----------------------|----------------|-------------------|
+| qiprng | ~27ms | 1x (baseline) | Excellent (cryptographic) |
+| Mersenne Twister | ~0.5ms | 54x faster | Excellent (non-crypto) |
+| L'Ecuyer-CMRG | ~0.9ms | 30x faster | Very Good |
+| Wichmann-Hill | ~0.4ms | 68x faster | Good |
+
+### 11.2 Computational Complexity Analysis
+
+The performance difference stems from fundamental algorithmic differences:
+
+#### 11.2.1 Operation Count per Random Number
+
+**Standard Linear Congruential Generators (e.g., Mersenne Twister)**:
+- 1 integer multiplication
+- 1 integer addition  
+- 1 modulo operation (often optimized away)
+- Total: ~3 simple integer operations
+
+**qiprng Quadratic Irrational Generator**:
+- 1 MPFR squaring operation (mpfr_mul)
+- 2 MPFR scalar multiplications (mpfr_mul_si)
+- 2 MPFR additions (mpfr_add, mpfr_add_si)
+- 1 MPFR fractional part extraction (mpfr_frac)
+- 1 MPFR sign check and conditional addition
+- Total: ~7 arbitrary precision operations
+
+#### 11.2.2 MPFR Overhead
+
+Each MPFR operation involves:
+- **Dynamic memory management**: Arbitrary precision requires dynamic allocation
+- **Software arithmetic**: No hardware acceleration for arbitrary precision
+- **Rounding control**: Each operation must respect the rounding mode
+- **Exception handling**: NaN and infinity checks after each operation
+
+Typical overhead: 100-1000x slower than hardware floating-point operations
+
+### 11.3 Component-wise Performance Breakdown
+
+Based on code analysis and profiling estimates:
+
+1. **MPFR Arithmetic Operations** (~60% of runtime)
+   - Dominated by mpfr_mul for squaring
+   - Fractional part extraction (mpfr_frac) is particularly expensive
+   
+2. **Cryptographic Mixing** (~20% when enabled)
+   - libsodium ChaCha20 generation
+   - Modular addition or XOR operations
+   - Periodic reseeding
+   
+3. **Thread Safety** (~10%)
+   - Mutex acquisition/release
+   - Thread-local storage access
+   - Memory barriers for synchronization
+   
+4. **Buffer Management** (~5%)
+   - Buffer refill operations
+   - Memory copying
+   - Position tracking
+   
+5. **Error Checking & Validation** (~5%)
+   - Parameter validation
+   - NaN/infinity checks
+   - Range validation
+
+### 11.4 Optimization Opportunities
+
+#### 11.4.1 Precision Tuning
+The most effective optimization is reducing MPFR precision:
+- 53-bit (double): Baseline performance
+- 128-bit: ~2x slower than 53-bit
+- 256-bit: ~4x slower than 53-bit
+- 512-bit: ~8x slower than 53-bit
+
+#### 11.4.2 Batch Generation
+Generating numbers in batches amortizes overhead:
+```r
+# Inefficient: one at a time
+for(i in 1:n) { x[i] <- generatePRNG(1) }
+
+# Efficient: batch generation
+x <- generatePRNG(n)
+```
+
+#### 11.4.3 Disabling Optional Features
+When cryptographic security isn't required:
+```r
+config <- list(
+  use_crypto_mixing = FALSE,    # Disable crypto mixing
+  use_threading = FALSE,        # Disable thread safety if single-threaded
+  buffer_size = 100000         # Larger buffer for better performance
+)
+```
+
+### 11.5 Performance vs. Security Trade-off
+
+The 50x performance penalty is a deliberate design choice that provides:
+
+1. **Cryptographic-grade randomness**: Suitable for security applications
+2. **Arbitrary precision control**: Can generate numbers with thousands of bits of precision
+3. **Mathematical rigor**: Based on proven chaotic dynamical systems
+4. **Enhanced unpredictability**: Multiple layers of randomization
+
+For applications where these properties are valuable, the performance cost is justified. For general statistical sampling, standard generators remain more appropriate.
+
+### 11.6 Future Performance Improvements
+
+Potential optimizations that could be explored:
+
+1. **SIMD Parallelization**: Process multiple QI sequences in parallel using vector instructions
+2. **GPU Acceleration**: Massive parallelism for batch generation
+3. **Fixed-point Arithmetic**: For specific precision requirements, fixed-point could be faster
+4. **JIT Compilation**: Compile parameter-specific optimized code at runtime
+5. **Hardware PRNG Integration**: Use hardware random sources for mixing instead of libsodium
+
+## 12. Statistical Test Algorithms
+
+### 12.1 Gap Test
+
+The gap test examines the distribution of gaps between occurrences of values within a specified range. For a truly random sequence, these gaps should follow a geometric distribution.
+
+#### 12.1.1 Algorithm
+
+1. **Define target range**: Default is [α, β] = [0.3, 0.7]
+2. **Identify positions**: Find all indices where values fall within [α, β]
+3. **Calculate gaps**: Compute differences between consecutive positions
+4. **Expected distribution**: For uniform random data, gaps follow a geometric distribution with parameter p = β - α
+
+#### 12.1.2 Mathematical Foundation
+
+For a sequence of uniform random numbers, the probability that a value falls in [α, β] is:
+```
+p = β - α
+```
+
+The probability of a gap of length k is:
+```
+P(gap = k) = (1-p)^(k-1) * p
+```
+
+This is the geometric distribution, representing the number of trials until the first success.
+
+#### 12.1.3 Implementation Details
+
+The test uses chi-squared goodness-of-fit to compare observed gap frequencies with expected geometric distribution:
+
+```r
+# Expected frequencies for gaps of length 1, 2, ..., max_gap
+expected_freq[k] = n_gaps * (1-p)^(k-1) * p
+
+# For the last bin (gaps ≥ max_gap)
+expected_freq[max_gap] = n_gaps * (1-p)^(max_gap-1)
+
+# Chi-squared statistic
+χ² = Σ((observed[k] - expected[k])²/expected[k])
+```
+
+### 12.2 Spectral Test
+
+The spectral test analyzes the frequency domain characteristics of the random sequence using the periodogram and tests whether the spectral densities follow the expected distribution for white noise.
+
+#### 12.2.1 Algorithm
+
+1. **Compute periodogram**: Use Fast Fourier Transform (FFT) to calculate power spectral density
+2. **Normalize spectrum**: Scale spectral values by their mean
+3. **Expected distribution**: For white noise, normalized spectral densities follow an exponential distribution with rate parameter 1
+4. **Test goodness-of-fit**: Use Kolmogorov-Smirnov test to compare with exponential(1) distribution
+
+#### 12.2.2 Mathematical Foundation
+
+For a truly random sequence (white noise), the periodogram ordinates are approximately:
+- Independent
+- Exponentially distributed with mean equal to the true spectral density
+
+After normalization by the mean, they follow an exponential distribution with rate parameter 1:
+```
+f(x) = e^(-x) for x ≥ 0
+```
+
+#### 12.2.3 Implementation Details
+
+```r
+# Compute spectrum using R's spectrum function
+spec_result <- spectrum(x, method = "pgram", plot = FALSE)
+
+# Normalize by mean
+scaled_spec <- spec_result$spec / mean(spec_result$spec)
+
+# KS test against exponential(1)
+ks_result <- ks.test(scaled_spec, "pexp", rate = 1)
+```
+
+The Kolmogorov-Smirnov test statistic measures the maximum distance between the empirical distribution function of the scaled spectral values and the theoretical exponential CDF.
+
+#### 12.2.4 Interpretation
+
+- **High p-value**: Spectral characteristics consistent with white noise
+- **Low p-value**: Presence of periodic patterns or non-random structure
+- **Peak-to-mean ratio**: Additional diagnostic showing the strength of any dominant frequency

@@ -11,15 +11,56 @@ create_excellent_prng_config(
 )
 }
 \arguments{
-\item{discriminant_params}{Single row from excellent discriminants data frame}
+\item{discriminant_params}{A single-row data frame from excellent discriminants
+containing columns a, b, c, discriminant, and overall_score}
 
-\item{precision}{MPFR precision (default 256)}
+\item{precision}{MPFR precision in bits for calculations (default: 256)}
 
-\item{use_crypto}{Enable cryptographic mixing (default TRUE)}
+\item{use_crypto}{Enable cryptographic mixing with ChaCha20 (default: TRUE)}
 }
 \value{
-PRNG configuration list
+A list containing PRNG configuration:
+\describe{
+\item{a}{Quadratic coefficient}
+\item{b}{Linear coefficient}
+\item{c}{Constant term}
+\item{precision}{MPFR precision in bits}
+\item{use_parallel_filling}{Set to FALSE for stability}
+\item{use_cryptographic_mixing}{ChaCha20 mixing flag}
+}
 }
 \description{
-Create PRNG configuration using excellent discriminant
+Creates a complete PRNG configuration object from a single excellent
+discriminant parameter set. The configuration is optimized for high-quality
+random number generation.
+}
+\details{
+The function creates a configuration optimized for production use:
+\itemize{
+\item Parallel filling is disabled to avoid performance issues
+\item Cryptographic mixing is enabled by default for enhanced security
+\item The discriminant parameters are validated to be from excellent set
+}
+
+The function also prints a summary of the configuration including the
+discriminant value and quality score.
+}
+\note{
+The discriminant_params must be a single row. Use indexing or
+subset operations if working with multiple discriminants.
+}
+\examples{
+\dontrun{
+# Get the best discriminant and create config
+excellent <- load_excellent_discriminants()
+best_discriminant <- excellent[1, ]
+config <- create_excellent_prng_config(best_discriminant)
+
+# Create config with custom precision
+config_512 <- create_excellent_prng_config(best_discriminant, precision = 512)
+}
+
+}
+\seealso{
+\code{\link{createPRNG}}, \code{\link{get_recommended_discriminants}}
 }

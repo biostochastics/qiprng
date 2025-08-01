@@ -7,11 +7,67 @@
 run_advanced_tests(samples)
 }
 \arguments{
-\item{samples}{Vector of random samples}
+\item{samples}{Numeric vector of random samples to test (values in \link{0,1})}
 }
 \value{
-List with all advanced test results
+A list containing results from all advanced tests:
+\describe{
+\item{entropy}{Results from Shannon entropy test}
+\item{gaps}{Results from gap test}
+\item{serial_correlation}{Results from serial correlation test}
+\item{poker}{Results from poker test}
+}
+Each test result includes test_name, passed status, and interpretation.
+Failed tests include error messages in the interpretation field.
 }
 \description{
-Comprehensive advanced test suite
+Runs all advanced statistical tests on a set of random samples, including
+entropy, gap, serial correlation, and poker tests. Each test evaluates
+different aspects of randomness quality.
+}
+\details{
+This function serves as a comprehensive test battery for advanced
+randomness evaluation. It runs the following tests:
+
+\itemize{
+\item \strong{Shannon Entropy Test}: Measures information content and
+unpredictability. High entropy indicates good randomness.
+\item \strong{Gap Test}: Analyzes spacing between values in a range.
+Tests if gaps follow expected geometric distribution.
+\item \strong{Serial Correlation Test}: Checks for dependencies between
+values at various lags. Low correlation indicates independence.
+\item \strong{Poker Test}: Examines digit patterns in groups.
+Tests if patterns match theoretical probabilities.
+}
+
+All tests include error handling to ensure the suite completes even
+if individual tests fail. Failed tests return an error message in the
+interpretation field.
+}
+\note{
+For best results, provide at least 10,000 samples. Smaller sample
+sizes may lead to inconclusive results for some tests.
+}
+\examples{
+\dontrun{
+# Run all advanced tests on uniform random data
+samples <- runif(50000)
+results <- run_advanced_tests(samples)
+
+# Check which tests passed
+lapply(results, function(test) {
+  paste(test$test_name, "-", test$result)
+})
+
+# Run tests on PRNG output
+library(qiprng)
+createPRNG()
+samples <- generatePRNG(50000)
+results <- run_advanced_tests(samples)
+}
+
+}
+\seealso{
+\code{\link{test_entropy}}, \code{\link{test_gaps}},
+\code{\link{test_serial_correlation}}, \code{\link{test_poker}}
 }

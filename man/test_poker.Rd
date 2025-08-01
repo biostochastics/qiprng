@@ -7,13 +7,65 @@
 test_poker(samples, m = 5)
 }
 \arguments{
-\item{samples}{Vector of random samples}
+\item{samples}{Numeric vector of random samples to test (values in \link{0,1})}
 
-\item{m}{Length of each hand (default 5)}
+\item{m}{Length of each hand in digits (default: 5)}
 }
 \value{
-List with poker test results
+A list containing poker test results:
+\describe{
+\item{test_name}{Name of the test}
+\item{statistic}{Chi-squared test statistic}
+\item{p_value}{P-value from chi-squared test}
+\item{passed}{Logical; TRUE if p-value > 0.05}
+\item{hands_analyzed}{Number of complete hands analyzed}
+\item{interpretation}{Human-readable interpretation of results}
+}
 }
 \description{
-Poker test for randomness
+Tests randomness by examining patterns in "hands" of digits, similar to
+poker hands. The test converts continuous values to digits and checks if
+the distribution of unique digits per hand matches theoretical expectations.
+}
+\details{
+The poker test is inspired by the card game and examines patterns in
+groups of digits:
+\enumerate{
+\item Converts each sample to a digit (0-9) by multiplying by 10 and flooring
+\item Groups consecutive digits into "hands" of size m
+\item Counts unique digits in each hand
+\item Compares observed distribution to theoretical probabilities
+}
+
+For m=5 (default), the theoretical probabilities are:
+\itemize{
+\item 1 unique digit (five of a kind): 0.0001
+\item 2 unique digits: 0.0045
+\item 3 unique digits: 0.0270
+\item 4 unique digits: 0.1080
+\item 5 unique digits (all different): 0.3024
+}
+
+These probabilities are based on the multinomial distribution for
+sampling with replacement from 10 digits.
+}
+\note{
+The test requires at least 100 hands for reliable results. For
+hand sizes other than 5, simplified uniform probabilities are used.
+}
+\examples{
+\dontrun{
+# Standard poker test with 5-digit hands
+samples <- runif(10000)
+result <- test_poker(samples)
+print(paste("Poker test p-value:", round(result$p_value, 4)))
+
+# Test with 3-digit hands
+result <- test_poker(samples, m = 3)
+}
+
+}
+\references{
+Knuth, D. E. (1997). The Art of Computer Programming, Volume 2:
+Seminumerical Algorithms (3rd ed.). Addison-Wesley.
 }

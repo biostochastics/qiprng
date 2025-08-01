@@ -9,8 +9,43 @@ print_excellent_summary(
 )
 }
 \arguments{
-\item{results_file}{Path to the analysis results RDS file}
+\item{results_file}{Path to the analysis results RDS file
+(default: "discriminant_analysis_results/raw_results.rds")}
+}
+\value{
+NULL (invisibly). Function is called for its side effect of printing
+a formatted summary to the console.
 }
 \description{
-Print summary of excellent discriminants analysis
+Displays a comprehensive summary of the excellent discriminants found in the
+analysis, including count, score ranges, test performance, parameter ranges,
+and usage recommendations.
+}
+\details{
+The summary includes:
+\itemize{
+\item Total count of excellent discriminants
+\item Overall score range
+\item Test performance summary (pass rates for each test type)
+\item Parameter ranges (min/max for a, b, c, and discriminant)
+\item Top 5 discriminants by score
+\item Usage recommendations with example function calls
+}
+}
+\note{
+This function is primarily for interactive use to quickly assess
+the results of discriminant analysis.
+}
+\examples{
+\dontrun{
+# Print summary of excellent discriminants
+print_excellent_summary()
+
+# Print summary from custom results file
+print_excellent_summary("my_analysis/results.rds")
+}
+
+}
+\seealso{
+\code{\link{load_excellent_discriminants}}, \code{\link{get_recommended_discriminants}}
 }

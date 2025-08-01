@@ -7,11 +7,43 @@
 test_independence(samples)
 }
 \arguments{
-\item{samples}{Vector of random samples}
+\item{samples}{Numeric vector of random samples to test}
 }
 \value{
-List with test results
+A list containing test results:
+\describe{
+\item{test_name}{Name of the test}
+\item{statistic}{Z-score test statistic}
+\item{p_value}{Two-tailed p-value}
+\item{passed}{Logical; TRUE if p-value > 0.05}
+\item{interpretation}{Human-readable interpretation}
+}
 }
 \description{
-Test independence using runs test
+Tests for independence in a sequence of random numbers by analyzing runs
+above and below the median. A run is a consecutive sequence of values
+that are all above or all below the median.
+}
+\details{
+The runs test converts the sequence to binary (above/below median) and
+counts the number of runs. Under independence, the number of runs follows
+approximately a normal distribution with:
+\itemize{
+\item Expected runs: E\link{R} = (2 * n1 * n0) / n + 1
+\item Variance: Var\link{R} = (2 * n1 * n0 * (2 * n1 * n0 - n)) / (n² * (n - 1))
+}
+where n1 = count above median, n0 = count below median, n = total count.
+}
+\note{
+A sequence with zero variance in runs (e.g., all values above median)
+is definitively non-random and will return p-value = 0.
+}
+\examples{
+\dontrun{
+# Test independence of random sequence
+samples <- runif(1000)
+result <- test_independence(samples)
+print(result$interpretation)
+}
+
 }
