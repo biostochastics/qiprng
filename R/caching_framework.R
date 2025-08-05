@@ -259,15 +259,20 @@ cached_compress <- function(x, type = c("gzip", "bzip2", "xz"), ...) {
     args = list(...)
   )
   
-  # Use memoizedCall for caching
-  R.cache::memoizedCall(
-    FUN = memCompress,
-    from = x,
-    type = type,
-    ...,
-    key = key,
-    dirs = "qiprng"
-  )
+  # Manual caching (memoizedCall has issues with memCompress argument names)
+  cached_result <- R.cache::loadCache(key = key, dirs = "qiprng")
+  
+  if (!is.null(cached_result)) {
+    return(cached_result)
+  }
+  
+  # Compute compression
+  result <- memCompress(from = x, type = type, ...)
+  
+  # Save to cache
+  R.cache::saveCache(result, key = key, dirs = "qiprng")
+  
+  return(result)
 }
 
 #' Set cache TTL (Time To Live)
@@ -362,7 +367,7 @@ cached_test_result <- function(test_func, test_name, test_category,
   
   # Use memoizedCall with compression
   result <- R.cache::memoizedCall(
-    FUN = test_func,
+    what = test_func,
     data = data,
     config = config,
     ...,

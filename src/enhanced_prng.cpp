@@ -1,9 +1,11 @@
 // File: enhanced_prng.cpp
 // --------------------------------------------------------------
 #include "enhanced_prng.hpp"
-#include <algorithm> // For std::min
+#include <algorithm> // For std::min, std::max
 #include <type_traits> // For std::is_same
-#include <cmath> // For std::isnan, std::isinf
+#include <cmath> // For std::isnan, std::isinf, std::round, std::exp, std::pow, std::sqrt, std::log, std::fmod, std::floor
+#include <limits> // For std::numeric_limits
+#include <stdexcept> // For std::invalid_argument
 
 namespace qiprng {
 
@@ -272,6 +274,197 @@ void EnhancedPRNG::fill_buffer_sequential() {
     buffer_pos_ = 0;
 }
 
+void EnhancedPRNG::copy_thread_buffers_to_main(size_t thread_count,
+                                              const std::vector<SecureBuffer<double>>& thread_buffers,
+                                              ThreadPool& pool) {
+    // Copy thread buffers back to main buffer
+    if (buffer_.size() >= 10000 && thread_count > 1) {
+        // For large buffers, use parallel copying
+        std::vector<std::future<void>> copy_futures;
+        size_t buffer_pos = 0;
+        
+        for (size_t t = 0; t < thread_count && t < thread_buffers.size(); t++) {
+            const SecureBuffer<double>& thread_buffer = thread_buffers[t];
+            const size_t copy_size = thread_buffer.size();
+            
+            if (copy_size > 1000) {
+                // For larger chunks, copy in parallel
+                const size_t start_pos = buffer_pos;
+                copy_futures.push_back(pool.enqueue([this, &thread_buffer, start_pos, copy_size]() {
+                    std::memcpy(
+                        buffer_.data() + start_pos, 
+                        thread_buffer.data(), 
+                        copy_size * sizeof(double));
+                }));
+            } else {
+                // For smaller buffers, copy directly
+                std::memcpy(
+                    buffer_.data() + buffer_pos, 
+                    thread_buffer.data(), 
+                    copy_size * sizeof(double));
+            }
+            buffer_pos += copy_size;
+        }
+        
+        // Wait for all copy operations to complete
+        for (auto& future : copy_futures) {
+            future.get();
+        }
+    } else {
+        // For smaller buffers, copy sequentially
+        size_t buffer_pos = 0;
+        for (size_t t = 0; t < thread_count && t < thread_buffers.size(); t++) {
+            const SecureBuffer<double>& thread_buffer = thread_buffers[t];
+            const size_t copy_size = std::min(thread_buffer.size(), buffer_.size() - buffer_pos);
+            
+            // Safely copy the data
+            if (copy_size > 0 && buffer_pos + copy_size <= buffer_.size()) {
+                std::memcpy(
+                    buffer_.data() + buffer_pos, 
+                    thread_buffer.data(), 
+                    copy_size * sizeof(double));
+                buffer_pos += copy_size;
+            }
+        }
+    }
+}
+
+void EnhancedPRNG::submit_parallel_tasks(ThreadPool& pool,
+                                        size_t thread_count,
+                                        std::vector<SecureBuffer<double>>& thread_buffers,
+                                        std::vector<std::unique_ptr<MultiQI>>& thread_qis,
+                                        std::atomic<bool>& any_thread_failed,
+                                        std::vector<std::future<void>>& futures) {
+    // Submit tasks to the thread pool
+    for (size_t t = 0; t < thread_count; t++) {
+        // Capture thread index by value and other objects by reference
+        futures.push_back(pool.enqueue([t, &thread_buffers, &thread_qis, &any_thread_failed, this]() {
+            try {
+                if (t < thread_qis.size() && t < thread_buffers.size() && 
+                    thread_qis[t] && thread_buffers[t].size() > 0) {
+                    
+                    // Fill the thread's buffer with its dedicated MultiQI
+                    thread_qis[t]->fill_thread_safe(
+                        thread_buffers[t].data(), 
+                        thread_buffers[t].size());
+                        
+                } else {
+                    // Resource not properly initialized
+                    any_thread_failed.store(true);
+                }
+            } catch (const std::exception& e) {
+                // Log and handle error
+                if (config_.debug) {
+                    thread_local int warning_count = 0;
+                    if (warning_count < 3) { // Limit warnings per thread
+                        Rcpp::warning("Thread %d failed: %s", static_cast<int>(t), e.what());
+                        warning_count++;
+                    }
+                }
+                any_thread_failed.store(true);
+                    
+                // Fill with proper random fallback values
+                if (t < thread_buffers.size()) {
+                    // Use a simple thread-safe approach for fallback
+                    std::random_device rd;
+                    std::mt19937_64 rng(rd());
+                    std::uniform_real_distribution<double> dist(0.0, 1.0);
+                    for (size_t i = 0; i < thread_buffers[t].size(); i++) {
+                        thread_buffers[t][i] = dist(rng);
+                    }
+                }
+            } catch (...) {
+                // Handle unknown errors
+                any_thread_failed.store(true);
+                    
+                // Fill with proper random fallback values
+                if (t < thread_buffers.size()) {
+                    // Use a simple thread-safe approach for fallback
+                    std::random_device rd;
+                    std::mt19937_64 rng(rd());
+                    std::uniform_real_distribution<double> dist(0.0, 1.0);
+                    for (size_t i = 0; i < thread_buffers[t].size(); i++) {
+                        thread_buffers[t][i] = dist(rng);
+                    }
+                }
+            }
+        }));
+    }
+}
+
+bool EnhancedPRNG::create_thread_resources(size_t thread_count,
+                                          std::vector<std::vector<std::tuple<long, long, long>>>& thread_abc_lists,
+                                          std::vector<std::unique_ptr<MultiQI>>& thread_qis,
+                                          std::vector<SecureBuffer<double>>& thread_buffers,
+                                          std::vector<size_t>& chunk_sizes) {
+    const PRNGConfig& cfg = config_;
+    
+    if (config_.debug) {
+        Rcpp::Rcout << "Creating thread resources for " << thread_count << " threads\n";
+    }
+    
+    // Generate unique parameters for each thread to avoid identical sequences
+    for (size_t t = 0; t < thread_count; t++) {
+        std::vector<std::tuple<long, long, long>> abc_list;
+        
+        // Get current parameters from primary QI or use default
+        if (multi_ && multi_->size() > 0) {
+            // Use pickMultiQiSet with thread-specific seed to ensure unique sequences
+            try {
+                // Add thread index to seed to ensure each thread gets different parameters
+                // Use a simpler offset to avoid potential overflow issues
+                uint64_t thread_seed = cfg.has_seed ? (cfg.seed + t * 1237ULL) : 0;
+                abc_list = pickMultiQiSet(cfg.mpfr_precision, 3, 
+                                        thread_seed, cfg.has_seed);
+            } catch (...) {
+                // In case of exception, use a safe default with thread variation
+                abc_list.push_back(std::make_tuple(cfg.a + t, cfg.b + t * 2, cfg.c - t));
+            }
+        } else {
+            // Fallback parameters with thread variation
+            abc_list.push_back(std::make_tuple(cfg.a + t, cfg.b + t * 2, cfg.c - t));
+        }
+        
+        thread_abc_lists.push_back(abc_list);
+    }
+    
+    // Calculate chunk sizes
+    const size_t base_chunk_size = buffer_.size() / thread_count;
+    const size_t remainder = buffer_.size() % thread_count;
+    chunk_sizes.resize(thread_count, base_chunk_size);
+    
+    // Distribute remainder among first few threads
+    for (size_t i = 0; i < remainder; i++) {
+        chunk_sizes[i]++;
+    }
+    
+    // Create thread resources
+    for (size_t t = 0; t < thread_count; t++) {
+        try {
+            // Ensure we have abc_list for this thread
+            if (t >= thread_abc_lists.size()) {
+                if (config_.debug) {
+                    Rcpp::warning("Missing abc_list for thread %d", static_cast<int>(t));
+                }
+                return false;
+            }
+            
+            // Create a MultiQI instance for each thread with thread-specific parameters
+            thread_qis.push_back(std::make_unique<MultiQI>(thread_abc_lists[t], cfg.mpfr_precision));
+            // Create a buffer for each thread
+            thread_buffers.emplace_back(chunk_sizes[t]);
+        } catch (...) {
+            // If resource creation fails
+            if (config_.debug) {
+                Rcpp::warning("Failed to create thread-local resources.");
+            }
+            return false;
+        }
+    }
+    
+    return true;
+}
+
 void EnhancedPRNG::fill_buffer_parallel(size_t thread_count) {
     if (buffer_.size() == 0) return;
     
@@ -290,109 +483,27 @@ void EnhancedPRNG::fill_buffer_parallel(size_t thread_count) {
         // Use the global thread pool for more efficient threading
         ThreadPool& pool = global_thread_pool();
         
-        // Use a more thread-safe approach with thread-local buffers
-        std::vector<SecureBuffer<double>> thread_buffers;
-        
-        // Create ABC parameter tuples for thread-local QIs
-        const PRNGConfig& cfg = config_;
-        std::vector<std::tuple<long, long, long>> abc_list;
-        
-        // Get current parameters from primary QI or use default
-        if (multi_ && multi_->size() > 0) {
-            // Use pickMultiQiSet to get a new set of parameters
-            try {
-                abc_list = pickMultiQiSet(cfg.mpfr_precision, 3 + thread_count, 
-                                        cfg.seed, cfg.has_seed);
-            } catch (...) {
-                // In case of exception, use a safe default
-                abc_list.push_back(std::make_tuple(cfg.a, cfg.b, cfg.c));
-            }
-        } else {
-            // Fallback parameters
-            abc_list.push_back(std::make_tuple(cfg.a, cfg.b, cfg.c));
-        }
-        
-        // Create thread-local resources
+        // Create containers for thread resources
+        std::vector<std::vector<std::tuple<long, long, long>>> thread_abc_lists;
         std::vector<std::unique_ptr<MultiQI>> thread_qis;
+        std::vector<SecureBuffer<double>> thread_buffers;
+        std::vector<size_t> chunk_sizes;
         
-        // Calculate chunk sizes
-        const size_t base_chunk_size = buffer_.size() / thread_count;
-        const size_t remainder = buffer_.size() % thread_count;
-        std::vector<size_t> chunk_sizes(thread_count, base_chunk_size);
-        
-        // Distribute remainder among first few threads
-        for (size_t i = 0; i < remainder; i++) {
-            chunk_sizes[i]++;
-        }
-        
-        // Create thread resources
-        for (size_t t = 0; t < thread_count; t++) {
-            try {
-                // Create a MultiQI instance for each thread
-                thread_qis.push_back(std::make_unique<MultiQI>(abc_list, cfg.mpfr_precision));
-                // Create a buffer for each thread
-                thread_buffers.emplace_back(chunk_sizes[t]);
-            } catch (...) {
-                // If resource creation fails, fall back to sequential filling
-                if (config_.debug) {
-                    Rcpp::warning("Failed to create thread-local resources. Falling back to sequential filling.");
-                }
-                fill_buffer_sequential();
-                return;
-            }
+        // Create thread resources using helper function
+        if (!create_thread_resources(thread_count, thread_abc_lists, thread_qis, 
+                                    thread_buffers, chunk_sizes)) {
+            // Fall back to sequential filling if resource creation fails
+            fill_buffer_sequential();
+            return;
         }
         
         // Thread synchronization objects
         std::atomic<bool> any_thread_failed(false);
         std::vector<std::future<void>> futures;
         
-        // Submit tasks to the thread pool
-        for (size_t t = 0; t < thread_count; t++) {
-            // Capture thread index by value and other objects by reference
-            futures.push_back(pool.enqueue([t, &thread_buffers, &thread_qis, &any_thread_failed, this]() {
-                try {
-                    if (t < thread_qis.size() && t < thread_buffers.size() && 
-                        thread_qis[t] && thread_buffers[t].size() > 0) {
-                        
-                        // Fill the thread's buffer with its dedicated MultiQI
-                        thread_qis[t]->fill_thread_safe(
-                            thread_buffers[t].data(), 
-                            thread_buffers[t].size());
-                            
-                    } else {
-                        // Resource not properly initialized
-                        any_thread_failed.store(true);
-                    }
-                } catch (const std::exception& e) {
-                    // Log and handle error
-                    if (config_.debug) {
-                        thread_local int warning_count = 0;
-                        if (warning_count < 3) { // Limit warnings per thread
-                            Rcpp::warning("Thread %d failed: %s", static_cast<int>(t), e.what());
-                            warning_count++;
-                        }
-                    }
-                    any_thread_failed.store(true);
-                        
-                    // Fill with fallback values
-                    if (t < thread_buffers.size()) {
-                        for (size_t i = 0; i < thread_buffers[t].size(); i++) {
-                            thread_buffers[t][i] = 0.5;
-                        }
-                    }
-                } catch (...) {
-                    // Handle unknown errors
-                    any_thread_failed.store(true);
-                        
-                    // Fill with fallback values
-                    if (t < thread_buffers.size()) {
-                        for (size_t i = 0; i < thread_buffers[t].size(); i++) {
-                            thread_buffers[t][i] = 0.5;
-                        }
-                    }
-                }
-            }));
-        }
+        // Submit parallel tasks using helper function
+        submit_parallel_tasks(pool, thread_count, thread_buffers, thread_qis, 
+                            any_thread_failed, futures);
         
         // Wait for all futures to complete
         for (auto& future : futures) {
@@ -416,60 +527,8 @@ void EnhancedPRNG::fill_buffer_parallel(size_t thread_count) {
             Rcpp::warning("Some threads failed during parallel buffer filling. Results may be affected.");
         }
         
-        // Copy from thread buffers to main buffer using parallel processing for large buffers
-        if (buffer_.size() >= 10000 && thread_count > 1) {
-            // Divide the copying into chunks for parallel processing
-            size_t copy_chunk_size = buffer_.size() / thread_count;
-            std::vector<std::future<void>> copy_futures;
-            
-            size_t buffer_pos = 0;
-            for (size_t t = 0; t < thread_count && t < thread_buffers.size(); t++) {
-                // No need to make a copy for lambda capture anymore
-                const size_t start_pos = buffer_pos;
-                const SecureBuffer<double>& thread_buffer = thread_buffers[t];
-                const size_t copy_size = std::min(thread_buffer.size(), buffer_.size() - buffer_pos);
-                
-                if (copy_size > 0 && buffer_pos + copy_size <= buffer_.size()) {
-                    // For large buffers, submit a parallel copy task
-                    if (copy_size >= copy_chunk_size) {
-                        copy_futures.push_back(pool.enqueue([this, &thread_buffer, start_pos, copy_size]() {
-                            std::memcpy(
-                                buffer_.data() + start_pos, 
-                                thread_buffer.data(), 
-                                copy_size * sizeof(double));
-                        }));
-                    } else {
-                        // For smaller buffers, copy directly
-                        std::memcpy(
-                            buffer_.data() + buffer_pos, 
-                            thread_buffer.data(), 
-                            copy_size * sizeof(double));
-                    }
-                    buffer_pos += copy_size;
-                }
-            }
-            
-            // Wait for all copy operations to complete
-            for (auto& future : copy_futures) {
-                future.get();
-            }
-        } else {
-            // For smaller buffers, copy sequentially
-            size_t buffer_pos = 0;
-            for (size_t t = 0; t < thread_count && t < thread_buffers.size(); t++) {
-                const SecureBuffer<double>& thread_buffer = thread_buffers[t];
-                const size_t copy_size = std::min(thread_buffer.size(), buffer_.size() - buffer_pos);
-                
-                // Safely copy the data
-                if (copy_size > 0 && buffer_pos + copy_size <= buffer_.size()) {
-                    std::memcpy(
-                        buffer_.data() + buffer_pos, 
-                        thread_buffer.data(), 
-                        copy_size * sizeof(double));
-                    buffer_pos += copy_size;
-                }
-            }
-        }
+        // Copy thread buffers back to main buffer using helper function
+        copy_thread_buffers_to_main(thread_count, thread_buffers, pool);
         
         // Apply crypto mixing if enabled (can be potentially parallelized for large buffers)
         if (config_.use_crypto_mixing && crypto_ && crypto_->is_initialized()) {
@@ -574,6 +633,20 @@ double EnhancedPRNG::next() {
             return generate_gamma_dispatch(u);
         case PRNGConfig::BETA:
             return generate_beta_dispatch(u);
+        case PRNGConfig::BERNOULLI:
+            return generate_bernoulli_dispatch(u);
+        case PRNGConfig::BINOMIAL:
+            return generate_binomial_dispatch(u);
+        case PRNGConfig::LOGNORMAL:
+            return generate_lognormal_dispatch(u);
+        case PRNGConfig::WEIBULL:
+            return generate_weibull_dispatch(u);
+        case PRNGConfig::CHISQUARED:
+            return generate_chisquared_dispatch(u);
+        case PRNGConfig::STUDENT_T:
+            return generate_student_t_dispatch(u);
+        case PRNGConfig::NEGATIVE_BINOMIAL:
+            return generate_negative_binomial_dispatch(u);
         default:
             return u; // Default to uniform(0,1)
     }
@@ -655,6 +728,27 @@ void EnhancedPRNG::generate_n(Rcpp::NumericVector& output_vec) {
                     break;
                 case PRNGConfig::BETA:
                     output_vec[i] = generate_beta_dispatch(u);
+                    break;
+                case PRNGConfig::BERNOULLI:
+                    output_vec[i] = generate_bernoulli_dispatch(u);
+                    break;
+                case PRNGConfig::BINOMIAL:
+                    output_vec[i] = generate_binomial_dispatch(u);
+                    break;
+                case PRNGConfig::LOGNORMAL:
+                    output_vec[i] = generate_lognormal_dispatch(u);
+                    break;
+                case PRNGConfig::WEIBULL:
+                    output_vec[i] = generate_weibull_dispatch(u);
+                    break;
+                case PRNGConfig::CHISQUARED:
+                    output_vec[i] = generate_chisquared_dispatch(u);
+                    break;
+                case PRNGConfig::STUDENT_T:
+                    output_vec[i] = generate_student_t_dispatch(u);
+                    break;
+                case PRNGConfig::NEGATIVE_BINOMIAL:
+                    output_vec[i] = generate_negative_binomial_dispatch(u);
                     break;
                 default:
                     output_vec[i] = u; // Default to uniform(0,1)
@@ -1108,6 +1202,203 @@ double EnhancedPRNG::generate_beta_dispatch(double u) {
     return generate_beta_johnk(config_.beta_alpha, config_.beta_beta);
 }
 
+// New distribution implementations
+
+double EnhancedPRNG::generate_bernoulli_dispatch(double u) {
+    // Use the provided u parameter directly - more efficient than calling next_raw_uniform()
+    if (config_.bernoulli_p < 0.0 || config_.bernoulli_p > 1.0) {
+        throw std::invalid_argument("Bernoulli p must be in [0,1]");
+    }
+    return (u < config_.bernoulli_p) ? 1.0 : 0.0;
+}
+
+double EnhancedPRNG::generate_weibull_dispatch(double u) {
+    if (config_.weibull_shape <= 0.0 || config_.weibull_scale <= 0.0) {
+        throw std::invalid_argument("Weibull shape and scale must be positive");
+    }
+    
+    // Use 1-u to avoid log(0) when u approaches 0
+    // Since u and 1-u are identically distributed on (0,1), this is mathematically equivalent
+    double safe_u = 1.0 - u;
+    if (safe_u <= 0.0) safe_u = std::numeric_limits<double>::epsilon();
+    if (safe_u >= 1.0) safe_u = 1.0 - std::numeric_limits<double>::epsilon();
+    
+    double result = config_.weibull_scale * std::pow(-std::log(safe_u), 1.0 / config_.weibull_shape);
+    
+    if (std::isnan(result) || std::isinf(result)) {
+        return config_.weibull_scale; // Fallback to scale parameter
+    }
+    return result;
+}
+
+double EnhancedPRNG::generate_lognormal_dispatch(double u) {
+    if (config_.lognormal_sigma <= 0.0) {
+        throw std::invalid_argument("Log-normal sigma must be positive");
+    }
+    
+    // Pass u to normal generator, which will use it as first uniform
+    double normal_val = generate_normal(u) * config_.lognormal_sigma + config_.lognormal_mu;
+    double result = std::exp(normal_val);
+    
+    if (std::isnan(result) || std::isinf(result) || result <= 0.0) {
+        return std::exp(config_.lognormal_mu); // Fallback to median
+    }
+    return result;
+}
+
+double EnhancedPRNG::generate_chisquared_dispatch(double u) {
+    if (config_.chisquared_df <= 0.0) {
+        throw std::invalid_argument("Chi-squared df must be positive");
+    }
+    
+    // Chi-squared(df) = Gamma(df/2, 2) for ALL positive df
+    // This is more efficient than summing squared normals
+    double shape = config_.chisquared_df / 2.0;
+    double scale = 2.0;
+    
+    // For very large df, use normal approximation for efficiency
+    if (config_.chisquared_df > 100.0) {
+        double mean = config_.chisquared_df;
+        double sd = std::sqrt(2.0 * config_.chisquared_df);
+        double result = generate_normal(u) * sd + mean;
+        return std::max(0.0, result);
+    }
+    
+    // Use gamma generation (which will use its own uniforms)
+    // Save current gamma params, use chi-squared params, then restore
+    double saved_shape = config_.gamma_shape;
+    double saved_scale = config_.gamma_scale;
+    
+    const_cast<PRNGConfig&>(config_).gamma_shape = shape;
+    const_cast<PRNGConfig&>(config_).gamma_scale = scale;
+    
+    double result = generate_gamma_dispatch(u);
+    
+    // Restore original gamma params
+    const_cast<PRNGConfig&>(config_).gamma_shape = saved_shape;
+    const_cast<PRNGConfig&>(config_).gamma_scale = saved_scale;
+    
+    return result;
+}
+
+double EnhancedPRNG::generate_binomial_dispatch(double u) {
+    if (config_.binomial_n < 0 || config_.binomial_p < 0.0 || config_.binomial_p > 1.0) {
+        throw std::invalid_argument("Invalid binomial parameters");
+    }
+    
+    // Edge cases
+    if (config_.binomial_n == 0 || config_.binomial_p == 0.0) return 0.0;
+    if (config_.binomial_p == 1.0) return static_cast<double>(config_.binomial_n);
+    
+    int n = config_.binomial_n;
+    double p = config_.binomial_p;
+    
+    // Use normal approximation when both n*p > 5 and n*(1-p) > 5
+    if (n * p > 5.0 && n * (1.0 - p) > 5.0) {
+        double mu = n * p;
+        double sigma = std::sqrt(n * p * (1.0 - p));
+        double approx = generate_normal(u) * sigma + mu;
+        double result = std::round(approx);
+        if (std::isnan(result) || std::isinf(result)) return mu;
+        return std::max(0.0, std::min(static_cast<double>(n), result));
+    }
+    
+    // Exact method: sum of Bernoulli trials
+    // Use first u for first trial, then get more uniforms as needed
+    double sum = (u < p) ? 1.0 : 0.0;
+    for (int i = 1; i < n; ++i) {
+        sum += (next_raw_uniform() < p) ? 1.0 : 0.0;
+    }
+    return sum;
+}
+
+double EnhancedPRNG::generate_student_t_dispatch(double u) {
+    if (config_.student_t_df <= 0.0) {
+        throw std::invalid_argument("Student's t df must be positive");
+    }
+    
+    // For large df, converges to normal
+    if (config_.student_t_df > 100.0) {
+        return generate_normal(u);
+    }
+    
+    // Student's t = Normal / sqrt(ChiSquared/df)
+    double norm = generate_normal(u);
+    
+    // Generate chi-squared (will use its own uniforms)
+    double saved_df = config_.chisquared_df;
+    const_cast<PRNGConfig&>(config_).chisquared_df = config_.student_t_df;
+    double chisq = generate_chisquared_dispatch(next_raw_uniform());
+    const_cast<PRNGConfig&>(config_).chisquared_df = saved_df;
+    
+    if (chisq <= 0.0) {
+        chisq = std::numeric_limits<double>::epsilon();
+    }
+    
+    double result = norm / std::sqrt(chisq / config_.student_t_df);
+    
+    if (std::isnan(result) || std::isinf(result)) {
+        return 0.0; // Fallback to median
+    }
+    return result;
+}
+
+double EnhancedPRNG::generate_negative_binomial_dispatch(double u) {
+    if (config_.negative_binomial_r <= 0.0 || config_.negative_binomial_p <= 0.0 || 
+        config_.negative_binomial_p >= 1.0) {
+        throw std::invalid_argument("Invalid negative binomial parameters");
+    }
+    
+    double r = config_.negative_binomial_r;
+    double p = config_.negative_binomial_p;
+    
+    // For large r, use gamma-poisson mixture approximation
+    if (r > 50.0) {
+        // Negative binomial can be generated as Poisson(lambda) where lambda ~ Gamma(r, (1-p)/p)
+        double gamma_shape = r;
+        double gamma_scale = (1.0 - p) / p;
+        
+        // Save current gamma params
+        double saved_shape = config_.gamma_shape;
+        double saved_scale = config_.gamma_scale;
+        
+        const_cast<PRNGConfig&>(config_).gamma_shape = gamma_shape;
+        const_cast<PRNGConfig&>(config_).gamma_scale = gamma_scale;
+        
+        double lambda = generate_gamma_dispatch(u);
+        
+        // Restore gamma params
+        const_cast<PRNGConfig&>(config_).gamma_shape = saved_shape;
+        const_cast<PRNGConfig&>(config_).gamma_scale = saved_scale;
+        
+        // Now generate Poisson with this lambda
+        double saved_lambda = config_.poisson_lambda;
+        const_cast<PRNGConfig&>(config_).poisson_lambda = lambda;
+        
+        double result = generate_poisson_dispatch(next_raw_uniform());
+        
+        const_cast<PRNGConfig&>(config_).poisson_lambda = saved_lambda;
+        
+        return result;
+    }
+    
+    // Exact method: sum of geometric distributions
+    // Each geometric counts failures until success
+    double sum = 0.0;
+    for (int i = 0; i < static_cast<int>(r); ++i) {
+        double trials = 0.0;
+        // Use u for first trial of first geometric, then get more uniforms
+        double trial_u = (i == 0) ? u : next_raw_uniform();
+        while (trial_u >= p) {
+            trials += 1.0;
+            if (trials > 1e6) break; // Prevent infinite loop
+            trial_u = next_raw_uniform();
+        }
+        sum += trials;
+    }
+    return sum;
+}
+
 void EnhancedPRNG::dumpConfig() const {
     Rcpp::Rcout << "EnhancedPRNG Configuration:" << std::endl;
     Rcpp::Rcout << "  a: " << config_.a << std::endl;
@@ -1125,6 +1416,13 @@ void EnhancedPRNG::dumpConfig() const {
         case PRNGConfig::POISSON: dist_str = "poisson"; break;
         case PRNGConfig::GAMMA: dist_str = "gamma"; break;
         case PRNGConfig::BETA: dist_str = "beta"; break;
+        case PRNGConfig::BERNOULLI: dist_str = "bernoulli"; break;
+        case PRNGConfig::BINOMIAL: dist_str = "binomial"; break;
+        case PRNGConfig::LOGNORMAL: dist_str = "lognormal"; break;
+        case PRNGConfig::WEIBULL: dist_str = "weibull"; break;
+        case PRNGConfig::CHISQUARED: dist_str = "chisquared"; break;
+        case PRNGConfig::STUDENT_T: dist_str = "student_t"; break;
+        case PRNGConfig::NEGATIVE_BINOMIAL: dist_str = "negative_binomial"; break;
         default: dist_str = "unknown"; break;
     }
     Rcpp::Rcout << "  distribution: " << dist_str << std::endl;

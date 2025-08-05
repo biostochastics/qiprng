@@ -564,6 +564,9 @@ std::tuple<long, long, long> qiprng::makeABCfromDelta(long long Delta) {
         return {1, 5, -1}; // Safe default fallback
     }
     
+    const int MAX_TRIES = 1000; // Maximum attempts to prevent infinite loops
+    int total_tries = 0;
+    
     try {
         // Use a thread-local PRNG for reproducibility within a thread but diversity between threads
         std::mt19937_64& rng = getThreadLocalEngine();
@@ -585,6 +588,9 @@ std::tuple<long, long, long> qiprng::makeABCfromDelta(long long Delta) {
         
         // Try each a value to find a suitable b and c
         for (long a_val : a_choices) {
+            if (total_tries >= MAX_TRIES) {
+                break; // Prevent runaway loops
+            }
             if (a_val == 0) continue; // Skip a=0
             
             // Limit search space for b to reasonable values
@@ -595,7 +601,7 @@ std::tuple<long, long, long> qiprng::makeABCfromDelta(long long Delta) {
             std::uniform_int_distribution<long> b_dist(-b_search_limit, b_search_limit);
     
             // Try multiple random b values for each a value
-            for (int i = 0; i < 200; ++i) {
+            for (int i = 0; i < 200 && total_tries < MAX_TRIES; ++i, ++total_tries) {
                 long b_val = b_dist(rng);
                 
                 // Skip b=0 unless appropriate condition is met

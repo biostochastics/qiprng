@@ -7,19 +7,20 @@
 #include <vector>
 #include <type_traits>
 #include <thread>  // For thread_local
+#include <atomic>  // For std::atomic
 #include <Rcpp.h>  // For Rcpp::warning
 
 namespace qiprng {
 
-// Global variable to control MPFR warning output
-extern bool suppress_mpfr_warnings;
+// Global variable to control MPFR warning output (atomic for thread-safety)
+extern std::atomic<bool> suppress_mpfr_warnings;
 
 // Thread-local counter to limit warnings
 thread_local extern int mpfr_warning_count;
 
 // Helper function to check MPFR operation result and conditionally issue warning
 inline bool check_mpfr_result(int ret, const char* operation_name, bool force_warning = false) {
-    if (ret != 0 && (!suppress_mpfr_warnings || force_warning)) {
+    if (ret != 0 && (!suppress_mpfr_warnings.load() || force_warning)) {
         if (mpfr_warning_count < 5) {
             Rcpp::warning("MPFR %s operation resulted in inexact value", operation_name);
             mpfr_warning_count++;

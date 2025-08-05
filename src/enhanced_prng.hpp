@@ -49,6 +49,22 @@ private:
     void fill_buffer_sequential(); // Renamed for clarity
     void fill_buffer();            // Decides which fill method to use
     
+    // Helper methods for parallel filling (refactoring)
+    bool create_thread_resources(size_t thread_count,
+                                std::vector<std::vector<std::tuple<long, long, long>>>& thread_abc_lists,
+                                std::vector<std::unique_ptr<MultiQI>>& thread_qis,
+                                std::vector<SecureBuffer<double>>& thread_buffers,
+                                std::vector<size_t>& chunk_sizes);
+    void submit_parallel_tasks(ThreadPool& pool,
+                              size_t thread_count,
+                              std::vector<SecureBuffer<double>>& thread_buffers,
+                              std::vector<std::unique_ptr<MultiQI>>& thread_qis,
+                              std::atomic<bool>& any_thread_failed,
+                              std::vector<std::future<void>>& futures);
+    void copy_thread_buffers_to_main(size_t thread_count,
+                                    const std::vector<SecureBuffer<double>>& thread_buffers,
+                                    ThreadPool& pool);
+    
     double next_raw_uniform();     // Gets a raw uniform without distribution transformations
 
     std::pair<double,double> box_muller_pair(double u1, double u2);
@@ -68,6 +84,15 @@ private:
     double generate_poisson_dispatch(double u); // u is first uniform
     double generate_gamma_dispatch(double u);   // u is first uniform
     double generate_beta_dispatch(double u);    // u is first uniform
+    
+    // New distribution dispatch methods
+    double generate_bernoulli_dispatch(double u);
+    double generate_binomial_dispatch(double u);
+    double generate_lognormal_dispatch(double u);
+    double generate_weibull_dispatch(double u);
+    double generate_chisquared_dispatch(double u);
+    double generate_student_t_dispatch(double u);
+    double generate_negative_binomial_dispatch(double u);
     
     // Thread management methods
     static void registerThreadForCleanup();

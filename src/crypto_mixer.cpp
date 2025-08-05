@@ -3,8 +3,9 @@
 #include "crypto_mixer.hpp"
 #include "prng_utils.hpp" // For getThreadLocalEngine and sodium_initialized extern
 #include <cstring>      // For std::memcpy
-#include <cmath>        // For std::fmod, std::isnan, std::nextafter
+#include <cmath>        // For std::fmod, std::isnan, std::nextafter, std::floor
 #include <limits>       // For std::numeric_limits
+#include <algorithm>    // For std::clamp
 
 
 namespace qiprng {
@@ -26,13 +27,10 @@ void CryptoMixer::secure_random(unsigned char* buf, size_t len) {
     } else if (qiprng::sodium_initialized) { // Check global flag
         randombytes_buf(buf, len);
     } else {
-        // Fallback or error if libsodium isn't ready
-        // For now, let's throw, as secure random is critical here.
-        // Or, fill with non-crypto random and issue a strong warning.
-        Rcpp::warning("CryptoMixer: Libsodium not initialized during secure_random call. Using std::rand as insecure fallback.");
-        // THIS IS INSECURE, for placeholder only
-        for(size_t i=0; i<len; ++i) buf[i] = static_cast<unsigned char>(std::rand());
-        // throw std::runtime_error("CryptoMixer: Libsodium not initialized, cannot generate secure random bytes.");
+        // Libsodium not initialized - this is a critical security error
+        // Throw an exception instead of using insecure fallback
+        throw std::runtime_error("CryptoMixer: Libsodium not initialized, cannot generate secure random bytes. "
+                                "Please ensure libsodium is properly initialized before using crypto features.");
     }
 }
 
@@ -132,22 +130,49 @@ bool CryptoMixer::mix(unsigned char* data, size_t len) {
                 std::memcpy(&crypto_uniform, &crypto_bits_val, sizeof(double)); // Safe reinterpret_cast alternative
                 crypto_uniform -= 1.0;
 
-                doubles[i] = std::fmod(doubles[i] + crypto_uniform, 1.0);
-                if (std::isnan(doubles[i])) {
-                    Rcpp::warning("CryptoMixer: NaN result detected in fmod, using fallback value 0.5");
-                    doubles[i] = 0.5;
+                // More robust fmod operation with proper bounds checking
+                double mixed_val = doubles[i] + crypto_uniform;
+                
+                // Handle potential overflow before fmod
+                if (mixed_val >= 2.0) {
+                    mixed_val = mixed_val - std::floor(mixed_val);
+                } else if (mixed_val < 0.0) {
+                    mixed_val = 1.0 + std::fmod(mixed_val, 1.0);
+                } else {
+                    mixed_val = std::fmod(mixed_val, 1.0);
                 }
-                if (doubles[i] < 0.0) {
-                    doubles[i] += 1.0;
+                
+                // Extra safety checks for numeric stability
+                if (std::isnan(mixed_val) || std::isinf(mixed_val)) {
+                    Rcpp::warning("CryptoMixer: Invalid result in mixing, using fallback value 0.5");
+                    mixed_val = 0.5;
                 }
+                
+                // Ensure result is strictly in [0, 1)
+                if (mixed_val < 0.0) {
+                    mixed_val = 0.0;
+                } else if (mixed_val >= 1.0) {
+                    mixed_val = std::nextafter(1.0, 0.0);
+                }
+                
+                doubles[i] = mixed_val;
 
                 if (use_tie_breaking_ && i > 0 && doubles[i] == prev_val) {
                      try {
-                        static thread_local std::uniform_real_distribution<double> tiny_dist(-1e-14, 1e-14);
-                        double eps = tiny_dist(qiprng::getThreadLocalEngine()); // Fully qualify
-                        doubles[i] += eps;
-                        if (doubles[i] >= 1.0) doubles[i] = std::nextafter(1.0, 0.0);
-                        if (doubles[i] < 0.0)  doubles[i] = std::nextafter(0.0, 1.0);
+                        // Use smaller epsilon to avoid underflow issues
+                        static thread_local std::uniform_real_distribution<double> tiny_dist(-1e-15, 1e-15);
+                        double eps = tiny_dist(qiprng::getThreadLocalEngine());
+                        double new_val = doubles[i] + eps;
+                        // Manual clamp implementation for C++14 compatibility
+                        const double min_val = std::nextafter(0.0, 1.0);
+                        const double max_val = std::nextafter(1.0, 0.0);
+                        if (new_val < min_val) {
+                            doubles[i] = min_val;
+                        } else if (new_val > max_val) {
+                            doubles[i] = max_val;
+                        } else {
+                            doubles[i] = new_val;
+                        }
                      } catch (const std::exception& e) {
                         Rcpp::warning("CryptoMixer: Tie breaking failed in modular path: %s", e.what());
                      }

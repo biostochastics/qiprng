@@ -22,7 +22,8 @@ Imports:
     nortest,
     randtests,
     R.cache,
-    digest
+    digest,
+    entropy
 Suggests:
     testthat (>= 3.1.0)
 LinkingTo: 

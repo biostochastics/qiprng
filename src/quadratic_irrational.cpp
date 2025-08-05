@@ -94,8 +94,24 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
         throw std::invalid_argument("QuadraticIrrational: Invalid precision value");
     }
     
-    // Check for potential integer overflow in discriminant calculation
-    // b² - 4ac
+    // Use __int128 for safe discriminant calculation when available
+    long long disc_ll;
+    
+#ifdef __SIZEOF_INT128__
+    // Use 128-bit integers for overflow-safe calculation
+    __int128 b_128 = static_cast<__int128>(b_);
+    __int128 a_128 = static_cast<__int128>(a_);
+    __int128 c_128 = static_cast<__int128>(c_);
+    __int128 disc_128 = b_128 * b_128 - 4 * a_128 * c_128;
+    
+    // Check if result fits in long long
+    if (disc_128 > std::numeric_limits<long long>::max() || 
+        disc_128 < std::numeric_limits<long long>::min()) {
+        throw std::runtime_error("QuadraticIrrational: discriminant exceeds long long range");
+    }
+    disc_ll = static_cast<long long>(disc_128);
+#else
+    // Fallback to overflow checking for platforms without __int128
     const long long MAX_SAFE_LONG = std::numeric_limits<long>::max();
     
     // Check if b can safely be squared
@@ -114,7 +130,8 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
     long long c_ll = static_cast<long long>(c_);
     long long b_squared = b_ll * b_ll;
     long long four_ac = 4LL * a_ll * c_ll;
-    long long disc_ll = b_squared - four_ac;
+    disc_ll = b_squared - four_ac;
+#endif
     
     // Check for non-positive discriminant
     if (disc_ll <= 0) {
@@ -147,7 +164,7 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
         
         op_ret = mpfr_sqrt(*root_->get(), *root_->get(), MPFR_RNDN);
         // It's normal for sqrt to be inexact, so suppress this specific warning
-        if (op_ret != 0 && !suppress_mpfr_warnings) {
+        if (op_ret != 0 && !suppress_mpfr_warnings.load()) {
             static thread_local int sqrt_warning_count = 0;
             if (sqrt_warning_count < 1) { // Only show once per thread
                 Rcpp::warning("Some inexact results in square root operations are normal and expected");
