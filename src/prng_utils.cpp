@@ -564,7 +564,7 @@ std::tuple<long, long, long> qiprng::makeABCfromDelta(long long Delta) {
         return {1, 5, -1}; // Safe default fallback
     }
     
-    const int MAX_TRIES = 1000; // Maximum attempts to prevent infinite loops
+    const int MAX_TRIES = 50; // Reduced attempts for better performance
     int total_tries = 0;
     
     try {
@@ -593,23 +593,28 @@ std::tuple<long, long, long> qiprng::makeABCfromDelta(long long Delta) {
             }
             if (a_val == 0) continue; // Skip a=0
             
-            // Limit search space for b to reasonable values
-            long b_search_limit = static_cast<long>(std::sqrt(static_cast<double>(Delta)) + 1000);
-            b_search_limit = std::min(b_search_limit, 20000L); // Cap at 20000 for performance
-            b_search_limit = std::max(b_search_limit, 100L);   // Ensure at least 100 to avoid tiny search space
-    
-            std::uniform_int_distribution<long> b_dist(-b_search_limit, b_search_limit);
-    
-            // Try multiple random b values for each a value
-            for (int i = 0; i < 200 && total_tries < MAX_TRIES; ++i, ++total_tries) {
-                long b_val = b_dist(rng);
+            // More efficient algorithm using mathematical properties
+            // Calculate b using quadratic residues approach
+            long b_val = static_cast<long>(std::sqrt(static_cast<double>(Delta)));
+            if (Delta > 4) {
+                // Find nearest square above Delta
+                long long nearest_square = static_cast<long long>(b_val + 1);
+                nearest_square = nearest_square * nearest_square;
+                if (nearest_square > Delta) {
+                    b_val = static_cast<long>(std::sqrt(static_cast<double>(nearest_square)));
+                }
+            }
+            
+            // Try a small range around the calculated b value
+            for (long b_offset = 0; b_offset < 10 && total_tries < MAX_TRIES; ++b_offset, ++total_tries) {
+                long b_try = (b_offset % 2 == 0) ? b_val + b_offset/2 : b_val - (b_offset+1)/2;
                 
                 // Skip b=0 unless appropriate condition is met
-                if (b_val == 0 && Delta % (4LL * a_val) != 0) continue;
+                if (b_try == 0 && Delta % (4LL * a_val) != 0) continue;
                 
                 // Use safe computation for b^2 to avoid overflow
                 // Check if b^2 would overflow a long long
-                long long b_ll = static_cast<long long>(b_val);
+                long long b_ll = static_cast<long long>(b_try);
                 if (b_ll > 0 && b_ll > std::numeric_limits<long long>::max() / b_ll) {
                     continue; // Would overflow, skip this value
                 }

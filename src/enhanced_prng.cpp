@@ -1293,6 +1293,14 @@ double EnhancedPRNG::generate_binomial_dispatch(double u) {
     int n = config_.binomial_n;
     double p = config_.binomial_p;
     
+    // Use normal approximation for n >= 50 and moderate p values
+    if (n >= 50 && p > 0.1 && p < 0.9) {
+        double mu = n * p;
+        double sigma = std::sqrt(n * p * (1.0 - p));
+        double result = std::round(generate_normal(u) * sigma + mu);
+        return std::max(0.0, std::min(static_cast<double>(n), result));
+    }
+    
     // Use normal approximation when both n*p > 5 and n*(1-p) > 5
     if (n * p > 5.0 && n * (1.0 - p) > 5.0) {
         double mu = n * p;
@@ -1352,8 +1360,8 @@ double EnhancedPRNG::generate_negative_binomial_dispatch(double u) {
     double r = config_.negative_binomial_r;
     double p = config_.negative_binomial_p;
     
-    // For large r, use gamma-poisson mixture approximation
-    if (r > 50.0) {
+    // Use gamma-Poisson mixture method for non-integer r or large r values
+    if (r != std::floor(r) || r > 50.0) {
         // Negative binomial can be generated as Poisson(lambda) where lambda ~ Gamma(r, (1-p)/p)
         double gamma_shape = r;
         double gamma_scale = (1.0 - p) / p;
@@ -1382,10 +1390,11 @@ double EnhancedPRNG::generate_negative_binomial_dispatch(double u) {
         return result;
     }
     
-    // Exact method: sum of geometric distributions
+    // Exact method for integer r: sum of geometric distributions
     // Each geometric counts failures until success
     double sum = 0.0;
-    for (int i = 0; i < static_cast<int>(r); ++i) {
+    int r_int = static_cast<int>(r);
+    for (int i = 0; i < r_int; ++i) {
         double trials = 0.0;
         // Use u for first trial of first geometric, then get more uniforms
         double trial_u = (i == 0) ? u : next_raw_uniform();

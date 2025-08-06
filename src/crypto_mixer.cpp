@@ -130,28 +130,21 @@ bool CryptoMixer::mix(unsigned char* data, size_t len) {
                 std::memcpy(&crypto_uniform, &crypto_bits_val, sizeof(double)); // Safe reinterpret_cast alternative
                 crypto_uniform -= 1.0;
 
-                // More robust fmod operation with proper bounds checking
+                // Simplified normalization to [0,1) range
                 double mixed_val = doubles[i] + crypto_uniform;
                 
-                // Handle potential overflow before fmod
-                if (mixed_val >= 2.0) {
-                    mixed_val = mixed_val - std::floor(mixed_val);
-                } else if (mixed_val < 0.0) {
-                    mixed_val = 1.0 + std::fmod(mixed_val, 1.0);
-                } else {
-                    mixed_val = std::fmod(mixed_val, 1.0);
-                }
+                // Normalize to [0,1) range using a single approach
+                mixed_val = mixed_val - std::floor(mixed_val);
+                if (mixed_val < 0.0) mixed_val += 1.0;
                 
-                // Extra safety checks for numeric stability
+                // Safety checks for numeric stability
                 if (std::isnan(mixed_val) || std::isinf(mixed_val)) {
                     Rcpp::warning("CryptoMixer: Invalid result in mixing, using fallback value 0.5");
                     mixed_val = 0.5;
                 }
                 
                 // Ensure result is strictly in [0, 1)
-                if (mixed_val < 0.0) {
-                    mixed_val = 0.0;
-                } else if (mixed_val >= 1.0) {
+                if (mixed_val >= 1.0) {
                     mixed_val = std::nextafter(1.0, 0.0);
                 }
                 
