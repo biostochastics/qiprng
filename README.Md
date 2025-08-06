@@ -2,7 +2,7 @@
 
 <img src="images/qiprng_logo.png" alt="QIPRNG Logo" width="300"/>
 
-[![Version](https://img.shields.io/badge/Version-0.3.0-blue)](https://github.com/biostochastics/qiprng)
+[![Version](https://img.shields.io/badge/Version-0.4.0-blue)](https://github.com/biostochastics/qiprng)
 [![ThreadSafe](https://img.shields.io/badge/Thread%20Safe-Yes-brightgreen)](https://github.com/biostochastics/qiprng)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen)](https://github.com/biostochastics/qiprng)
@@ -133,7 +133,7 @@ remotes::install_github("biostochastics/qiprng")
 ## Features
 
 - **High-precision computation** using the MPFR library (24-10000 bits precision)
-- **Multiple output distributions**: uniform, normal, exponential
+- **14 statistical distributions**: uniform, normal, exponential, Poisson, gamma, beta, Bernoulli, binomial, log-normal, Weibull, chi-squared, Student's t, negative binomial
 - **Cryptographic-grade security** using ChaCha20 cipher for enhanced randomness
 - **Deterministic/reproducible mode** with seed support for scientific computing (v0.2.7)
 - **Configurable parameters** for the quadratic recurrence relation
@@ -145,6 +145,38 @@ remotes::install_github("biostochastics/qiprng")
 - **Comprehensive statistical testing** framework with 70+ tests for PRNG quality evaluation
 - **Jump-ahead functionality** for efficiently skipping ahead in the sequence
 - **Validated discriminants** with 370 excellent-rated parameters for optimal quality
+
+## Supported Distributions
+
+### Continuous Distributions
+
+| Distribution | Parameters | Description | Example Usage |
+|-------------|------------|-------------|---------------|
+| **Uniform** | `range_min`, `range_max` | Uniform distribution on [min, max] | `distribution = "uniform_range"` |
+| **Normal** | `normal_mean`, `normal_sd` | Normal (Gaussian) distribution | `distribution = "normal"` |
+| **Exponential** | `exponential_lambda` | Exponential distribution with rate λ | `distribution = "exponential"` |
+| **Gamma** | `gamma_shape`, `gamma_scale` | Gamma distribution | `distribution = "gamma"` |
+| **Beta** | `beta_alpha`, `beta_beta` | Beta distribution on [0,1] | `distribution = "beta"` |
+| **Log-Normal** | `lognormal_mu`, `lognormal_sigma` | Exponential of normal distribution | `distribution = "lognormal"` |
+| **Weibull** | `weibull_shape`, `weibull_scale` | Weibull distribution (reliability analysis) | `distribution = "weibull"` |
+| **Chi-Squared** | `chisquared_df` | Chi-squared distribution with df degrees of freedom | `distribution = "chisquared"` |
+| **Student's t** | `student_t_df` | Student's t-distribution with df degrees of freedom | `distribution = "student_t"` |
+
+### Discrete Distributions
+
+| Distribution | Parameters | Description | Example Usage |
+|-------------|------------|-------------|---------------|
+| **Bernoulli** | `bernoulli_p` | Binary outcome with probability p | `distribution = "bernoulli"` |
+| **Binomial** | `binomial_n`, `binomial_p` | Sum of n Bernoulli trials | `distribution = "binomial"` |
+| **Poisson** | `poisson_lambda` | Poisson distribution with mean λ | `distribution = "poisson"` |
+| **Negative Binomial** | `negative_binomial_r`, `negative_binomial_p` | Number of failures before r successes | `distribution = "negative_binomial"` |
+
+### Distribution Features
+
+- **Optimized algorithms**: Normal approximations for large parameters (e.g., binomial with n > 50 and np > 5)
+- **Numerical stability**: Robust handling of edge cases and extreme parameter values
+- **Thread-safe**: All distributions maintain thread safety with proper state management
+- **Efficient reuse**: Complex distributions leverage simpler ones (e.g., chi-squared uses gamma)
 
 ## Usage
 
@@ -523,7 +555,7 @@ If you use this package in your research, please cite:
   title = {qiprng: Quadratic Irrational Pseudo-Random Number Generator for R},
   author = {Sergey Kornilov},
   year = {2025},
-  note = {R package version 0.3.0},
+  note = {R package version 0.4.0},
   url = {https://github.com/biostochastics/qiprng}
 }
 ```

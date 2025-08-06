@@ -93,8 +93,9 @@ validate_config <- function(config) {
     # Check distribution parameters
     if (!is.null(config$distribution)) {
         dist <- config$distribution
-        if (!dist %in% c("uniform_01", "uniform_range", "normal", "exponential", "poisson", "gamma", "beta")) {
-            stop("Invalid distribution: must be one of 'uniform_01', 'uniform_range', 'normal', 'exponential', 'poisson', 'gamma', 'beta'")
+        if (!dist %in% c("uniform_01", "uniform_range", "normal", "exponential", "poisson", "gamma", "beta",
+                          "bernoulli", "binomial", "lognormal", "weibull", "chisquared", "student_t", "negative_binomial")) {
+            stop("Invalid distribution: must be one of 'uniform_01', 'uniform_range', 'normal', 'exponential', 'poisson', 'gamma', 'beta', 'bernoulli', 'binomial', 'lognormal', 'weibull', 'chisquared', 'student_t', 'negative_binomial'")
         }
         
         if (dist == "uniform_range") {

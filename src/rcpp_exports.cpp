@@ -29,6 +29,67 @@ void initialize_libsodium_() {
     Rcpp::Rcout << "Libsodium initialized successfully. Return code: " << ret << std::endl;
 }
 
+// Helper function to validate PRNGConfig parameters
+void validatePRNGConfig(const PRNGConfig& cfg) {
+    // Validate discriminant (b^2 - 4ac > 0)
+    long long disc = static_cast<long long>(cfg.b) * cfg.b - 
+                     4LL * static_cast<long long>(cfg.a) * cfg.c;
+    if (disc <= 0) {
+        throw std::invalid_argument("Invalid config: discriminant must be positive (b^2 - 4ac > 0)");
+    }
+    
+    // Validate a is not zero
+    if (cfg.a == 0) {
+        throw std::invalid_argument("Invalid config: parameter 'a' cannot be zero");
+    }
+    
+    // Validate buffer size
+    if (cfg.buffer_size == 0) {
+        throw std::invalid_argument("Invalid config: buffer_size must be greater than 0");
+    }
+    
+    // Validate range parameters
+    if (cfg.range_min >= cfg.range_max) {
+        throw std::invalid_argument("Invalid config: range_min must be less than range_max");
+    }
+    
+    // Validate distribution-specific parameters
+    if (cfg.distribution == PRNGConfig::NORMAL && cfg.normal_sd <= 0) {
+        throw std::invalid_argument("Invalid config: normal_sd must be positive");
+    }
+    
+    if (cfg.distribution == PRNGConfig::EXPONENTIAL && cfg.exponential_lambda <= 0) {
+        throw std::invalid_argument("Invalid config: exponential_lambda must be positive");
+    }
+    
+    if (cfg.distribution == PRNGConfig::POISSON && cfg.poisson_lambda <= 0) {
+        throw std::invalid_argument("Invalid config: poisson_lambda must be positive");
+    }
+    
+    if (cfg.distribution == PRNGConfig::GAMMA) {
+        if (cfg.gamma_shape <= 0) {
+            throw std::invalid_argument("Invalid config: gamma_shape must be positive");
+        }
+        if (cfg.gamma_scale <= 0) {
+            throw std::invalid_argument("Invalid config: gamma_scale must be positive");
+        }
+    }
+    
+    if (cfg.distribution == PRNGConfig::BETA) {
+        if (cfg.beta_alpha <= 0) {
+            throw std::invalid_argument("Invalid config: beta_alpha must be positive");
+        }
+        if (cfg.beta_beta <= 0) {
+            throw std::invalid_argument("Invalid config: beta_beta must be positive");
+        }
+    }
+    
+    // Validate MPFR precision
+    if (cfg.mpfr_precision < MPFR_PREC_MIN || cfg.mpfr_precision > MPFR_PREC_MAX) {
+        throw std::invalid_argument("Invalid config: mpfr_precision out of valid range");
+    }
+}
+
 // Helper to parse Rcpp::List to PRNGConfig
 PRNGConfig parsePRNGConfig(Rcpp::List rcfg) {
     PRNGConfig cfg;
@@ -73,7 +134,7 @@ PRNGConfig parsePRNGConfig(Rcpp::List rcfg) {
         SEXP dist_sexp = rcfg["distribution"];
         if (TYPEOF(dist_sexp) == INTSXP) {
             int dist_int = Rcpp::as<int>(dist_sexp);
-            if (dist_int >= 0 && dist_int <= 6) { // Check valid distribution enum range
+            if (dist_int >= 0 && dist_int <= 13) { // Check valid distribution enum range (14 distributions)
                 cfg.distribution = static_cast<PRNGConfig::Distribution>(dist_int);
             }
         } else if (TYPEOF(dist_sexp) == STRSXP) {
@@ -85,6 +146,13 @@ PRNGConfig parsePRNGConfig(Rcpp::List rcfg) {
             else if (dist_str == "poisson") cfg.distribution = PRNGConfig::POISSON;
             else if (dist_str == "gamma") cfg.distribution = PRNGConfig::GAMMA;
             else if (dist_str == "beta") cfg.distribution = PRNGConfig::BETA;
+            else if (dist_str == "bernoulli") cfg.distribution = PRNGConfig::BERNOULLI;
+            else if (dist_str == "binomial") cfg.distribution = PRNGConfig::BINOMIAL;
+            else if (dist_str == "lognormal") cfg.distribution = PRNGConfig::LOGNORMAL;
+            else if (dist_str == "weibull") cfg.distribution = PRNGConfig::WEIBULL;
+            else if (dist_str == "chisquared") cfg.distribution = PRNGConfig::CHISQUARED;
+            else if (dist_str == "student_t") cfg.distribution = PRNGConfig::STUDENT_T;
+            else if (dist_str == "negative_binomial") cfg.distribution = PRNGConfig::NEGATIVE_BINOMIAL;
         }
     }
     
@@ -173,6 +241,84 @@ PRNGConfig parsePRNGConfig(Rcpp::List rcfg) {
         }
     }
     
+    // New distribution parameters
+    if (rcfg.containsElementNamed("bernoulli_p")) {
+        SEXP p_sexp = rcfg["bernoulli_p"];
+        if (TYPEOF(p_sexp) == REALSXP) {
+            cfg.bernoulli_p = Rcpp::as<double>(p_sexp);
+        }
+    }
+    
+    if (rcfg.containsElementNamed("binomial_n")) {
+        SEXP n_sexp = rcfg["binomial_n"];
+        if (TYPEOF(n_sexp) == INTSXP || TYPEOF(n_sexp) == REALSXP) {
+            cfg.binomial_n = Rcpp::as<int>(n_sexp);
+        }
+    }
+    
+    if (rcfg.containsElementNamed("binomial_p")) {
+        SEXP p_sexp = rcfg["binomial_p"];
+        if (TYPEOF(p_sexp) == REALSXP) {
+            cfg.binomial_p = Rcpp::as<double>(p_sexp);
+        }
+    }
+    
+    if (rcfg.containsElementNamed("lognormal_mu")) {
+        SEXP mu_sexp = rcfg["lognormal_mu"];
+        if (TYPEOF(mu_sexp) == REALSXP) {
+            cfg.lognormal_mu = Rcpp::as<double>(mu_sexp);
+        }
+    }
+    
+    if (rcfg.containsElementNamed("lognormal_sigma")) {
+        SEXP sigma_sexp = rcfg["lognormal_sigma"];
+        if (TYPEOF(sigma_sexp) == REALSXP) {
+            cfg.lognormal_sigma = Rcpp::as<double>(sigma_sexp);
+        }
+    }
+    
+    if (rcfg.containsElementNamed("weibull_shape")) {
+        SEXP shape_sexp = rcfg["weibull_shape"];
+        if (TYPEOF(shape_sexp) == REALSXP) {
+            cfg.weibull_shape = Rcpp::as<double>(shape_sexp);
+        }
+    }
+    
+    if (rcfg.containsElementNamed("weibull_scale")) {
+        SEXP scale_sexp = rcfg["weibull_scale"];
+        if (TYPEOF(scale_sexp) == REALSXP) {
+            cfg.weibull_scale = Rcpp::as<double>(scale_sexp);
+        }
+    }
+    
+    if (rcfg.containsElementNamed("chisquared_df")) {
+        SEXP df_sexp = rcfg["chisquared_df"];
+        if (TYPEOF(df_sexp) == INTSXP || TYPEOF(df_sexp) == REALSXP) {
+            cfg.chisquared_df = Rcpp::as<int>(df_sexp);
+        }
+    }
+    
+    if (rcfg.containsElementNamed("student_t_df")) {
+        SEXP df_sexp = rcfg["student_t_df"];
+        if (TYPEOF(df_sexp) == INTSXP || TYPEOF(df_sexp) == REALSXP) {
+            cfg.student_t_df = Rcpp::as<int>(df_sexp);
+        }
+    }
+    
+    if (rcfg.containsElementNamed("negative_binomial_r")) {
+        SEXP r_sexp = rcfg["negative_binomial_r"];
+        if (TYPEOF(r_sexp) == INTSXP || TYPEOF(r_sexp) == REALSXP) {
+            cfg.negative_binomial_r = Rcpp::as<int>(r_sexp);
+        }
+    }
+    
+    if (rcfg.containsElementNamed("negative_binomial_p")) {
+        SEXP p_sexp = rcfg["negative_binomial_p"];
+        if (TYPEOF(p_sexp) == REALSXP) {
+            cfg.negative_binomial_p = Rcpp::as<double>(p_sexp);
+        }
+    }
+    
     // Advanced options
     if (rcfg.containsElementNamed("use_crypto_mixing")) {
         SEXP crypto_sexp = rcfg["use_crypto_mixing"];
@@ -258,6 +404,9 @@ PRNGConfig parsePRNGConfig(Rcpp::List rcfg) {
         }
     }
     
+    // Validate the configuration before returning
+    validatePRNGConfig(cfg);
+    
     return cfg;
 }
 
@@ -281,6 +430,13 @@ Rcpp::List PRNGConfigToList(const PRNGConfig& cfg) {
         case PRNGConfig::POISSON: dist_str = "poisson"; break;
         case PRNGConfig::GAMMA: dist_str = "gamma"; break;
         case PRNGConfig::BETA: dist_str = "beta"; break;
+        case PRNGConfig::BERNOULLI: dist_str = "bernoulli"; break;
+        case PRNGConfig::BINOMIAL: dist_str = "binomial"; break;
+        case PRNGConfig::LOGNORMAL: dist_str = "lognormal"; break;
+        case PRNGConfig::WEIBULL: dist_str = "weibull"; break;
+        case PRNGConfig::CHISQUARED: dist_str = "chisquared"; break;
+        case PRNGConfig::STUDENT_T: dist_str = "student_t"; break;
+        case PRNGConfig::NEGATIVE_BINOMIAL: dist_str = "negative_binomial"; break;
         default: dist_str = "unknown"; break;
     }
     result["distribution"] = dist_str;
@@ -306,6 +462,19 @@ Rcpp::List PRNGConfigToList(const PRNGConfig& cfg) {
     result["gamma_scale"] = cfg.gamma_scale;
     result["beta_alpha"] = cfg.beta_alpha;
     result["beta_beta"] = cfg.beta_beta;
+    
+    // Additional new distribution parameters
+    result["bernoulli_p"] = cfg.bernoulli_p;
+    result["binomial_n"] = cfg.binomial_n;
+    result["binomial_p"] = cfg.binomial_p;
+    result["lognormal_mu"] = cfg.lognormal_mu;
+    result["lognormal_sigma"] = cfg.lognormal_sigma;
+    result["weibull_shape"] = cfg.weibull_shape;
+    result["weibull_scale"] = cfg.weibull_scale;
+    result["chisquared_df"] = cfg.chisquared_df;
+    result["student_t_df"] = cfg.student_t_df;
+    result["negative_binomial_r"] = cfg.negative_binomial_r;
+    result["negative_binomial_p"] = cfg.negative_binomial_p;
     
     // Advanced settings
     result["use_crypto_mixing"] = cfg.use_crypto_mixing;
@@ -671,12 +840,12 @@ void jumpAheadPRNG_(double n) {
 
 // [[Rcpp::export(".suppress_mpfr_warnings_")]]
 bool suppress_mpfr_warnings_() {
-    return qiprng::suppress_mpfr_warnings;
+    return qiprng::suppress_mpfr_warnings.load();
 }
 
 // [[Rcpp::export(".set_mpfr_warnings_")]]
 void set_mpfr_warnings_(bool show_warnings) {
-    qiprng::suppress_mpfr_warnings = !show_warnings;
+    qiprng::suppress_mpfr_warnings.store(!show_warnings);
 }
 
 // [[Rcpp::export(".cleanupPRNG_ThreadSafe_")]]
@@ -744,7 +913,7 @@ bool cleanupPRNG_Final_() {
         
         // Reset global flags
         g_use_threading = false;
-        cleanup_in_progress = false;
+        cleanup_in_progress.store(false, std::memory_order_release);
         
         return true;
     } catch (...) {

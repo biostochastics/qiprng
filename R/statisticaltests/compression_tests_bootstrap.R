@@ -263,6 +263,9 @@ run_compression_tests_bootstrap <- function(suite, use_legacy = FALSE) {
     },
     p_value = entropy_result$p.value,
     statistic = entropy_result$deviation,
+    entropy = entropy_result$entropy,
+    max_entropy = entropy_result$max_entropy,
+    deviation = entropy_result$deviation,
     details = paste(
       "Bootstrap test of entropy deviation from maximum.",
       "Entropy:", round(entropy_result$entropy, 4),

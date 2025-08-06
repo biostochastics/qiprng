@@ -16,7 +16,14 @@ struct PRNGConfig {
         EXPONENTIAL,
         POISSON,
         GAMMA,
-        BETA
+        BETA,
+        BERNOULLI,
+        BINOMIAL,
+        LOGNORMAL,
+        WEIBULL,
+        CHISQUARED,
+        STUDENT_T,
+        NEGATIVE_BINOMIAL
     };
 
     enum NormalMethod {
@@ -46,6 +53,19 @@ struct PRNGConfig {
     double gamma_scale = 1.0;
     double beta_alpha = 1.0;
     double beta_beta = 1.0;
+    
+    // Additional distribution parameters
+    double bernoulli_p = 0.5;
+    int binomial_n = 10;
+    double binomial_p = 0.5;
+    double lognormal_mu = 0.0;
+    double lognormal_sigma = 1.0;
+    double weibull_shape = 1.0;
+    double weibull_scale = 1.0;
+    double chisquared_df = 1.0;
+    double student_t_df = 1.0;
+    double negative_binomial_r = 1.0;
+    double negative_binomial_p = 0.5;
 
     // Crypto & advanced
     bool use_crypto_mixing = false;
