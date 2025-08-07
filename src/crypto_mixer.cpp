@@ -18,32 +18,28 @@ void CryptoMixer::secure_random(unsigned char* buf, size_t len) {
         throw std::invalid_argument("CryptoMixer: Invalid buffer for secure random generation");
     }
     
-    if (has_seed_) {
-        // Use deterministic generation when seed is provided
-        std::uniform_int_distribution<unsigned int> dist(0, 255);
-        for (size_t i = 0; i < len; ++i) {
-            buf[i] = static_cast<unsigned char>(dist(det_rng_));
-        }
-    } else if (qiprng::sodium_initialized) { // Check global flag
-        randombytes_buf(buf, len);
-    } else {
+    // SECURITY FIX: Removed deterministic seeding path entirely
+    // CryptoMixer MUST only use cryptographically secure random from libsodium
+    // Deterministic seeding would completely break security guarantees
+    
+    if (!qiprng::sodium_initialized) {
         // Libsodium not initialized - this is a critical security error
-        // Throw an exception instead of using insecure fallback
         throw std::runtime_error("CryptoMixer: Libsodium not initialized, cannot generate secure random bytes. "
                                 "Please ensure libsodium is properly initialized before using crypto features.");
     }
+    
+    // Always use cryptographically secure random bytes from libsodium
+    randombytes_buf(buf, len);
 }
 
-CryptoMixer::CryptoMixer(bool adhoc_corrections, bool use_tie_breaking,
-                         uint64_t seed, bool has_seed)
+CryptoMixer::CryptoMixer(bool adhoc_corrections, bool use_tie_breaking)
     : key_(crypto_stream_chacha20_KEYBYTES),
       nonce_(crypto_stream_chacha20_NONCEBYTES),
       adhoc_corrections_(adhoc_corrections),
       use_tie_breaking_(use_tie_breaking),
-      initialized_(false),
-      seed_(seed),
-      has_seed_(has_seed),
-      det_rng_(has_seed ? seed : std::random_device{}()) {
+      initialized_(false) {
+    // SECURITY FIX: Removed all deterministic seeding
+    // CryptoMixer must only use secure random for cryptographic operations
     if (!qiprng::sodium_initialized) {
          Rcpp::warning("CryptoMixer: Libsodium not initialized at construction. Crypto mixing may be insecure or fail.");
         // Do not throw here, allow construction but it won't be secure until libsodium is init'd

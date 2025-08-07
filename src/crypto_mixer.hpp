@@ -28,9 +28,8 @@ private:
     bool adhoc_corrections_;
     bool use_tie_breaking_;
     bool initialized_;
-    uint64_t seed_;
-    bool has_seed_;
-    std::mt19937_64 det_rng_;
+    // SECURITY FIX: Removed deterministic seeding - CryptoMixer should ONLY use secure random
+    // Deterministic seeding completely breaks cryptographic security guarantees
 
     void secure_random(unsigned char* buf, size_t len);
 
@@ -38,8 +37,8 @@ public:
     static constexpr uint64_t MANTISSA_MASK = 0x000FFFFFFFFFFFFFULL;
     static constexpr uint64_t ONE_BITS      = 0x3FF0000000000000ULL;
 
-    CryptoMixer(bool adhoc_corrections, bool use_tie_breaking, 
-                uint64_t seed = 0, bool has_seed = false);
+    // SECURITY FIX: Removed seed parameters - crypto must always use secure random
+    CryptoMixer(bool adhoc_corrections, bool use_tie_breaking);
     ~CryptoMixer(); // SecureBuffer handles its own cleanup
 
     void reseed();

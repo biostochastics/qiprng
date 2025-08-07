@@ -94,44 +94,13 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
         throw std::invalid_argument("QuadraticIrrational: Invalid precision value");
     }
     
-    // Use __int128 for safe discriminant calculation when available
+    // Use safe discriminant calculation with overflow protection
     long long disc_ll;
+    std::string error_msg;
     
-#ifdef __SIZEOF_INT128__
-    // Use 128-bit integers for overflow-safe calculation
-    __int128 b_128 = static_cast<__int128>(b_);
-    __int128 a_128 = static_cast<__int128>(a_);
-    __int128 c_128 = static_cast<__int128>(c_);
-    __int128 disc_128 = b_128 * b_128 - 4 * a_128 * c_128;
-    
-    // Check if result fits in long long
-    if (disc_128 > std::numeric_limits<long long>::max() || 
-        disc_128 < std::numeric_limits<long long>::min()) {
-        throw std::runtime_error("QuadraticIrrational: discriminant exceeds long long range");
+    if (!safe_calculate_discriminant(a_, b_, c_, disc_ll, error_msg)) {
+        throw std::runtime_error("QuadraticIrrational: " + error_msg);
     }
-    disc_ll = static_cast<long long>(disc_128);
-#else
-    // Fallback to overflow checking for platforms without __int128
-    const long long MAX_SAFE_LONG = std::numeric_limits<long>::max();
-    
-    // Check if b can safely be squared
-    if (std::abs(static_cast<long long>(b)) > static_cast<long long>(std::sqrt(static_cast<double>(MAX_SAFE_LONG)))) {
-        throw std::runtime_error("QuadraticIrrational: 'b' parameter is too large, would cause overflow in discriminant calculation");
-    }
-    
-    // Check for the 4*a*c calculation
-    if (std::abs(a) > MAX_SAFE_LONG / 4 || (a != 0 && std::abs(c) > MAX_SAFE_LONG / (4 * std::abs(a)))) {
-        throw std::runtime_error("QuadraticIrrational: 'a' and 'c' parameters would cause overflow in 4*a*c calculation");
-    }
-    
-    // Now safely calculate discriminant
-    long long b_ll = static_cast<long long>(b_);
-    long long a_ll = static_cast<long long>(a_);
-    long long c_ll = static_cast<long long>(c_);
-    long long b_squared = b_ll * b_ll;
-    long long four_ac = 4LL * a_ll * c_ll;
-    disc_ll = b_squared - four_ac;
-#endif
     
     // Check for non-positive discriminant
     if (disc_ll <= 0) {

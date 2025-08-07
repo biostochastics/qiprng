@@ -43,8 +43,10 @@ private:
     // Thread management
     std::atomic<bool> is_being_destroyed_;
     std::mutex cleanup_mutex_;
+    std::once_flag shutdown_once_flag_;  // Ensure shutdown logic runs only once
 
     void reset_state();
+    void prepare_for_shutdown();       // Thread-safe shutdown preparation
     void fill_buffer_parallel(size_t thread_count);
     void fill_buffer_sequential(); // Renamed for clarity
     void fill_buffer();            // Decides which fill method to use
@@ -102,7 +104,7 @@ private:
 public:
     EnhancedPRNG(const PRNGConfig& cfg,
                  const std::vector<std::tuple<long, long, long>>& abc_list);
-    ~EnhancedPRNG();
+    ~EnhancedPRNG() noexcept;
 
     const PRNGConfig& getConfig() const;
     size_t getQICount() const;
