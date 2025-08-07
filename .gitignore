@@ -71,9 +71,10 @@ GEMINI.md
 
 # Editor directories and files
 
-# Task files
-# tasks.json
-# tasks/ 
 ideas
 archive
 .DS_Store
+
+# Task files
+# tasks.json
+# tasks/ 

@@ -17,7 +17,7 @@ double EnhancedPRNG::next_raw_uniform() {
     static thread_local std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
     
     // Check if object is being destroyed
-    if (is_being_destroyed_.load()) {
+    if (is_being_destroyed_.load(std::memory_order_acquire)) {
         // Return a random value from fallback generator if we're in the process of cleanup
         return fallback_dist(fallback_rng);
     }
@@ -96,12 +96,20 @@ EnhancedPRNG::EnhancedPRNG(const PRNGConfig& cfg,
     
     // Create crypto mixer if enabled
     if (config_.use_crypto_mixing) {
-        initialize_libsodium_if_needed();
+        // SECURITY FIX: Use centralized libsodium initialization
+        ensure_libsodium_initialized();
+        
+        // SECURITY WARNING: Crypto mixing should not be used with deterministic seeds
+        if (config_.has_seed) {
+            Rcpp::warning("SECURITY WARNING: Deterministic seed detected with crypto mixing enabled. "
+                         "This completely defeats cryptographic security. "
+                         "Consider disabling crypto mixing for deterministic testing.");
+        }
+        
+        // SECURITY FIX: CryptoMixer no longer accepts seed parameters
         crypto_ = std::make_unique<CryptoMixer>(
             config_.adhoc_corrections,
-            config_.use_tie_breaking,
-            config_.seed,
-            config_.has_seed
+            config_.use_tie_breaking
         );
     }
     
@@ -122,24 +130,33 @@ EnhancedPRNG::EnhancedPRNG(const PRNGConfig& cfg,
     }
 }
 
+// Thread-safe shutdown preparation
+void EnhancedPRNG::prepare_for_shutdown() {
+    // Set the destruction flag with sequential consistency
+    is_being_destroyed_.store(true, std::memory_order_seq_cst);
+    
+    // Call prepare_for_shutdown on ziggurat if it exists
+    if (ziggurat_) {
+        try {
+            ziggurat_->prepare_for_shutdown();
+            ziggurat_->set_thread_safe_mode(false);
+        } catch (...) {
+            // Ignore errors during shutdown preparation
+        }
+    }
+}
+
 // Destructor with safe cleanup
-EnhancedPRNG::~EnhancedPRNG() {
-    // Mark as being destroyed to prevent new operations
-    is_being_destroyed_.store(true);
+EnhancedPRNG::~EnhancedPRNG() noexcept {
+    // Use std::call_once to ensure shutdown logic runs only once
+    std::call_once(shutdown_once_flag_, [this]() {
+        prepare_for_shutdown();
+    });
     
     // Acquire cleanup mutex to prevent concurrent access
     std::lock_guard<std::mutex> lock(cleanup_mutex_);
     
     try {
-        // Disable thread-safe mode on ziggurat first
-        if (ziggurat_) {
-            try {
-                ziggurat_->set_thread_safe_mode(false);
-            } catch (...) {
-                // Ignore errors during cleanup
-            }
-        }
-        
         // Clean up resources in an orderly fashion
         // Order matters for safe destruction
         crypto_.reset();
@@ -152,10 +169,12 @@ EnhancedPRNG::~EnhancedPRNG() {
     } catch (const std::exception& e) {
         // Log error but continue - this is a destructor
         if (config_.debug) {
-            Rcpp::warning("Error during PRNG destruction: %s", e.what());
+            // Can't use Rcpp::warning in a noexcept destructor
+            // Silently continue
         }
     } catch (...) {
         // Catch all exceptions to prevent crashes during destruction
+        // This is required for noexcept guarantee
     }
 }
 
@@ -923,7 +942,7 @@ double EnhancedPRNG::generate_uniform_range(double u) {
 
 double EnhancedPRNG::generate_normal(double u) {
     // Check if object is being destroyed
-    if (is_being_destroyed_.load()) {
+    if (is_being_destroyed_.load(std::memory_order_acquire)) {
         // Return a mean + small random variance if we're in the process of cleanup
         // This avoids returning identical values which break statistical tests
         static thread_local std::mt19937 fallback_rng(std::random_device{}());
@@ -960,7 +979,7 @@ double EnhancedPRNG::generate_normal(double u) {
                 }
                 
                 // Check again for object destruction - critical for thread safety
-                if (is_being_destroyed_.load()) {
+                if (is_being_destroyed_.load(std::memory_order_acquire)) {
                     // Use fallback RNG instead of fixed value
                     static thread_local std::mt19937 fallback_rng(std::random_device{}());
                     std::normal_distribution<double> fallback_dist(config_.normal_mean, 0.01);
@@ -991,7 +1010,7 @@ double EnhancedPRNG::generate_normal(double u) {
                 }
                 
                 // If the Ziggurat is being destroyed, use fallback RNG
-                if (is_being_destroyed_.load()) {
+                if (is_being_destroyed_.load(std::memory_order_acquire)) {
                     static thread_local std::mt19937 fallback_rng(std::random_device{}());
                     std::normal_distribution<double> fallback_dist(config_.normal_mean, config_.normal_sd);
                     return fallback_dist(fallback_rng);
@@ -1016,7 +1035,7 @@ double EnhancedPRNG::generate_normal(double u) {
                 }
                 
                 // If the object is being destroyed, use fallback RNG
-                if (is_being_destroyed_.load()) {
+                if (is_being_destroyed_.load(std::memory_order_acquire)) {
                     static thread_local std::mt19937 fallback_rng(std::random_device{}());
                     std::normal_distribution<double> fallback_dist(config_.normal_mean, config_.normal_sd);
                     return fallback_dist(fallback_rng);
@@ -1034,7 +1053,7 @@ double EnhancedPRNG::generate_normal(double u) {
             }
         } else {
             // Use Box-Muller method with destruction check
-            if (is_being_destroyed_.load()) {
+            if (is_being_destroyed_.load(std::memory_order_acquire)) {
                 static thread_local std::mt19937 fallback_rng(std::random_device{}());
                 std::normal_distribution<double> fallback_dist(config_.normal_mean, config_.normal_sd);
                 return fallback_dist(fallback_rng);
@@ -1511,7 +1530,7 @@ void EnhancedPRNG::prepareForCleanup() {
 
 void EnhancedPRNG::performCleanup() {
     // Only continue if already marked for destruction
-    if (!is_being_destroyed_.load()) {
+    if (!is_being_destroyed_.load(std::memory_order_acquire)) {
         prepareForCleanup();
     }
     
@@ -1540,7 +1559,7 @@ void EnhancedPRNG::performCleanup() {
 }
 
 bool EnhancedPRNG::isBeingDestroyed() const {
-    return is_being_destroyed_.load();
+    return is_being_destroyed_.load(std::memory_order_acquire);
 }
 
 } // namespace qiprng

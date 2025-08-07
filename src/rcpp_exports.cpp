@@ -10,30 +10,26 @@ using namespace qiprng;
 
 // [[Rcpp::export(".initialize_libsodium_")]]
 void initialize_libsodium_() {
-    static bool already_initialized = false;
-    if (already_initialized) {
-        return;
+    // SECURITY FIX: Use unified initialization to prevent race conditions
+    try {
+        qiprng::ensure_libsodium_initialized();
+        Rcpp::Rcout << "Libsodium initialized successfully." << std::endl;
+    } catch (const std::exception& e) {
+        // Re-throw with R-friendly error message
+        throw std::runtime_error(std::string("Failed to initialize libsodium: ") + e.what());
     }
-    
-    int ret = sodium_init();
-    if (ret < 0) {
-        // sodium_init() returns -1 on error, 0 on success, 1 if already initialized.
-        throw std::runtime_error("Failed to initialize libsodium. The library may be unusable or insecure.");
-    }
-    
-    // Set the global flag
-    qiprng::sodium_initialized = true;
-    already_initialized = true;
-    qiprng::sodium_initialized_flag.store(true);
-    
-    Rcpp::Rcout << "Libsodium initialized successfully. Return code: " << ret << std::endl;
 }
 
 // Helper function to validate PRNGConfig parameters
 void validatePRNGConfig(const PRNGConfig& cfg) {
-    // Validate discriminant (b^2 - 4ac > 0)
-    long long disc = static_cast<long long>(cfg.b) * cfg.b - 
-                     4LL * static_cast<long long>(cfg.a) * cfg.c;
+    // Validate discriminant (b^2 - 4ac > 0) using safe calculation
+    long long disc;
+    std::string error_msg;
+    
+    if (!safe_calculate_discriminant(cfg.a, cfg.b, cfg.c, disc, error_msg)) {
+        throw std::invalid_argument("Invalid config: " + error_msg);
+    }
+    
     if (disc <= 0) {
         throw std::invalid_argument("Invalid config: discriminant must be positive (b^2 - 4ac > 0)");
     }
@@ -508,7 +504,13 @@ void createPRNG_(Rcpp::List rcfg) {
         throw std::invalid_argument("Parameter 'a' cannot be 0 in quadratic irrational generator");
     }
     
-    long long discriminant = static_cast<long long>(cfg.b) * cfg.b - 4LL * static_cast<long long>(cfg.a) * cfg.c;
+    // Use safe discriminant calculation
+    long long discriminant;
+    std::string error_msg;
+    
+    if (!safe_calculate_discriminant(cfg.a, cfg.b, cfg.c, discriminant, error_msg)) {
+        throw std::invalid_argument(error_msg);
+    }
     
     if (discriminant <= 0) {
         throw std::invalid_argument("Discriminant (b^2 - 4ac) must be positive");

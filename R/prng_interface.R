@@ -77,11 +77,18 @@ validate_config <- function(config) {
     b <- as.integer(config$b)
     c <- as.integer(config$c)
     
-    # Check discriminant
-    D <- b * b - 4 * a * c
-    if (D <= 0) {
-        stop("Invalid quadratic parameters: discriminant must be positive")
-    }
+    # Check discriminant (with overflow protection)
+    # For large values, let C++ handle the validation
+    tryCatch({
+        # Try to calculate in R, but may overflow
+        D <- as.numeric(b) * as.numeric(b) - 4 * as.numeric(a) * as.numeric(c)
+        if (!is.na(D) && D <= 0) {
+            stop("Invalid quadratic parameters: discriminant must be positive")
+        }
+        # If D is NA due to overflow, let C++ handle it
+    }, warning = function(w) {
+        # Ignore overflow warnings, C++ will handle validation
+    })
     
     # Check MPFR precision (53-bit is standard double precision)
     # MPFR implementation restricts precision to 24..10000 bits for stability

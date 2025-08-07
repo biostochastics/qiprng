@@ -45,8 +45,30 @@ void qiprng::initialize_libsodium_if_needed() {
         if (sodium_init() < 0) {
             Rcpp::warning("Failed to initialize libsodium. Cryptographic operations may fail or be insecure.");
             sodium_initialized_flag.store(false);
+            sodium_initialized = false;
         } else {
             sodium_initialized_flag.store(true);
+            sodium_initialized = true; // SECURITY FIX: Set both flags atomically
+        }
+    });
+}
+
+// SECURITY FIX: Unified initialization that ensures both flags are synchronized
+void qiprng::ensure_libsodium_initialized() {
+    // This is the single point of initialization for libsodium
+    // Called from both R interface and internal code
+    std::call_once(sodium_init_flag, []() {
+        int ret = sodium_init();
+        if (ret < 0) {
+            // Critical security error - cannot proceed without libsodium
+            sodium_initialized_flag.store(false);
+            sodium_initialized = false;
+            throw std::runtime_error("SECURITY ERROR: Failed to initialize libsodium. "
+                                   "Cryptographic operations cannot proceed securely.");
+        } else {
+            // Success: ret is 0 for first init, 1 if already initialized
+            sodium_initialized_flag.store(true);
+            sodium_initialized = true;
         }
     });
 }
@@ -160,7 +182,22 @@ std::vector<std::tuple<long, long, long>> qiprng::pickMultiQiSet(int precision, 
                 c = -c; // Flip sign of c to make -4ac positive
             }
             
-            long long current_disc = static_cast<long long>(b) * b - 4LL * static_cast<long long>(a) * c;
+            // Use safe discriminant calculation
+            long long current_disc;
+            std::string error_msg;
+            if (!safe_calculate_discriminant(a, b, c, current_disc, error_msg)) {
+                // On overflow, adjust parameters
+                b = b / 2;  // Reduce b to avoid overflow
+                a = (a > 10) ? a / 2 : a;
+                c = (c < -10) ? c / 2 : c;
+                if (!safe_calculate_discriminant(a, b, c, current_disc, error_msg)) {
+                    // If still overflowing, use fallback values
+                    a = std::get<0>(baseParams[i % baseParams.size()]);
+                    b = std::get<1>(baseParams[i % baseParams.size()]);
+                    c = std::get<2>(baseParams[i % baseParams.size()]);
+                    safe_calculate_discriminant(a, b, c, current_disc, error_msg);
+                }
+            }
             if (current_disc <= 0) {
                 // Make |b| large relative to |ac|
                 b = static_cast<long>(std::sqrt(std::abs(4.0 * a * c)) + 5 + (rng()%10));
@@ -171,7 +208,14 @@ std::vector<std::tuple<long, long, long>> qiprng::pickMultiQiSet(int precision, 
                 if (a > 0) c = std::abs(c) * -1; else if (a < 0) c = std::abs(c); else a = 1, c = -1;
                 if (c == 0) c = (a > 0) ? -1 : 1; // Final check for c
 
-                current_disc = static_cast<long long>(b) * b - 4LL * static_cast<long long>(a) * c;
+                // Recalculate discriminant safely
+                if (!safe_calculate_discriminant(a, b, c, current_disc, error_msg)) {
+                    // Use fallback if still overflowing
+                    a = std::get<0>(baseParams[i % baseParams.size()]);
+                    b = std::get<1>(baseParams[i % baseParams.size()]);
+                    c = std::get<2>(baseParams[i % baseParams.size()]);
+                    safe_calculate_discriminant(a, b, c, current_disc, error_msg);
+                }
                 if (current_disc <= 0) { // Ultimate fallback
                     a = std::get<0>(baseParams[i % baseParams.size()]); 
                     b = std::get<1>(baseParams[i % baseParams.size()]);
@@ -255,7 +299,12 @@ void qiprng::loadCSVDiscriminants() {
                 long a = 1 + (i % 10);
                 long b = 3 + 2 * (i % 8);
                 long c = -1 - (i % 5);
-                long long disc = static_cast<long long>(b) * b - 4LL * static_cast<long long>(a) * c;
+                // Use safe discriminant calculation
+                long long disc;
+                std::string error_msg;
+                if (!safe_calculate_discriminant(a, b, c, disc, error_msg)) {
+                    disc = 0;  // Mark as invalid if overflow
+                }
                 if (disc > 0) {
                     temp_discriminants.emplace_back(a, b, c, disc);
                 }
@@ -305,7 +354,13 @@ void qiprng::loadCSVDiscriminants() {
                     Rcpp::warning("Skipping line %d from CSV: 'a' parameter cannot be zero", (int)line_number);
                     continue;
                 }
-                long long calculated_disc = static_cast<long long>(b) * b - 4LL * static_cast<long long>(a) * c;
+                // Use safe discriminant calculation for validation
+                long long calculated_disc;
+                std::string calc_error;
+                if (!safe_calculate_discriminant(a, b, c, calculated_disc, calc_error)) {
+                    Rcpp::warning("Skipping line %d from CSV: %s", (int)line_number, calc_error.c_str());
+                    continue;
+                }
                 if (discriminant != calculated_disc) {
                     Rcpp::warning("Skipping line %d from CSV: provided discriminant %lld does not match calculated %lld for a=%ld, b=%ld, c=%ld",
                                 (int)line_number, discriminant, calculated_disc, a,b,c);
@@ -334,7 +389,13 @@ void qiprng::loadCSVDiscriminants() {
                 long a = 1 + (i % 10);
                 long b = 3 + 2 * (i % 8);
                 long c = -1 - (i % 5);
-                long long disc = static_cast<long long>(b) * b - 4LL * static_cast<long long>(a) * c;
+                // Use safe discriminant calculation
+                long long disc;
+                std::string error_msg;
+                if (!safe_calculate_discriminant(a, b, c, disc, error_msg)) {
+                    // Skip this entry if overflow
+                    continue;
+                }
                 if (disc > 0) {
                     g_csv_discriminants.emplace_back(a, b, c, disc);
                 }
@@ -681,7 +742,13 @@ std::tuple<long, long, long> qiprng::makeABCfromDelta(long long Delta) {
                         }
                         
                         long long four_ac = four_a * c_ll;
-                        long long disc = b_squared - four_ac;
+                        // Use safe discriminant calculation for verification
+                        long long disc;
+                        std::string error_msg;
+                        if (!safe_calculate_discriminant(a_val, b_val, c_val, disc, error_msg)) {
+                            // Skip on overflow
+                            continue;
+                        }
                         
                         if (disc == Delta) {
                             return {a_val, b_val, c_val};
@@ -706,9 +773,13 @@ std::tuple<long, long, long> qiprng::makeABCfromDelta(long long Delta) {
         long long b_squared = static_cast<long long>(fallback_b) * fallback_b;
         long fallback_c = static_cast<long>((b_squared - Delta) / (4 * fallback_a));
         
-        // Verify result
-        long long test_disc = static_cast<long long>(fallback_b) * fallback_b - 
-                              4LL * static_cast<long long>(fallback_a) * fallback_c;
+        // Verify result using safe calculation
+        long long test_disc;
+        std::string test_error;
+        if (!safe_calculate_discriminant(fallback_a, fallback_b, fallback_c, test_disc, test_error)) {
+            // Fallback calculation failed, return anyway
+            return {fallback_a, fallback_b, fallback_c};
+        }
         
         if (test_disc == Delta) {
             return {fallback_a, fallback_b, fallback_c};

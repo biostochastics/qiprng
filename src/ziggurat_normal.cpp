@@ -12,6 +12,19 @@ const bool ZIGGURAT_DEBUG_LOGGING = false;
 
 namespace qiprng {
 
+// Thread cleanup helper class - automatically cleans up TLS resources when thread exits
+class ThreadCleanupHelper {
+public:
+    ThreadCleanupHelper() = default;
+    ~ThreadCleanupHelper() {
+        // This destructor is called when the thread exits
+        // Clean up all TLS resources for ZigguratNormal
+        if (!ZigguratNormal::is_cleanup_in_progress()) {
+            ZigguratNormal::cleanup_thread_local_resources();
+        }
+    }
+};
+
 // Initialize static members
 std::array<double, ZigguratNormal::ZIGGURAT_TABLE_SIZE> ZigguratNormal::cached_x_table_;
 std::array<double, ZigguratNormal::ZIGGURAT_TABLE_SIZE> ZigguratNormal::cached_y_table_;
@@ -35,6 +48,9 @@ thread_local bool ZigguratNormal::tls_random_cache_initialized_ = false;
 
 // Initialize thread-local manager
 thread_local ZigguratTLSManager* ZigguratNormal::tls_manager_ = nullptr;
+
+// Initialize thread-local cleanup registration flag
+thread_local std::atomic<bool> ZigguratNormal::tls_cleanup_registered_(false);
 
 // Initialize thread-local exiting flag for ZigguratTLSManager
 thread_local bool ZigguratTLSManager::thread_exiting_ = false;
@@ -130,6 +146,12 @@ void ZigguratNormal::initialize_thread_local_tables() {
         return;
     }
     
+    // Register cleanup helper for this thread if not already done
+    if (!tls_cleanup_registered_.load(std::memory_order_acquire)) {
+        static thread_local ThreadCleanupHelper cleanup_helper;
+        tls_cleanup_registered_.store(true, std::memory_order_release);
+    }
+    
     // Setup TLS manager if needed
     if (!tls_manager_) {
         tls_manager_ = &ZigguratTLSManager::instance();
@@ -139,6 +161,11 @@ void ZigguratNormal::initialize_thread_local_tables() {
     // Initialize tables if not already done
     if (!tls_tables_initialized_ && tls_manager_->is_valid()) {
         try {
+            // Verify we're not in cleanup before copying
+            if (cleanup_in_progress_.load(std::memory_order_acquire)) {
+                return;
+            }
+            
             // Copy the data
             tls_x_table_ = x_table_;
             tls_y_table_ = y_table_;
@@ -165,6 +192,12 @@ void ZigguratNormal::initialize_random_cache() {
         return;
     }
     
+    // Register cleanup helper for this thread if not already done
+    if (!tls_cleanup_registered_.load(std::memory_order_acquire)) {
+        static thread_local ThreadCleanupHelper cleanup_helper;
+        tls_cleanup_registered_.store(true, std::memory_order_release);
+    }
+    
     // Setup TLS manager if needed (may not be done if initialize_thread_local_tables wasn't called first)
     if (!tls_manager_) {
         tls_manager_ = &ZigguratTLSManager::instance();
@@ -174,6 +207,11 @@ void ZigguratNormal::initialize_random_cache() {
     // Only proceed if manager is valid
     if (tls_manager_->is_valid() && !tls_random_cache_initialized_) {
         try {
+            // Verify we're not in cleanup before initializing
+            if (cleanup_in_progress_.load(std::memory_order_acquire)) {
+                return;
+            }
+            
             // Initialize the cache
             refill_random_cache();
             tls_random_cache_initialized_ = true;
@@ -781,12 +819,27 @@ double ZigguratNormal::generate() {
             if (!tls_tables_initialized_) {
                 try {
                     initialize_thread_local_tables();
+                    // Verify initialization succeeded
+                    if (!tls_tables_initialized_) {
+                        // Initialization failed, use fallback
+                        static thread_local std::mt19937 fallback_rng(std::random_device{}());
+                        std::normal_distribution<double> fallback_dist(mean_, stddev_);
+                        return fallback_dist(fallback_rng);
+                    }
                 } catch (...) {
                     // Use fallback RNG instead of fixed mean value
                     static thread_local std::mt19937 fallback_rng(std::random_device{}());
                     std::normal_distribution<double> fallback_dist(mean_, stddev_);
                     return fallback_dist(fallback_rng);
                 }
+            }
+            
+            // Post-initialization check - verify TLS data is valid
+            if (!tls_manager_ || !tls_manager_->is_valid()) {
+                // TLS manager is invalid, use fallback
+                static thread_local std::mt19937 fallback_rng(std::random_device{}());
+                std::normal_distribution<double> fallback_dist(mean_, stddev_);
+                return fallback_dist(fallback_rng);
             }
             
             // Run thread-safe generation with exception handling
@@ -1109,21 +1162,32 @@ void ZigguratNormal::prepare_for_shutdown() {
 
 // Static method to clean up thread-local resources
 void ZigguratNormal::cleanup_thread_local_resources() {
-    // Try to mark cleanup in progress using compare_exchange to prevent multiple cleanups
-    bool expected = false;
-    if (!cleanup_in_progress_.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
-        // Cleanup is already in progress by another thread, don't duplicate effort
-        if (ZIGGURAT_DEBUG_LOGGING) {
-            Rcpp::Rcout << "Thread " << std::this_thread::get_id() 
-                       << " skipping cleanup as it's already in progress" << std::endl;
-        }
-        return;
+    // This is a thread-local cleanup, not a global one
+    // Each thread cleans up its own resources independently
+    
+    if (ZIGGURAT_DEBUG_LOGGING) {
+        Rcpp::Rcout << "Thread " << std::this_thread::get_id() 
+                   << " starting TLS cleanup" << std::endl;
     }
     
     try {
-        // Reset all thread-local variables to a clean state
-        tls_tables_initialized_ = false;
-        tls_random_cache_initialized_ = false;
+        // Reset TLS tables - only do this if they were initialized
+        if (tls_tables_initialized_) {
+            for (size_t i = 0; i < ZIGGURAT_TABLE_SIZE; ++i) {
+                tls_x_table_[i] = 0.0;
+                tls_y_table_[i] = 0.0;
+                tls_k_table_[i] = 0;
+            }
+            tls_tables_initialized_ = false;
+        }
+        
+        // Reset random cache
+        if (tls_random_cache_initialized_) {
+            for (size_t i = 0; i < RANDOM_CACHE_SIZE; ++i) {
+                tls_random_cache_[i] = 0.0;
+            }
+            tls_random_cache_initialized_ = false;
+        }
         tls_random_cache_pos_ = RANDOM_CACHE_SIZE;  // Mark as empty
         
         // Invalidate the TLS manager if it exists
@@ -1132,22 +1196,12 @@ void ZigguratNormal::cleanup_thread_local_resources() {
             tls_manager_ = nullptr;
         }
         
+        // Reset the cleanup registration flag for this thread
+        tls_cleanup_registered_.store(false, std::memory_order_release);
+        
         if (ZIGGURAT_DEBUG_LOGGING) {
             Rcpp::Rcout << "Thread " << std::this_thread::get_id() 
-                       << " cleaned up ZigguratNormal resources" << std::endl;
-        }
-        
-        // Reset TLS tables - only do this if they were initialized
-        if (tls_tables_initialized_) {
-            for (size_t i = 0; i < ZIGGURAT_TABLE_SIZE; ++i) {
-                tls_x_table_[i] = 0.0;
-                tls_y_table_[i] = 0.0;
-                tls_k_table_[i] = 0;
-            }
-        }
-        
-        if (ZIGGURAT_DEBUG_LOGGING) {
-            Rcpp::Rcout << "ZigguratNormal thread-local resources cleaned up" << std::endl;
+                       << " completed TLS cleanup" << std::endl;
         }
     } catch (...) {
         // Suppress any exceptions during cleanup
@@ -1155,9 +1209,6 @@ void ZigguratNormal::cleanup_thread_local_resources() {
             Rcpp::Rcout << "Exception during thread-local cleanup - suppressed" << std::endl;
         }
     }
-    
-    // Keep the cleanup flag set - we don't reset it because once we've cleaned up,
-    // we want to prevent any new access attempts
 }
 
 } // namespace qiprng

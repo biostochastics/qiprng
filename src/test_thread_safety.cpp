@@ -54,8 +54,10 @@ Rcpp::List test_choose_discriminant(int thread_count = 4, int iterations = 10) {
                 long a = 1 + (i % 10);
                 long b = 3 + 2 * (i % 8);
                 long c = -1 - (i % 5);
-                long long disc = static_cast<long long>(b) * b - 4LL * static_cast<long long>(a) * c;
-                if (disc > 0) {
+                // Use safe discriminant calculation
+                long long disc;
+                std::string error_msg;
+                if (qiprng::safe_calculate_discriminant(a, b, c, disc, error_msg) && disc > 0) {
                     qiprng::g_csv_discriminants.emplace_back(a, b, c, disc);
                 }
             }

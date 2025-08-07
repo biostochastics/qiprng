@@ -20,11 +20,13 @@ namespace qiprng {
 
 namespace qiprng {
 
-// LibSodium initialization
+// LibSodium initialization - SECURITY FIX: Centralized thread-safe initialization
 extern std::atomic<bool> sodium_initialized_flag;
-extern bool sodium_initialized;
+extern bool sodium_initialized; // Legacy flag for CryptoMixer compatibility
 
+// Thread-safe libsodium initialization using std::call_once
 void initialize_libsodium_if_needed();
+void ensure_libsodium_initialized(); // SECURITY FIX: New unified initialization
 
 // Thread-local random engine
 std::mt19937_64& getThreadLocalEngine();

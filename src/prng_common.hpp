@@ -9,8 +9,126 @@
 #include <thread>  // For thread_local
 #include <atomic>  // For std::atomic
 #include <Rcpp.h>  // For Rcpp::warning
+#include <limits>  // For numeric_limits
+#include <string>  // For error messages
+#include <cmath>   // For sqrt
 
 namespace qiprng {
+
+// Safe discriminant calculation with overflow protection
+// Calculates discriminant = b^2 - 4ac with overflow checking
+// Returns true on success, false on overflow
+// On overflow, error_msg contains details about where overflow occurred
+inline bool safe_calculate_discriminant(long a, long b, long c, 
+                                       long long& result, 
+                                       std::string& error_msg) {
+    // Method 1: Use compiler builtin overflow checking if available (GCC/Clang)
+#if defined(__GNUC__) || defined(__clang__)
+    long long b_squared;
+    long long four_ac;
+    
+    // Check b * b
+    long long b_ll = static_cast<long long>(b);
+    if (__builtin_mul_overflow(b_ll, b_ll, &b_squared)) {
+        error_msg = "Overflow in b^2 calculation: b=" + std::to_string(b);
+        return false;
+    }
+    
+    // Check 4 * a
+    long long four_a;
+    long long a_ll = static_cast<long long>(a);
+    if (__builtin_mul_overflow(4LL, a_ll, &four_a)) {
+        error_msg = "Overflow in 4*a calculation: a=" + std::to_string(a);
+        return false;
+    }
+    
+    // Check (4*a) * c
+    long long c_ll = static_cast<long long>(c);
+    if (__builtin_mul_overflow(four_a, c_ll, &four_ac)) {
+        error_msg = "Overflow in 4*a*c calculation: 4*a=" + std::to_string(four_a) + 
+                   ", c=" + std::to_string(c);
+        return false;
+    }
+    
+    // Check b_squared - four_ac
+    if (__builtin_sub_overflow(b_squared, four_ac, &result)) {
+        error_msg = "Overflow in b^2 - 4ac calculation: b^2=" + std::to_string(b_squared) + 
+                   ", 4ac=" + std::to_string(four_ac);
+        return false;
+    }
+    
+    return true;
+    
+// Method 2: Use __int128 if available (most 64-bit systems)
+#elif defined(__SIZEOF_INT128__)
+    __int128 b_128 = static_cast<__int128>(b);
+    __int128 a_128 = static_cast<__int128>(a);
+    __int128 c_128 = static_cast<__int128>(c);
+    __int128 disc_128 = b_128 * b_128 - 4 * a_128 * c_128;
+    
+    // Check if result fits in long long
+    if (disc_128 > std::numeric_limits<long long>::max() || 
+        disc_128 < std::numeric_limits<long long>::min()) {
+        error_msg = "Discriminant exceeds long long range for a=" + std::to_string(a) + 
+                   ", b=" + std::to_string(b) + ", c=" + std::to_string(c);
+        return false;
+    }
+    
+    result = static_cast<long long>(disc_128);
+    return true;
+    
+// Method 3: Manual overflow checking (portable fallback)
+#else
+    // Convert to long long for intermediate calculations
+    long long a_ll = static_cast<long long>(a);
+    long long b_ll = static_cast<long long>(b);
+    long long c_ll = static_cast<long long>(c);
+    
+    const long long LLONG_MAX = std::numeric_limits<long long>::max();
+    const long long LLONG_MIN = std::numeric_limits<long long>::min();
+    
+    // Check b * b
+    if (b_ll != 0) {
+        if (std::abs(b_ll) > std::sqrt(static_cast<double>(LLONG_MAX))) {
+            error_msg = "Overflow risk in b^2: b=" + std::to_string(b);
+            return false;
+        }
+    }
+    long long b_squared = b_ll * b_ll;
+    
+    // Check 4 * a * c more carefully
+    if (a_ll != 0 && c_ll != 0) {
+        // First check if 4*a would overflow
+        if (std::abs(a_ll) > LLONG_MAX / 4) {
+            error_msg = "Overflow in 4*a: a=" + std::to_string(a);
+            return false;
+        }
+        long long four_a = 4LL * a_ll;
+        
+        // Then check if (4*a)*c would overflow
+        if (std::abs(four_a) > 0 && std::abs(c_ll) > LLONG_MAX / std::abs(four_a)) {
+            error_msg = "Overflow in 4*a*c: 4*a=" + std::to_string(four_a) + 
+                       ", c=" + std::to_string(c);
+            return false;
+        }
+        long long four_ac = four_a * c_ll;
+        
+        // Check subtraction overflow
+        if ((four_ac > 0 && b_squared < LLONG_MIN + four_ac) ||
+            (four_ac < 0 && b_squared > LLONG_MAX + four_ac)) {
+            error_msg = "Overflow in b^2 - 4ac: b^2=" + std::to_string(b_squared) + 
+                       ", 4ac=" + std::to_string(four_ac);
+            return false;
+        }
+        
+        result = b_squared - four_ac;
+    } else {
+        result = b_squared;
+    }
+    
+    return true;
+#endif
+}
 
 // Global variable to control MPFR warning output (atomic for thread-safety)
 extern std::atomic<bool> suppress_mpfr_warnings;

@@ -63,6 +63,9 @@ private:
     // TLS manager to handle thread-specific cleanup
     thread_local static ZigguratTLSManager* tls_manager_;
     
+    // Atomic flag to track if TLS cleanup has been registered for this thread
+    thread_local static std::atomic<bool> tls_cleanup_registered_;
+    
     std::function<double()> uniform_generator_;
     double mean_;
     double stddev_;
