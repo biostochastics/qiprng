@@ -11,7 +11,7 @@ PRNG instance."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">qiprng</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -94,6 +94,10 @@ PRNG instance.</p>
 
 <dt>use_parallel_filling</dt>
 <dd><p>Logical: whether to use parallel buffer filling</p></dd>
+
+<dt>mixing_strategy</dt>
+<dd><p>String: entropy mixing strategy for multi-QI ensemble (v0.5.0).
+Options: "round_robin" (default), "xor_mix", "averaging", "modular_add", "cascade_mix"</p></dd>
 
 <dt>debug</dt>
 <dd><p>Logical: whether to enable debugging output</p></dd>

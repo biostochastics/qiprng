@@ -11,9 +11,17 @@ using namespace qiprng;
 // [[Rcpp::export(".initialize_libsodium_")]]
 void initialize_libsodium_() {
     // SECURITY FIX: Use unified initialization to prevent race conditions
+    // Check if already initialized to prevent double printing
+    static std::atomic<bool> already_printed(false);
+    
     try {
         qiprng::ensure_libsodium_initialized();
-        Rcpp::Rcout << "Libsodium initialized successfully." << std::endl;
+        
+        // Only print the success message once
+        bool expected = false;
+        if (already_printed.compare_exchange_strong(expected, true)) {
+            Rcpp::Rcout << "Libsodium initialized successfully." << std::endl;
+        }
     } catch (const std::exception& e) {
         // Re-throw with R-friendly error message
         throw std::runtime_error(std::string("Failed to initialize libsodium: ") + e.what());
@@ -91,25 +99,71 @@ PRNGConfig parsePRNGConfig(Rcpp::List rcfg) {
     PRNGConfig cfg;
     
     // Parse configuration from R list with type checking and defaults
+    // Check for multi-QI vector configuration
+    bool has_vector_params = false;
+    
     if (rcfg.containsElementNamed("a")) {
         SEXP a_sexp = rcfg["a"];
         if (TYPEOF(a_sexp) == INTSXP || TYPEOF(a_sexp) == REALSXP) {
-            cfg.a = Rcpp::as<long>(a_sexp);
+            if (Rf_length(a_sexp) > 1) {
+                // Vector parameter for Multi-QI
+                cfg.a_vec = Rcpp::as<std::vector<long>>(a_sexp);
+                has_vector_params = true;
+            } else {
+                // Scalar parameter
+                cfg.a = Rcpp::as<long>(a_sexp);
+            }
         }
     }
     
     if (rcfg.containsElementNamed("b")) {
         SEXP b_sexp = rcfg["b"];
         if (TYPEOF(b_sexp) == INTSXP || TYPEOF(b_sexp) == REALSXP) {
-            cfg.b = Rcpp::as<long>(b_sexp);
+            if (Rf_length(b_sexp) > 1) {
+                // Vector parameter for Multi-QI
+                cfg.b_vec = Rcpp::as<std::vector<long>>(b_sexp);
+                has_vector_params = true;
+            } else {
+                // Scalar parameter
+                cfg.b = Rcpp::as<long>(b_sexp);
+            }
         }
     }
     
     if (rcfg.containsElementNamed("c")) {
         SEXP c_sexp = rcfg["c"];
         if (TYPEOF(c_sexp) == INTSXP || TYPEOF(c_sexp) == REALSXP) {
-            cfg.c = Rcpp::as<long>(c_sexp);
+            if (Rf_length(c_sexp) > 1) {
+                // Vector parameter for Multi-QI
+                cfg.c_vec = Rcpp::as<std::vector<long>>(c_sexp);
+                has_vector_params = true;
+            } else {
+                // Scalar parameter
+                cfg.c = Rcpp::as<long>(c_sexp);
+            }
         }
+    }
+    
+    // If any vector parameters were found, set the flag
+    if (has_vector_params) {
+        cfg.has_manual_multi_qi = true;
+        
+        // Validate that all vectors have the same length
+        size_t vec_size = 0;
+        if (!cfg.a_vec.empty()) vec_size = cfg.a_vec.size();
+        else if (!cfg.b_vec.empty()) vec_size = cfg.b_vec.size();
+        else if (!cfg.c_vec.empty()) vec_size = cfg.c_vec.size();
+        
+        if ((cfg.a_vec.size() != vec_size && !cfg.a_vec.empty()) ||
+            (cfg.b_vec.size() != vec_size && !cfg.b_vec.empty()) ||
+            (cfg.c_vec.size() != vec_size && !cfg.c_vec.empty())) {
+            throw std::invalid_argument("Multi-QI vectors a, b, c must all have the same length");
+        }
+        
+        // Set scalar values to first element for compatibility
+        if (!cfg.a_vec.empty()) cfg.a = cfg.a_vec[0];
+        if (!cfg.b_vec.empty()) cfg.b = cfg.b_vec[0];
+        if (!cfg.c_vec.empty()) cfg.c = cfg.c_vec[0];
     }
     
     if (rcfg.containsElementNamed("mpfr_precision")) {
@@ -400,6 +454,20 @@ PRNGConfig parsePRNGConfig(Rcpp::List rcfg) {
         }
     }
     
+    // v0.5.0: Parse mixing strategy
+    if (rcfg.containsElementNamed("mixing_strategy")) {
+        SEXP strategy_sexp = rcfg["mixing_strategy"];
+        if (TYPEOF(strategy_sexp) == STRSXP) {
+            std::string strategy_str = Rcpp::as<std::string>(strategy_sexp);
+            if (strategy_str == "round_robin") cfg.mixing_strategy = 0;
+            else if (strategy_str == "xor_mix") cfg.mixing_strategy = 1;
+            else if (strategy_str == "averaging") cfg.mixing_strategy = 2;
+            else if (strategy_str == "modular_add") cfg.mixing_strategy = 3;
+            else if (strategy_str == "cascade_mix") cfg.mixing_strategy = 4;
+            // Default is already set to ROUND_ROBIN (0) in PRNGConfig
+        }
+    }
+    
     // Validate the configuration before returning
     validatePRNGConfig(cfg);
     
@@ -486,34 +554,46 @@ Rcpp::List PRNGConfigToList(const PRNGConfig& cfg) {
     result["has_seed"] = cfg.has_seed;
     result["deterministic"] = cfg.deterministic;
     
+    // v0.5.0: Convert mixing strategy to string
+    std::string mix_str;
+    switch (cfg.mixing_strategy) {
+        case 0: mix_str = "round_robin"; break;
+        case 1: mix_str = "xor_mix"; break;
+        case 2: mix_str = "averaging"; break;
+        case 3: mix_str = "modular_add"; break;
+        case 4: mix_str = "cascade_mix"; break;
+        default: mix_str = "round_robin"; break;
+    }
+    result["mixing_strategy"] = mix_str;
+    
     return result;
 }
 
 // [[Rcpp::export(".createPRNG_")]]
 void createPRNG_(Rcpp::List rcfg) {
     try {
-        // First make sure libsodium is initialized
-        if (!qiprng::sodium_initialized) {
-            initialize_libsodium_();
-        }
+        // Ensure libsodium is initialized (idempotent - safe to call multiple times)
+        qiprng::ensure_libsodium_initialized();
         
         PRNGConfig cfg = parsePRNGConfig(rcfg);
     
-    // Validate critical parameters
-    if (cfg.a == 0) {
-        throw std::invalid_argument("Parameter 'a' cannot be 0 in quadratic irrational generator");
-    }
-    
-    // Use safe discriminant calculation
-    long long discriminant;
-    std::string error_msg;
-    
-    if (!safe_calculate_discriminant(cfg.a, cfg.b, cfg.c, discriminant, error_msg)) {
-        throw std::invalid_argument(error_msg);
-    }
-    
-    if (discriminant <= 0) {
-        throw std::invalid_argument("Discriminant (b^2 - 4ac) must be positive");
+    // Validate critical parameters (only for non-vector mode)
+    if (!cfg.has_manual_multi_qi) {
+        if (cfg.a == 0) {
+            throw std::invalid_argument("Parameter 'a' cannot be 0 in quadratic irrational generator");
+        }
+        
+        // Use safe discriminant calculation
+        long long discriminant;
+        std::string error_msg;
+        
+        if (!safe_calculate_discriminant(cfg.a, cfg.b, cfg.c, discriminant, error_msg)) {
+            throw std::invalid_argument(error_msg);
+        }
+        
+        if (discriminant <= 0) {
+            throw std::invalid_argument("Discriminant (b^2 - 4ac) must be positive");
+        }
     }
     
     // Make sure libsodium is initialized
@@ -544,10 +624,35 @@ void createPRNG_(Rcpp::List rcfg) {
             cfg.c = c_val;
         }
         
-        // Select quadratic irrationals based on precision and create thread-local PRNG
-        int num_qis = cfg.mpfr_precision < 64 ? 2 : (cfg.mpfr_precision < 128 ? 3 : 5);
-        std::vector<std::tuple<long, long, long>> abc_list = pickMultiQiSet(cfg.mpfr_precision, num_qis, 
-                                                                           cfg.seed, cfg.has_seed);
+        // Select quadratic irrationals or use manual Multi-QI configuration
+        std::vector<std::tuple<long, long, long>> abc_list;
+        
+        if (cfg.has_manual_multi_qi) {
+            // Use manually specified Multi-QI vectors
+            size_t num_qis = cfg.a_vec.size();
+            for (size_t i = 0; i < num_qis; ++i) {
+                long a_val = cfg.a_vec[i];
+                long b_val = cfg.b_vec[i];
+                long c_val = cfg.c_vec[i];
+                
+                // Validate discriminant for each QI
+                long long disc;
+                std::string err_msg;
+                if (!safe_calculate_discriminant(a_val, b_val, c_val, disc, err_msg)) {
+                    throw std::invalid_argument("Multi-QI validation error for QI " + std::to_string(i+1) + ": " + err_msg);
+                }
+                if (disc <= 0) {
+                    throw std::invalid_argument("Multi-QI discriminant must be positive for QI " + std::to_string(i+1));
+                }
+                
+                abc_list.push_back(std::make_tuple(a_val, b_val, c_val));
+            }
+        } else {
+            // Use automatic Multi-QI selection
+            int num_qis = cfg.mpfr_precision < 64 ? 2 : (cfg.mpfr_precision < 128 ? 3 : 5);
+            abc_list = pickMultiQiSet(cfg.mpfr_precision, num_qis, cfg.seed, cfg.has_seed);
+        }
+        
         t_prng = std::make_unique<EnhancedPRNG>(cfg, abc_list);
         
         if (cfg.debug) {
@@ -558,10 +663,35 @@ void createPRNG_(Rcpp::List rcfg) {
         // Clean up any existing global PRNG
         g_prng.reset();
         
-        // Select quadratic irrationals based on precision and create global PRNG
-        int num_qis = cfg.mpfr_precision < 64 ? 2 : (cfg.mpfr_precision < 128 ? 3 : 5);
-        std::vector<std::tuple<long, long, long>> abc_list = pickMultiQiSet(cfg.mpfr_precision, num_qis,
-                                                                           cfg.seed, cfg.has_seed);
+        // Select quadratic irrationals or use manual Multi-QI configuration
+        std::vector<std::tuple<long, long, long>> abc_list;
+        
+        if (cfg.has_manual_multi_qi) {
+            // Use manually specified Multi-QI vectors
+            size_t num_qis = cfg.a_vec.size();
+            for (size_t i = 0; i < num_qis; ++i) {
+                long a_val = cfg.a_vec[i];
+                long b_val = cfg.b_vec[i];
+                long c_val = cfg.c_vec[i];
+                
+                // Validate discriminant for each QI
+                long long disc;
+                std::string err_msg;
+                if (!safe_calculate_discriminant(a_val, b_val, c_val, disc, err_msg)) {
+                    throw std::invalid_argument("Multi-QI validation error for QI " + std::to_string(i+1) + ": " + err_msg);
+                }
+                if (disc <= 0) {
+                    throw std::invalid_argument("Multi-QI discriminant must be positive for QI " + std::to_string(i+1));
+                }
+                
+                abc_list.push_back(std::make_tuple(a_val, b_val, c_val));
+            }
+        } else {
+            // Use automatic Multi-QI selection
+            int num_qis = cfg.mpfr_precision < 64 ? 2 : (cfg.mpfr_precision < 128 ? 3 : 5);
+            abc_list = pickMultiQiSet(cfg.mpfr_precision, num_qis, cfg.seed, cfg.has_seed);
+        }
+        
         g_prng = std::make_unique<EnhancedPRNG>(cfg, abc_list);
         
         if (cfg.debug) {

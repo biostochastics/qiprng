@@ -13,7 +13,7 @@ a simulation."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">qiprng</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -69,16 +69,16 @@ properly handled during reseeding.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Generate some values</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="generatePRNG.html">generatePRNG</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [1] 0.3196908 0.9349592 0.3938776 0.2687497 0.5205887 0.8919057 0.7159475</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [8] 0.8173661 0.1409398 0.4936112</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [1] 0.2237440 0.2807779 0.7439538 0.2851572 0.7265326 0.7931836 0.2793381</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [8] 0.5987470 0.9580221 0.4039642</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Force a reseed</span></span></span>
 <span class="r-in"><span><span class="fu">reseedPRNG</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Generate more values (new sequence after reseed)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="generatePRNG.html">generatePRNG</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [1] 0.77223947 0.38917998 0.22902340 0.21149607 0.09314337 0.73157625</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [7] 0.21817145 0.25644211 0.50114713 0.66149019</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [1] 0.35254554 0.48415692 0.41025557 0.09596817 0.72947212 0.68132882</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [7] 0.67461462 0.21019811 0.97324132 0.42796181</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

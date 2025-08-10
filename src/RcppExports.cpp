@@ -10,6 +10,73 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// cpp_levy_stable
+Rcpp::NumericVector cpp_levy_stable(int n, double alpha, double beta, double mu, double sigma);
+RcppExport SEXP _qiprng_cpp_levy_stable(SEXP nSEXP, SEXP alphaSEXP, SEXP betaSEXP, SEXP muSEXP, SEXP sigmaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< double >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< double >::type sigma(sigmaSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_levy_stable(n, alpha, beta, mu, sigma));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_pareto
+Rcpp::NumericVector cpp_pareto(int n, double xm, double alpha);
+RcppExport SEXP _qiprng_cpp_pareto(SEXP nSEXP, SEXP xmSEXP, SEXP alphaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< double >::type xm(xmSEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_pareto(n, xm, alpha));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_cauchy
+Rcpp::NumericVector cpp_cauchy(int n, double location, double scale);
+RcppExport SEXP _qiprng_cpp_cauchy(SEXP nSEXP, SEXP locationSEXP, SEXP scaleSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< double >::type location(locationSEXP);
+    Rcpp::traits::input_parameter< double >::type scale(scaleSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_cauchy(n, location, scale));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_multivariate_normal
+Rcpp::NumericMatrix cpp_multivariate_normal(int n, Rcpp::NumericVector mean, Rcpp::NumericMatrix covariance);
+RcppExport SEXP _qiprng_cpp_multivariate_normal(SEXP nSEXP, SEXP meanSEXP, SEXP covarianceSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type mean(meanSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type covariance(covarianceSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_multivariate_normal(n, mean, covariance));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_gaussian_copula
+Rcpp::NumericMatrix cpp_gaussian_copula(int n, Rcpp::NumericMatrix correlation, Rcpp::List marginal_params);
+RcppExport SEXP _qiprng_cpp_gaussian_copula(SEXP nSEXP, SEXP correlationSEXP, SEXP marginal_paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type correlation(correlationSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type marginal_params(marginal_paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_gaussian_copula(n, correlation, marginal_params));
+    return rcpp_result_gen;
+END_RCPP
+}
 // initialize_libsodium_
 void initialize_libsodium_();
 RcppExport SEXP _qiprng_initialize_libsodium_() {
@@ -172,6 +239,11 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_qiprng_cpp_levy_stable", (DL_FUNC) &_qiprng_cpp_levy_stable, 5},
+    {"_qiprng_cpp_pareto", (DL_FUNC) &_qiprng_cpp_pareto, 3},
+    {"_qiprng_cpp_cauchy", (DL_FUNC) &_qiprng_cpp_cauchy, 3},
+    {"_qiprng_cpp_multivariate_normal", (DL_FUNC) &_qiprng_cpp_multivariate_normal, 3},
+    {"_qiprng_cpp_gaussian_copula", (DL_FUNC) &_qiprng_cpp_gaussian_copula, 3},
     {"_qiprng_initialize_libsodium_", (DL_FUNC) &_qiprng_initialize_libsodium_, 0},
     {"_qiprng_createPRNG_", (DL_FUNC) &_qiprng_createPRNG_, 1},
     {"_qiprng_updatePRNG_", (DL_FUNC) &_qiprng_updatePRNG_, 1},

@@ -10,6 +10,8 @@
 #include "ziggurat_normal.hpp"
 #include "prng_utils.hpp"    // For pickMultiQiSet and other utilities
 #include "thread_pool.hpp"   // For thread pool implementation
+#include "work_stealing_queue.hpp"  // For work-stealing load balancing
+#include "simd_operations.hpp"      // For SIMD vectorization
 
 #include <Rcpp.h> // For Rcpp::Rcout, Rcpp::warning
 #include <memory> // For std::unique_ptr
@@ -49,6 +51,9 @@ private:
     void prepare_for_shutdown();       // Thread-safe shutdown preparation
     void fill_buffer_parallel(size_t thread_count);
     void fill_buffer_sequential(); // Renamed for clarity
+    #ifdef _OPENMP
+    void fill_buffer_openmp();     // v0.5.0: OpenMP-optimized filling
+    #endif
     void fill_buffer();            // Decides which fill method to use
     
     // Helper methods for parallel filling (refactoring)

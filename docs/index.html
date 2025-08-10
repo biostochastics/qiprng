@@ -24,7 +24,7 @@
 
     <a class="navbar-brand me-2" href="index.html">qiprng</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,7 @@
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="articles/index.html">Articles</a></li>
+<li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
@@ -52,19 +53,93 @@
 <div class="page-header"><h1 id="qiprng-quadratic-irrational-pseudo-random-number-generator-for-r">qiprng: Quadratic Irrational Pseudo-Random Number Generator for R<a class="anchor" aria-label="anchor" href="#qiprng-quadratic-irrational-pseudo-random-number-generator-for-r"></a>
 </h1></div>
 <p><img src="images/qiprng_logo.png" alt="QIPRNG Logo" width="300"></p>
-<p><a href="https://github.com/biostochastics/qiprng" class="external-link"><img src="https://img.shields.io/badge/Version-0.3.0-blue" alt="Version"></a> <a href="https://github.com/biostochastics/qiprng" class="external-link"><img src="https://img.shields.io/badge/Thread%20Safe-Yes-brightgreen" alt="ThreadSafe"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"></a> <a href="https://github.com/biostochastics/qiprng" class="external-link"><img src="https://img.shields.io/badge/R--CMD--check-passing-brightgreen" alt="R-CMD-check"></a> <a href="https://www.r-project.org/" class="external-link"><img src="https://img.shields.io/badge/Language-R%2FC%2B%2B-blue.svg" alt="Language"></a> <a href="https://github.com/biostochastics/qiprng" class="external-link"><img src="https://img.shields.io/badge/Statistical%20Tests-70%2B-brightgreen" alt="Tests"></a></p>
+<p><a href="https://github.com/biostochastics/qiprng" class="external-link"><img src="https://img.shields.io/badge/Version-0.5.0-blue" alt="Version"></a> <a href="https://github.com/biostochastics/qiprng" class="external-link"><img src="https://img.shields.io/badge/Thread%20Safe-Yes-brightgreen" alt="ThreadSafe"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"></a> <a href="https://github.com/biostochastics/qiprng" class="external-link"><img src="https://img.shields.io/badge/R--CMD--check-passing-brightgreen" alt="R-CMD-check"></a> <a href="https://www.r-project.org/" class="external-link"><img src="https://img.shields.io/badge/Language-R%2FC%2B%2B-blue.svg" alt="Language"></a> <a href="https://github.com/biostochastics/qiprng" class="external-link"><img src="https://img.shields.io/badge/Statistical%20Tests-70%2B-brightgreen" alt="Tests"></a> <a href="https://github.com/biostochastics/qiprng" class="external-link"><img src="https://img.shields.io/badge/SIMD-AVX2%2FNEON-orange" alt="SIMD"></a> <a href="https://github.com/biostochastics/qiprng" class="external-link"><img src="https://img.shields.io/badge/Parallel-OpenMP-green" alt="Parallel"></a></p>
 <blockquote>
-<p>High-precision, cryptographically-secure pseudo-random number generator based on quadratic irrational numbers with statistical validation</p>
+<p>High-performance, cryptographically-secure PRNG with hardware acceleration, parallel generation, and advanced mixing strategies</p>
 </blockquote>
+<div class="section level2">
+<h2 id="rocket-version-050-highlights">🚀 Version 0.5.0 Highlights<a class="anchor" aria-label="anchor" href="#rocket-version-050-highlights"></a>
+</h2>
+<ul>
+<li>
+<strong>Hardware Acceleration</strong>: SIMD vectorization (AVX2/NEON), OpenMP parallelization</li>
+<li>
+<strong>Advanced Mixing Strategies</strong>: XOR, averaging, modular, cascade mixing</li>
+<li>
+<strong>Parallel Generation</strong>: Work-stealing queue for optimal load balancing</li>
+<li>
+<strong>Matrix Jump-Ahead</strong>: O(log n) complexity with MPFR precision</li>
+<li>
+<strong>Extended Distributions</strong>: Levy stable, Pareto, Cauchy, multivariate normal</li>
+<li>
+<strong>Apple Silicon Optimized</strong>: Native ARM64 with NEON acceleration</li>
+</ul>
+</div>
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>The <code>qiprng</code> package implements a robust pseudo-random number generator based on quadratic irrational numbers. It offers superior statistical properties compared to traditional linear congruential generators while maintaining high performance and flexibility.</p>
+<p>The <code>qiprng</code> package implements a cutting-edge pseudo-random number generator based on quadratic irrational numbers with advanced parallelization and hardware acceleration. It offers superior statistical properties, cryptographic security, and blazing-fast performance through modern CPU features.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">qiprng</span><span class="op">)</span></span>
 <span><span class="fu"><a href="reference/createPRNG.html">createPRNG</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/generatePRNG.html">generatePRNG</a></span><span class="op">(</span><span class="fl">10000</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/hist.html" class="external-link">hist</a></span><span class="op">(</span><span class="va">x</span>, breaks <span class="op">=</span> <span class="fl">50</span>, main <span class="op">=</span> <span class="st">"qiprng uniform distribution"</span>, col <span class="op">=</span> <span class="st">"skyblue"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="extended-statistical-distributions">Extended Statistical Distributions<a class="anchor" aria-label="anchor" href="#extended-statistical-distributions"></a>
+</h2>
+<p>Version 0.5.0 introduces advanced statistical distributions powered by the core QIPRNG engine:</p>
+<div class="section level3">
+<h3 id="levy-stable-distribution">Levy Stable Distribution<a class="anchor" aria-label="anchor" href="#levy-stable-distribution"></a>
+</h3>
+<p>Generate alpha-stable random variates using the Chambers-Mallows-Stuck algorithm:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Generate Levy stable random numbers</span></span>
+<span><span class="va">levy_samples</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/generate_levy_stable.html">generate_levy_stable</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">1000</span>, alpha <span class="op">=</span> <span class="fl">1.5</span>, beta <span class="op">=</span> <span class="fl">0.5</span>, mu <span class="op">=</span> <span class="fl">0</span>, sigma <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="co"># alpha: stability parameter (0,2], beta: skewness [-1,1]</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="pareto-distribution">Pareto Distribution<a class="anchor" aria-label="anchor" href="#pareto-distribution"></a>
+</h3>
+<p>Heavy-tailed distribution for modeling extreme events:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Generate Pareto distributed values</span></span>
+<span><span class="va">pareto_samples</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/generate_pareto.html">generate_pareto</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">1000</span>, xm <span class="op">=</span> <span class="fl">1</span>, alpha <span class="op">=</span> <span class="fl">2.5</span><span class="op">)</span></span>
+<span><span class="co"># xm: scale (minimum value), alpha: shape parameter</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="cauchy-distribution">Cauchy Distribution<a class="anchor" aria-label="anchor" href="#cauchy-distribution"></a>
+</h3>
+<p>Fat-tailed distribution with undefined mean:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Generate Cauchy distributed values</span></span>
+<span><span class="va">cauchy_samples</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/generate_cauchy.html">generate_cauchy</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">1000</span>, location <span class="op">=</span> <span class="fl">0</span>, scale <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="multivariate-normal-distribution">Multivariate Normal Distribution<a class="anchor" aria-label="anchor" href="#multivariate-normal-distribution"></a>
+</h3>
+<p>Generate correlated normal vectors (requires Eigen3):</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Define mean and covariance</span></span>
+<span><span class="va">mean_vec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span></span>
+<span><span class="va">cov_mat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">0.5</span>, <span class="fl">0.2</span>,</span>
+<span>                    <span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">0.3</span>,</span>
+<span>                    <span class="fl">0.2</span>, <span class="fl">0.3</span>, <span class="fl">1</span><span class="op">)</span>, <span class="fl">3</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="va">mvn_samples</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/generate_multivariate_normal.html">generate_multivariate_normal</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">1000</span>, <span class="va">mean_vec</span>, <span class="va">cov_mat</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="gaussian-copula">Gaussian Copula<a class="anchor" aria-label="anchor" href="#gaussian-copula"></a>
+</h3>
+<p>Model complex dependencies between different marginal distributions:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Define correlation and marginals</span></span>
+<span><span class="va">correlation</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">0.7</span>, <span class="fl">0.7</span>, <span class="fl">1</span><span class="op">)</span>, <span class="fl">2</span>, <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">marginals</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"cauchy"</span>, location <span class="op">=</span> <span class="fl">0</span>, scale <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"pareto"</span>, xm <span class="op">=</span> <span class="fl">1</span>, alpha <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">copula_samples</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/generate_with_copula.html">generate_with_copula</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">1000</span>, <span class="va">correlation</span>, <span class="va">marginals</span><span class="op">)</span></span></code></pre></div>
+</div>
 </div>
 <div class="section level2">
 <h2 id="acknowledgments">Acknowledgments<a class="anchor" aria-label="anchor" href="#acknowledgments"></a>
@@ -138,14 +213,14 @@
 <h3 id="production-ready-defaults">Production-Ready Defaults<a class="anchor" aria-label="anchor" href="#production-ready-defaults"></a>
 </h3>
 <p>By default, qiprng uses only the 370 “Excellent” rated discriminants, ensuring maximum quality and reliability for production use:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Production configuration (default)</span></span>
 <span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  use_excellent_only <span class="op">=</span> <span class="cn">TRUE</span>,    <span class="co"># Use only validated excellent discriminants</span></span>
 <span>  quality_threshold <span class="op">=</span> <span class="fl">0.010</span>     <span class="co"># Maximum autocorrelation threshold</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>For research or legacy compatibility:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Research configuration (all 750 discriminants)</span></span>
 <span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  use_excellent_only <span class="op">=</span> <span class="cn">FALSE</span>,   <span class="co"># Use all discriminants</span></span>
@@ -165,25 +240,25 @@
 <ol style="list-style-type: decimal">
 <li>
 <p><strong>Install Xcode Command Line Tools</strong>:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="ex">xcode-select</span> <span class="at">--install</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="ex">xcode-select</span> <span class="at">--install</span></span></code></pre></div>
 </li>
 <li>
 <p><strong>Install Homebrew</strong> (if you don’t have it):</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="ex">/bin/bash</span> <span class="at">-c</span> <span class="st">"</span><span class="va">$(</span><span class="ex">curl</span> <span class="at">-fsSL</span> https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh<span class="va">)</span><span class="st">"</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="ex">/bin/bash</span> <span class="at">-c</span> <span class="st">"</span><span class="va">$(</span><span class="ex">curl</span> <span class="at">-fsSL</span> https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh<span class="va">)</span><span class="st">"</span></span></code></pre></div>
 </li>
 <li>
 <p><strong>Install required libraries</strong>:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="ex">brew</span> install pkg-config gmp mpfr libsodium openssl</span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="ex">brew</span> install pkg-config gmp mpfr libsodium openssl</span></code></pre></div>
 </li>
 </ol>
 <p><strong>Linux (Debian/Ubuntu)</strong></p>
 <p>Use <code>apt-get</code> to install the required development libraries:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">sudo</span> apt-get update</span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="fu">sudo</span> apt-get install build-essential libmpfr-dev libgmp-dev libsodium-dev libssl-dev</span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">sudo</span> apt-get update</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="fu">sudo</span> apt-get install build-essential libmpfr-dev libgmp-dev libsodium-dev libssl-dev</span></code></pre></div>
 <p><strong>Linux (Fedora/CentOS/RHEL)</strong></p>
 <p>Use <code>yum</code> or <code>dnf</code> to install the required development libraries:</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">sudo</span> dnf groupinstall <span class="st">"Development Tools"</span></span>
-<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="fu">sudo</span> dnf install gmp-devel mpfr-devel libsodium-devel openssl-devel</span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="fu">sudo</span> dnf groupinstall <span class="st">"Development Tools"</span></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="fu">sudo</span> dnf install gmp-devel mpfr-devel libsodium-devel openssl-devel</span></code></pre></div>
 <p><strong>Windows</strong></p>
 <p>For Windows, the required libraries are downloaded automatically during installation, but you need to have <a href="https://cran.r-project.org/bin/windows/Rtools/" class="external-link">Rtools</a> installed and configured correctly.</p>
 </div>
@@ -191,7 +266,7 @@
 <h3 id="install-the-package">Install the Package<a class="anchor" aria-label="anchor" href="#install-the-package"></a>
 </h3>
 <p>Once the prerequisites are installed, you can install <code>qiprng</code> from GitHub using the <code>remotes</code> package in R:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">require</a></span><span class="op">(</span><span class="st"><a href="https://remotes.r-lib.org" class="external-link">"remotes"</a></span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
@@ -205,7 +280,7 @@
 <li>
 <strong>High-precision computation</strong> using the MPFR library (24-10000 bits precision)</li>
 <li>
-<strong>Multiple output distributions</strong>: uniform, normal, exponential</li>
+<strong>14 statistical distributions</strong>: uniform, normal, exponential, Poisson, gamma, beta, Bernoulli, binomial, log-normal, Weibull, chi-squared, Student’s t, negative binomial</li>
 <li>
 <strong>Cryptographic-grade security</strong> using ChaCha20 cipher for enhanced randomness</li>
 <li>
@@ -225,10 +300,170 @@
 <li>
 <strong>Comprehensive statistical testing</strong> framework with 70+ tests for PRNG quality evaluation</li>
 <li>
-<strong>Jump-ahead functionality</strong> for efficiently skipping ahead in the sequence</li>
+<strong>Optimized jump-ahead</strong> with O(log n) complexity using matrix exponentiation and MPFR arithmetic (v0.5.0)</li>
 <li>
 <strong>Validated discriminants</strong> with 370 excellent-rated parameters for optimal quality</li>
+<li>
+<strong>MultiQI ensemble management</strong> with 5 mixing strategies for enhanced entropy (v0.5.0)</li>
+<li>
+<strong>CFE period detection</strong> using Gauss-Legendre algorithm for O(L) complexity (v0.5.0)</li>
+<li>
+<strong>Dynamic QI generation</strong> with square-free validation and D = k² + 1 pattern (v0.5.0)</li>
+<li>
+<strong>Memory pooling</strong> for MPFR objects reducing allocation overhead (v0.5.0)</li>
 </ul>
+</div>
+<div class="section level2">
+<h2 id="supported-distributions">Supported Distributions<a class="anchor" aria-label="anchor" href="#supported-distributions"></a>
+</h2>
+<div class="section level3">
+<h3 id="continuous-distributions">Continuous Distributions<a class="anchor" aria-label="anchor" href="#continuous-distributions"></a>
+</h3>
+<table class="table">
+<colgroup>
+<col width="24%">
+<col width="22%">
+<col width="24%">
+<col width="28%">
+</colgroup>
+<thead><tr>
+<th>Distribution</th>
+<th>Parameters</th>
+<th>Description</th>
+<th>Example Usage</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>Uniform</strong></td>
+<td>
+<code>range_min</code>, <code>range_max</code>
+</td>
+<td>Uniform distribution on [min, max]</td>
+<td><code>distribution = "uniform_range"</code></td>
+</tr>
+<tr>
+<td><strong>Normal</strong></td>
+<td>
+<code>normal_mean</code>, <code>normal_sd</code>
+</td>
+<td>Normal (Gaussian) distribution</td>
+<td><code>distribution = "normal"</code></td>
+</tr>
+<tr>
+<td><strong>Exponential</strong></td>
+<td><code>exponential_lambda</code></td>
+<td>Exponential distribution with rate λ</td>
+<td><code>distribution = "exponential"</code></td>
+</tr>
+<tr>
+<td><strong>Gamma</strong></td>
+<td>
+<code>gamma_shape</code>, <code>gamma_scale</code>
+</td>
+<td>Gamma distribution</td>
+<td><code>distribution = "gamma"</code></td>
+</tr>
+<tr>
+<td><strong>Beta</strong></td>
+<td>
+<code>beta_alpha</code>, <code>beta_beta</code>
+</td>
+<td>Beta distribution on [0,1]</td>
+<td><code>distribution = "beta"</code></td>
+</tr>
+<tr>
+<td><strong>Log-Normal</strong></td>
+<td>
+<code>lognormal_mu</code>, <code>lognormal_sigma</code>
+</td>
+<td>Exponential of normal distribution</td>
+<td><code>distribution = "lognormal"</code></td>
+</tr>
+<tr>
+<td><strong>Weibull</strong></td>
+<td>
+<code>weibull_shape</code>, <code>weibull_scale</code>
+</td>
+<td>Weibull distribution (reliability analysis)</td>
+<td><code>distribution = "weibull"</code></td>
+</tr>
+<tr>
+<td><strong>Chi-Squared</strong></td>
+<td><code>chisquared_df</code></td>
+<td>Chi-squared distribution with df degrees of freedom</td>
+<td><code>distribution = "chisquared"</code></td>
+</tr>
+<tr>
+<td><strong>Student’s t</strong></td>
+<td><code>student_t_df</code></td>
+<td>Student’s t-distribution with df degrees of freedom</td>
+<td><code>distribution = "student_t"</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level3">
+<h3 id="discrete-distributions">Discrete Distributions<a class="anchor" aria-label="anchor" href="#discrete-distributions"></a>
+</h3>
+<table class="table">
+<colgroup>
+<col width="24%">
+<col width="22%">
+<col width="24%">
+<col width="28%">
+</colgroup>
+<thead><tr>
+<th>Distribution</th>
+<th>Parameters</th>
+<th>Description</th>
+<th>Example Usage</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>Bernoulli</strong></td>
+<td><code>bernoulli_p</code></td>
+<td>Binary outcome with probability p</td>
+<td><code>distribution = "bernoulli"</code></td>
+</tr>
+<tr>
+<td><strong>Binomial</strong></td>
+<td>
+<code>binomial_n</code>, <code>binomial_p</code>
+</td>
+<td>Sum of n Bernoulli trials</td>
+<td><code>distribution = "binomial"</code></td>
+</tr>
+<tr>
+<td><strong>Poisson</strong></td>
+<td><code>poisson_lambda</code></td>
+<td>Poisson distribution with mean λ</td>
+<td><code>distribution = "poisson"</code></td>
+</tr>
+<tr>
+<td><strong>Negative Binomial</strong></td>
+<td>
+<code>negative_binomial_r</code>, <code>negative_binomial_p</code>
+</td>
+<td>Number of failures before r successes</td>
+<td><code>distribution = "negative_binomial"</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level3">
+<h3 id="distribution-features">Distribution Features<a class="anchor" aria-label="anchor" href="#distribution-features"></a>
+</h3>
+<ul>
+<li>
+<strong>Optimized algorithms</strong>: Normal approximations for large parameters (e.g., binomial with n &gt; 50 and np &gt; 5)</li>
+<li>
+<strong>Numerical stability</strong>: Robust handling of edge cases and extreme parameter values</li>
+<li>
+<strong>Thread-safe</strong>: All distributions maintain thread safety with proper state management</li>
+<li>
+<strong>Efficient reuse</strong>: Complex distributions leverage simpler ones (e.g., chi-squared uses gamma)</li>
+</ul>
+</div>
 </div>
 <div class="section level2">
 <h2 id="usage">Usage<a class="anchor" aria-label="anchor" href="#usage"></a>
@@ -236,7 +471,7 @@
 <div class="section level3">
 <h3 id="basic-example">Basic Example<a class="anchor" aria-label="anchor" href="#basic-example"></a>
 </h3>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">qiprng</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Create PRNG with default configuration</span></span>
@@ -250,9 +485,30 @@
 <span><span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">var</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span>      <span class="co"># Should be close to 1/12 for uniform_01</span></span></code></pre></div>
 </div>
 <div class="section level3">
+<h3 id="v050-new-features">v0.5.0 New Features<a class="anchor" aria-label="anchor" href="#v050-new-features"></a>
+</h3>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Advanced Mixing Strategies for improved randomness</span></span>
+<span><span class="va">cfg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  a <span class="op">=</span> <span class="fl">2L</span>, b <span class="op">=</span> <span class="fl">5L</span>, c <span class="op">=</span> <span class="op">-</span><span class="fl">2L</span>,</span>
+<span>  mixing_strategy <span class="op">=</span> <span class="st">"xor_mixing"</span>,  <span class="co"># Options: round_robin, xor_mixing, averaging, modular_add, cascade</span></span>
+<span>  use_parallel_filling <span class="op">=</span> <span class="cn">TRUE</span>,     <span class="co"># Enable parallel buffer filling</span></span>
+<span>  buffer_size <span class="op">=</span> <span class="fl">100000</span>             <span class="co"># Large buffer for parallel efficiency</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/createPRNG.html">createPRNG</a></span><span class="op">(</span><span class="va">cfg</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Benchmark parallel vs sequential generation</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/system.time.html" class="external-link">system.time</a></span><span class="op">(</span><span class="va">vals</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/generatePRNG.html">generatePRNG</a></span><span class="op">(</span><span class="fl">1000000</span><span class="op">)</span><span class="op">)</span>  <span class="co"># Parallel: ~0.5s on Apple Silicon M1</span></span>
+<span></span>
+<span><span class="co"># Jump-ahead for independent parallel streams</span></span>
+<span><span class="va">cfg</span><span class="op">$</span><span class="va">offset</span> <span class="op">&lt;-</span> <span class="fl">1000000</span>  <span class="co"># Jump ahead 1M values</span></span>
+<span><span class="fu"><a href="reference/createPRNG.html">createPRNG</a></span><span class="op">(</span><span class="va">cfg</span><span class="op">)</span></span>
+<span><span class="va">stream2</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/generatePRNG.html">generatePRNG</a></span><span class="op">(</span><span class="fl">10000</span><span class="op">)</span>  <span class="co"># Independent stream</span></span></code></pre></div>
+</div>
+<div class="section level3">
 <h3 id="advanced-example">Advanced Example<a class="anchor" aria-label="anchor" href="#advanced-example"></a>
 </h3>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Create PRNG with custom configuration</span></span>
 <span><span class="va">cfg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  a <span class="op">=</span> <span class="fl">2L</span>,                    <span class="co"># Quadratic coefficient (must be positive)</span></span>
@@ -284,7 +540,7 @@
 <div class="section level3">
 <h3 id="thread-safe-example">Thread-safe Example<a class="anchor" aria-label="anchor" href="#thread-safe-example"></a>
 </h3>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">qiprng</span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">parallel</span><span class="op">)</span></span>
 <span></span>
@@ -316,7 +572,7 @@
 <h3 id="reproducible-random-numbers">Reproducible Random Numbers<a class="anchor" aria-label="anchor" href="#reproducible-random-numbers"></a>
 </h3>
 <p>For scientific computing and testing, you can enable fully reproducible sequences:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Set a seed for reproducibility</span></span>
 <span><span class="va">cfg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  seed <span class="op">=</span> <span class="fl">12345</span>,</span>
@@ -340,23 +596,50 @@
 <p>For full determinism with normal distributions, use <code>normal_method = "box_muller"</code> instead of the default ziggurat method, as the ziggurat implementation uses additional randomness for efficiency.</p>
 </div>
 <div class="section level3">
+<h3 id="multiqi-mixing-strategies-v050">MultiQI Mixing Strategies (v0.5.0)<a class="anchor" aria-label="anchor" href="#multiqi-mixing-strategies-v050"></a>
+</h3>
+<p>The <code>qiprng</code> package now supports multiple quadratic irrationals working in ensemble with configurable mixing strategies for enhanced entropy:</p>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Create PRNG with specific mixing strategy</span></span>
+<span><span class="va">cfg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  a <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">3</span>, <span class="fl">5</span><span class="op">)</span>,          <span class="co"># Multiple QI coefficients</span></span>
+<span>  b <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">7</span>, <span class="fl">11</span>, <span class="fl">13</span><span class="op">)</span>,</span>
+<span>  c <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">3</span>, <span class="op">-</span><span class="fl">5</span>, <span class="op">-</span><span class="fl">7</span><span class="op">)</span>,</span>
+<span>  mixing_strategy <span class="op">=</span> <span class="st">"cascade_mix"</span>  <span class="co"># Choose mixing strategy</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/createPRNG.html">createPRNG</a></span><span class="op">(</span><span class="va">cfg</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Available mixing strategies:</span></span>
+<span><span class="co"># - "round_robin": Cycles through QIs sequentially (fastest)</span></span>
+<span><span class="co"># - "xor_mix": XOR combines outputs for bit diffusion</span></span>
+<span><span class="co"># - "averaging": Averages multiple QI outputs</span></span>
+<span><span class="co"># - "modular_add": Modular addition of outputs</span></span>
+<span><span class="co"># - "cascade_mix": Cascaded mixing for maximum entropy</span></span>
+<span></span>
+<span><span class="co"># Update mixing strategy on the fly</span></span>
+<span><span class="fu"><a href="reference/updatePRNG.html">updatePRNG</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>mixing_strategy <span class="op">=</span> <span class="st">"xor_mix"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>Each mixing strategy offers different trade-offs between performance and entropy quality: - <strong>round_robin</strong>: Best performance, good for general use - <strong>xor_mix</strong>: Excellent bit diffusion, ideal for cryptographic applications - <strong>cascade_mix</strong>: Maximum entropy mixing, best for high-security scenarios</p>
+</div>
+<div class="section level3">
 <h3 id="jump-ahead-example">Jump-Ahead Example<a class="anchor" aria-label="anchor" href="#jump-ahead-example"></a>
 </h3>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># The jump-ahead functionality allows efficient skipping in the sequence</span></span>
 <span><span class="fu"><a href="reference/createPRNG.html">createPRNG</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Generate initial values</span></span>
 <span><span class="va">initial</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/generatePRNG.html">generatePRNG</a></span><span class="op">(</span><span class="fl">5</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Jump ahead 1 million steps in the sequence</span></span>
-<span><span class="fu"><a href="reference/jumpAheadPRNG.html">jumpAheadPRNG</a></span><span class="op">(</span><span class="fl">1000000</span><span class="op">)</span></span>
+<span><span class="co"># Jump ahead 1 billion steps in the sequence - O(log n) complexity!</span></span>
+<span><span class="fu"><a href="reference/jumpAheadPRNG.html">jumpAheadPRNG</a></span><span class="op">(</span><span class="fl">1000000000</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Generate values after the jump</span></span>
 <span><span class="va">after_jump</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/generatePRNG.html">generatePRNG</a></span><span class="op">(</span><span class="fl">5</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># This is much more efficient than generating and discarding 1 million values</span></span>
-<span><span class="co"># The jump-ahead uses block processing for cache efficiency</span></span></code></pre></div>
+<span><span class="co"># v0.5.0: Uses matrix exponentiation with MPFR arithmetic</span></span>
+<span><span class="co"># - O(log n) time complexity instead of O(n)</span></span>
+<span><span class="co"># - Can jump ahead by astronomical numbers efficiently</span></span>
+<span><span class="co"># - Maintains full precision and periodicity properties</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
@@ -548,7 +831,7 @@
 <div class="section level3">
 <h3 id="running-tests">Running Tests<a class="anchor" aria-label="anchor" href="#running-tests"></a>
 </h3>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">qiprng</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Quick test with default configuration</span></span>
@@ -569,7 +852,7 @@
 <div class="section level3">
 <h3 id="test-configuration">Test Configuration<a class="anchor" aria-label="anchor" href="#test-configuration"></a>
 </h3>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Custom test configuration</span></span>
 <span><span class="va">config</span> <span class="op">&lt;-</span> <span class="va">default_test_config</span></span>
 <span><span class="va">config</span><span class="op">$</span><span class="va">basic_sample_size</span> <span class="op">&lt;-</span> <span class="fl">1e6</span>      <span class="co"># Larger samples for basic tests</span></span>
@@ -589,18 +872,15 @@
 <p>Where: - a, b, and c are integer coefficients (with constraints: a &gt; 0, c &lt; 0, b² - 4ac &gt; 0) - x_n is the current state in [0,1] - x_{n+1} is the next state - “mod 1” means taking the fractional part</p>
 <p>The discriminant Δ = b² - 4ac must be a non-perfect square to ensure the generated sequence has desirable randomness properties. The mathematical foundation is based on the ergodic theory of quadratic maps and the work of Vincent Granville (2022).</p>
 <div class="section level3">
-<h3 id="jump-ahead-functionality">Jump-Ahead Functionality<a class="anchor" aria-label="anchor" href="#jump-ahead-functionality"></a>
+<h3 id="jump-ahead-functionality-v050-enhanced">Jump-Ahead Functionality (v0.5.0 Enhanced)<a class="anchor" aria-label="anchor" href="#jump-ahead-functionality-v050-enhanced"></a>
 </h3>
-<p>The <code><a href="reference/jumpAheadPRNG.html">jumpAheadPRNG()</a></code> function allows you to efficiently advance the PRNG state by n steps without generating all intermediate values. This is particularly useful for:</p>
-<ul>
-<li>
-<strong>Parallel simulations</strong>: Different workers can jump to non-overlapping segments of the sequence</li>
-<li>
-<strong>Reproducible subsampling</strong>: Jump to specific points in the sequence for reproducible results</li>
-<li>
-<strong>Performance optimization</strong>: Skip large segments without the computational cost of generation</li>
-</ul>
-<p><strong>Important Notes</strong>: - The jump-ahead implementation uses block processing for cache efficiency - Due to the security-focused design with random initialization, two PRNGs with identical parameters may start at different positions in the sequence - The function maintains all statistical properties of the PRNG - Performance scales sub-linearly with jump size due to block processing optimizations</p>
+<p>The <code><a href="reference/jumpAheadPRNG.html">jumpAheadPRNG()</a></code> function allows you to efficiently advance the PRNG state by n steps without generating all intermediate values. Version 0.5.0 introduces a revolutionary O(log n) implementation using matrix exponentiation with MPFR arithmetic.</p>
+<p><strong>Key Applications</strong>: - <strong>Parallel simulations</strong>: Different workers can jump to non-overlapping segments of the sequence - <strong>Reproducible subsampling</strong>: Jump to specific points in the sequence for reproducible results - <strong>Astronomical jumps</strong>: Can efficiently jump ahead by 10^18 steps or more</p>
+<p><strong>v0.5.0 Implementation Details</strong>: - <strong>Matrix exponentiation</strong>: Uses 2x2 transformation matrices raised to powers via binary exponentiation - <strong>MPFR arithmetic</strong>: All operations maintain full precision during matrix computations - <strong>O(log n) complexity</strong>: Jump ahead by n steps in just log₂(n) matrix multiplications - <strong>Period-aware</strong>: Leverages CFE period detection for correct modular arithmetic</p>
+<p><strong>Technical Innovation</strong>: The jump-ahead transforms the quadratic map into matrix form:</p>
+<pre><code>[x_{n+1}]   [p q] [x_n]
+[   1   ] = [0 1] [ 1 ]</code></pre>
+<p>Where the matrix can be efficiently raised to the nth power using binary exponentiation, reducing complexity from O(n) to O(log n).</p>
 </div>
 <div class="section level3">
 <h3 id="performance-characteristics">Performance Characteristics<a class="anchor" aria-label="anchor" href="#performance-characteristics"></a>
@@ -711,20 +991,20 @@
 <tbody>
 <tr>
 <td><code>a</code></td>
-<td>integer</td>
-<td>Quadratic coefficient (must be &gt; 0)</td>
+<td>integer/vector</td>
+<td>Quadratic coefficient(s) (must be &gt; 0)</td>
 <td>2</td>
 </tr>
 <tr>
 <td><code>b</code></td>
-<td>integer</td>
-<td>Linear coefficient</td>
+<td>integer/vector</td>
+<td>Linear coefficient(s)</td>
 <td>5</td>
 </tr>
 <tr>
 <td><code>c</code></td>
-<td>integer</td>
-<td>Constant term (must be &lt; 0)</td>
+<td>integer/vector</td>
+<td>Constant term(s) (must be &lt; 0)</td>
 <td>-2</td>
 </tr>
 <tr>
@@ -757,6 +1037,12 @@
 <td>Seed for reproducibility</td>
 <td>NULL</td>
 </tr>
+<tr>
+<td><code>mixing_strategy</code></td>
+<td>character</td>
+<td>MultiQI mixing strategy (v0.5.0)</td>
+<td>“round_robin”</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -787,13 +1073,13 @@
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
 <p>If you use this package in your research, please cite:</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="va">@Manual</span>{<span class="ot">qiprng</span>,</span>
-<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>  <span class="dt">title</span> = {qiprng: Quadratic Irrational Pseudo-Random Number Generator for R},</span>
-<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>  <span class="dt">author</span> = {Sergey Kornilov},</span>
-<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a>  <span class="dt">year</span> = {2025},</span>
-<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a>  <span class="dt">note</span> = {R package version 0.3.0},</span>
-<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a>  <span class="dt">url</span> = {https://github.com/biostochastics/qiprng}</span>
-<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="cb26"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb26-1"><a href="#cb26-1" tabindex="-1"></a><span class="va">@Manual</span>{<span class="ot">qiprng</span>,</span>
+<span id="cb26-2"><a href="#cb26-2" tabindex="-1"></a>  <span class="dt">title</span> = {qiprng: Quadratic Irrational Pseudo-Random Number Generator for R},</span>
+<span id="cb26-3"><a href="#cb26-3" tabindex="-1"></a>  <span class="dt">author</span> = {Sergey Kornilov},</span>
+<span id="cb26-4"><a href="#cb26-4" tabindex="-1"></a>  <span class="dt">year</span> = {2025},</span>
+<span id="cb26-5"><a href="#cb26-5" tabindex="-1"></a>  <span class="dt">note</span> = {R package version 0.5.0},</span>
+<span id="cb26-6"><a href="#cb26-6" tabindex="-1"></a>  <span class="dt">url</span> = {https://github.com/biostochastics/qiprng}</span>
+<span id="cb26-7"><a href="#cb26-7" tabindex="-1"></a>}</span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>

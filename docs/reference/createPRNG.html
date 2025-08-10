@@ -11,7 +11,7 @@ configurable parameters."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">qiprng</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -105,6 +105,10 @@ Possible parameters include:</p><dl><dt>a, b, c</dt>
 <dt>use_parallel_filling</dt>
 <dd><p>Logical: whether to use parallel buffer filling</p></dd>
 
+<dt>mixing_strategy</dt>
+<dd><p>String: entropy mixing strategy for multi-QI ensemble (v0.5.0).
+Options: "round_robin" (default), "xor_mix", "averaging", "modular_add", "cascade_mix"</p></dd>
+
 <dt>debug</dt>
 <dd><p>Logical: whether to enable debugging output</p></dd>
 
@@ -146,15 +150,17 @@ for heavy parallel workloads it is recommended to set <code>use_threading=TRUE</
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Create PRNG with seed for reproducible sequences</span></span></span>
 <span class="r-in"><span><span class="fu">createPRNG</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>seed <span class="op">=</span> <span class="fl">12345</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>SECURITY WARNING: Deterministic seed detected with crypto mixing enabled. This completely defeats cryptographic security. Consider disabling crypto mixing for deterministic testing.</span>
 <span class="r-in"><span><span class="va">seq1</span> <span class="op">&lt;-</span> <span class="fu"><a href="generatePRNG.html">generatePRNG</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Same seed produces same sequence</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="cleanup_prng.html">cleanup_prng</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> PRNG cleanup completed successfully</span>
 <span class="r-in"><span><span class="fu">createPRNG</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>seed <span class="op">=</span> <span class="fl">12345</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>SECURITY WARNING: Deterministic seed detected with crypto mixing enabled. This completely defeats cryptographic security. Consider disabling crypto mixing for deterministic testing.</span>
 <span class="r-in"><span><span class="va">seq2</span> <span class="op">&lt;-</span> <span class="fu"><a href="generatePRNG.html">generatePRNG</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">seq1</span>, <span class="va">seq2</span><span class="op">)</span>  <span class="co"># TRUE</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] FALSE</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

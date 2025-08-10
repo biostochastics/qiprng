@@ -1,10 +1,13 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://biostochastics.github.io/qiprng/404.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/CLAUDE.html</loc></url>
+<url><loc>https://biostochastics.github.io/qiprng/DOUBLE_INIT_FIX.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/GEMINI.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/LICENSE-text.html</loc></url>
+<url><loc>https://biostochastics.github.io/qiprng/PACKAGE_STATUS.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/authors.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/index.html</loc></url>
+<url><loc>https://biostochastics.github.io/qiprng/news/index.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/reference/QPRNG_TEST_CATEGORIES.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/reference/assess_discriminant_quality.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/reference/benchmark_large_generation.html</loc></url>
@@ -32,11 +35,16 @@
 <url><loc>https://biostochastics.github.io/qiprng/reference/dot-onUnload.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/reference/export_cached_results.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/reference/generatePRNG.html</loc></url>
+<url><loc>https://biostochastics.github.io/qiprng/reference/generate_cauchy.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/reference/generate_detailed_report.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/reference/generate_excellent_random.html</loc></url>
+<url><loc>https://biostochastics.github.io/qiprng/reference/generate_levy_stable.html</loc></url>
+<url><loc>https://biostochastics.github.io/qiprng/reference/generate_multivariate_normal.html</loc></url>
+<url><loc>https://biostochastics.github.io/qiprng/reference/generate_pareto.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/reference/generate_quarto_report.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/reference/generate_recommendations.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/reference/generate_summary_stats.html</loc></url>
+<url><loc>https://biostochastics.github.io/qiprng/reference/generate_with_copula.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/reference/generate_with_discriminant.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/reference/get_autocorrelation_thresholds.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/reference/get_excellent_discriminants.html</loc></url>

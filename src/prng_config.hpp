@@ -23,7 +23,12 @@ struct PRNGConfig {
         WEIBULL,
         CHISQUARED,
         STUDENT_T,
-        NEGATIVE_BINOMIAL
+        NEGATIVE_BINOMIAL,
+        // v0.5.0: Extended distributions
+        LEVY_STABLE,
+        PARETO,
+        CAUCHY,
+        MULTIVARIATE_NORMAL
     };
 
     enum NormalMethod {
@@ -90,6 +95,29 @@ struct PRNGConfig {
     uint64_t seed = 0;          // Master seed for all randomness
     bool has_seed = false;      // Flag indicating if seed was explicitly set
     bool deterministic = false; // Force deterministic mode even without seed
+    
+    // v0.5.0: MultiQI mixing strategy
+    int mixing_strategy = 0;    // 0=ROUND_ROBIN, 1=XOR_MIX, 2=AVERAGING, 3=MODULAR_ADD, 4=CASCADE_MIX
+    
+    // v0.5.0: Extended distribution parameters
+    double levy_alpha = 1.5;      // Stability parameter (0,2]
+    double levy_beta = 0.0;        // Skewness parameter [-1,1]
+    double levy_mu = 0.0;          // Location parameter
+    double levy_sigma = 1.0;       // Scale parameter
+    
+    double pareto_xm = 1.0;        // Scale parameter (minimum value)
+    double pareto_alpha = 1.0;     // Shape parameter
+    
+    double cauchy_location = 0.0;  // Location parameter
+    double cauchy_scale = 1.0;     // Scale parameter
+    
+    // Multivariate normal uses separate interface
+    
+    // Multi-QI manual configuration support
+    std::vector<long> a_vec;        // Vector of a values for manual Multi-QI
+    std::vector<long> b_vec;        // Vector of b values for manual Multi-QI
+    std::vector<long> c_vec;        // Vector of c values for manual Multi-QI
+    bool has_manual_multi_qi = false; // Flag indicating manual Multi-QI configuration
 };
 
 } // namespace qiprng
