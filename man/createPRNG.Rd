@@ -27,6 +27,8 @@ Possible parameters include:
 \item{use_excellent_only}{Logical: whether to restrict to excellent discriminants (max_abs_acf <= 0.010)}
 \item{quality_threshold}{Numeric: maximum autocorrelation threshold for discriminant selection}
 \item{use_parallel_filling}{Logical: whether to use parallel buffer filling}
+\item{mixing_strategy}{String: entropy mixing strategy for multi-QI ensemble (v0.5.0).
+Options: "round_robin" (default), "xor_mix", "averaging", "modular_add", "cascade_mix"}
 \item{debug}{Logical: whether to enable debugging output}
 \item{seed}{Numeric seed for reproducible sequences (0 to 2^53-1).
 When provided, all random initialization is replaced with

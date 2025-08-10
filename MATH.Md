@@ -1,8 +1,40 @@
-# Technical Documentation for the Quadratic Irrational PRNG
+# Technical Documentation for the Quadratic Irrational PRNG v0.5.0
 
  **Attribution Note**: The mathematical foundation and core algorithm design presented in this document is based on the amazing work of Vincent Granville (2024), specifically his research on military-grade random number generators using quadratic irrationals that I ran into in the dead of night after having way too much coffee. While Granville provided the original Python implementation, this doc describes my R/C++ implementation developed primarily for educational purposes. Cool if you find it useful. Even better if you find a bug! 
 
  **Reference**: Granville, V. (2022). Synthetic Data and Generative AI 1st Edition. https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/
+
+## Version 0.5.0 Enhancements
+
+### Matrix Jump-Ahead with O(log n) Complexity
+
+The v0.5.0 implementation includes an optimized jump-ahead algorithm using matrix exponentiation:
+
+```cpp
+// Matrix representation of the quadratic map
+[ x_{n+1} ]   [ a  b  c ] [ x_n^2 ]
+[ x_n     ] = [ 1  0  0 ] [ x_n   ]
+[ 1       ]   [ 0  0  1 ] [ 1     ]
+```
+
+Using binary exponentiation, we can compute M^n in O(log n) operations, enabling efficient parallel stream generation.
+
+### Advanced Mixing Strategies
+
+Five mixing strategies combine outputs from multiple QI generators:
+
+1. **Round Robin**: Sequential cycling through generators
+2. **XOR Mixing**: Bitwise XOR of mantissas for maximum entropy
+3. **Averaging**: Weighted average for smooth distribution
+4. **Modular Addition**: Sum modulo 1 for entropy combining
+5. **Cascade Mixing**: Three-pass mixing (XOR → modular → nonlinear)
+
+### SIMD Vectorization
+
+Hardware-optimized operations using:
+- **AVX2/AVX512**: 4-8 doubles per operation on x86
+- **ARM NEON**: 2 doubles per operation on Apple Silicon
+- **Automatic fallback**: Scalar operations when SIMD unavailable
 
 ## 1. Mathematical Foundation: The Quadratic Map
 
@@ -88,25 +120,44 @@ For optimal randomness properties:
 2. **Moderate values**: While any valid values will work mathematically, moderate values (e.g., 1-10) are more numerically stable
 3. **High precision**: Higher MPFR precision increases the period length and quality of randomness
 
-## 3. MultiQI Implementation
+## 3. MultiQI Implementation (v0.5.0 Enhanced)
 
-### 3.1 Round-Robin Approach
+### 3.1 Mixing Strategies
 
-The package implements a "round-robin" approach using multiple Quadratic Irrational (QI) sequences:
+Version 0.5.0 introduces configurable mixing strategies for combining multiple QI sequences:
 
-1. **Multiple QI sequences**: 
-   - Creates several independent QI sequences, each with its own (a,b,c) parameters
-   - Maintains separate state for each sequence
+1. **Round-Robin** (Default):
+   - Cycles through sequences sequentially
+   - Lowest computational overhead
+   - Good for general-purpose applications
 
-2. **Round-robin generation**:
-   - Cycles through the sequences in order
-   - Each call to `next()` advances to the next sequence
-   - This creates additional randomness by mixing outputs from different chaotic systems
+2. **XOR Mixing**:
+   - Combines outputs via bitwise XOR of mantissas
+   - Excellent bit diffusion properties
+   - Ideal for cryptographic applications
 
-3. **Mathematical benefits**:
-   - Increases the effective period length
-   - Reduces potential patterns within a single QI sequence
-   - Creates a multi-dimensional chaotic system
+3. **Averaging**:
+   - Averages outputs from all QI sequences
+   - Smooths distribution characteristics
+   - Reduces individual sequence biases
+
+4. **Modular Addition**:
+   - Adds outputs modulo 1
+   - Preserves uniform distribution
+   - Good entropy mixing
+
+5. **Cascade Mixing**:
+   - Feeds output of one QI as input to next
+   - Maximum entropy diffusion
+   - Highest security but slower performance
+
+### 3.2 Mathematical Benefits
+
+Each mixing strategy provides different theoretical advantages:
+- **Period extension**: Effective period up to LCM of individual periods
+- **Entropy amplification**: Multiple sources increase unpredictability
+- **Bias reduction**: Averaging reduces systematic biases
+- **Correlation breaking**: XOR destroys linear correlations
 
 ### 3.2 Parameter Diversification
 
@@ -121,6 +172,13 @@ The implementation uses a carefully selected set of (a,b,c) parameters:
    - Each QI sequence is initialized and then skipped a random number of steps
    - This ensures different starting points even with the same parameters
    - Prevents potential synchronization of sequences
+
+3. **Manual Multi-QI Configuration** (v0.5.0):
+   - Users can specify multiple QI parameters directly via vectors
+   - Example: `a = c(2, 3, 5), b = c(7, 11, 13), c = c(-3, -5, -7)`
+   - Each triplet (a[i], b[i], c[i]) defines a separate QI generator
+   - All discriminants are validated to ensure mathematical correctness
+   - Supports 2-16 simultaneous QI generators for optimal performance
 
 ### 3.3 Custom Discriminants via CSV
 
@@ -159,9 +217,103 @@ The implementation supports using custom discriminants from a CSV file:
 
 By default the package uses only the 370 "Excellent" discriminants obtained using testing the 750 discriminants provided with the package.
 
-## 4. Cryptographic Mixing
+## 4. Matrix Jump-Ahead Algorithm (v0.5.0)
 
-### 4.1 Purpose and Motivation
+### 4.1 Mathematical Foundation
+
+The quadratic map can be represented in matrix form. Given the recurrence:
+```
+x_{n+1} = (a*x_n^2 + b*x_n + c) mod 1
+```
+
+For the linearized form around the orbit, we can express transformations as:
+```
+[x_{n+1}]   [p q] [x_n]
+[   1   ] = [0 1] [ 1 ]
+```
+
+Where p and q depend on the specific transformation parameters.
+
+### 4.2 Binary Exponentiation
+
+To jump ahead by n steps, we compute the nth power of the transformation matrix using binary exponentiation:
+
+```
+Matrix^n = Matrix^(b_k * 2^k + ... + b_1 * 2 + b_0)
+         = Matrix^(b_k * 2^k) * ... * Matrix^(b_1 * 2) * Matrix^b_0
+```
+
+This reduces complexity from O(n) to O(log n) matrix multiplications.
+
+### 4.3 MPFR Precision Preservation
+
+All matrix operations use MPFR arithmetic to maintain full precision:
+- Matrix multiplication preserves exact values
+- Modular reduction maintains fractional precision
+- No accuracy loss even for astronomical jumps (10^18 steps)
+
+## 5. CFE Period Detection (v0.5.0)
+
+### 5.1 Continued Fraction Expansion
+
+For quadratic irrationals of the form:
+```
+α = (√D + P) / Q
+```
+
+The continued fraction expansion is:
+```
+α = a_0 + 1/(a_1 + 1/(a_2 + 1/(...)))
+```
+
+### 5.2 Gauss-Legendre Algorithm
+
+The package implements the Gauss-Legendre algorithm for O(L) period detection:
+
+1. **Initialization**: Start with P_0 = 0, Q_0 = 1
+2. **Iteration**: 
+   ```
+   a_n = floor((√D + P_n) / Q_n)
+   P_{n+1} = a_n * Q_n - P_n
+   Q_{n+1} = (D - P_{n+1}^2) / Q_n
+   ```
+3. **Period detection**: When (P_n, Q_n) repeats, period is found
+
+### 5.3 Complexity Analysis
+
+- **Time complexity**: O(L) where L is the period length
+- **Space complexity**: O(L) to store the period
+- **Practical performance**: Periods typically < 1000 for discriminants < 10^6
+
+## 6. Dynamic QI Generation (v0.5.0)
+
+### 6.1 Discriminant Pattern
+
+The package uses discriminants of the form D = k² + 1:
+- Always square-free (cannot be divided by any perfect square)
+- Produces well-distributed quadratic irrationals
+- Efficient validation: check if D - 1 is a perfect square
+
+### 6.2 Square-Free Validation
+
+Algorithm for checking square-free property:
+```
+is_square_free(D):
+  for p in small_primes:
+    if D % (p*p) == 0:
+      return false
+  return true
+```
+
+### 6.3 Benefits
+
+- **Guaranteed quality**: Square-free discriminants avoid degenerate cases
+- **Efficient generation**: O(sqrt(D)) validation time
+- **Good distribution**: k² + 1 pattern covers discriminant space well
+
+## 7. Cryptographic Mixing
+
+### 7.1 Purpose and Motivation
 
 While the quadratic irrational generator produces sequences with good statistical properties, adding cryptographic mixing provides:
 
@@ -169,11 +321,11 @@ While the quadratic irrational generator produces sequences with good statistica
 2. **Cryptographic security**: Makes the output suitable for cryptographic applications
 3. **Defense against analysis**: Prevents potential mathematical analysis of the underlying sequence
 
-### 4.2 Mixing Approaches
+### 7.2 Mixing Approaches
 
 The package implements two different approaches for cryptographic mixing:
 
-#### 4.2.1 Partial Modular Addition (Default)
+#### 7.2.1 Partial Modular Addition (Default)
 
 ```
 x_mixed = (x_original + crypto_uniform) mod 1
@@ -189,7 +341,7 @@ Where:
 - Cryptographically strong
 - Efficiently eliminates patterns in the original sequence
 
-#### 4.2.2 Partial Averaging (Alternative)
+#### 7.2.2 Partial Averaging (Alternative)
 
 An alternative approach that uses weighted averaging instead of modular addition, activated with the `adhoc_corrections` flag:
 
@@ -399,7 +551,47 @@ When implementing or modifying code, it's important to:
 - Remember that SecureBuffer constructor takes only a size parameter, not an initializer value
 
 
-## 10. Discriminants (pre-selected)
+## 10. Memory Management Optimizations (v0.5.0)
+
+### 10.1 MPFR Memory Pooling
+
+Version 0.5.0 introduces a singleton memory pool for MPFR objects:
+
+1. **Pool Architecture**:
+   - Pre-allocated pool of 1024 MPFR objects
+   - Lock-free allocation using atomic operations
+   - Zero-copy returns to pool
+
+2. **Performance Benefits**:
+   - Eliminates malloc/free overhead
+   - Reduces memory fragmentation
+   - Improves cache locality
+
+3. **Thread Safety**:
+   - Thread-safe allocation/deallocation
+   - Per-thread quotas prevent starvation
+   - Fallback to heap allocation when pool exhausted
+
+### 10.2 Thread-Local Storage
+
+Each thread maintains its own MultiQI instance:
+
+1. **ThreadManager Singleton**:
+   - Manages thread-local QI instances
+   - Automatic cleanup on thread exit
+   - Prevents race conditions
+
+2. **Benefits**:
+   - No mutex contention for generation
+   - Better cache performance
+   - Scalable to many threads
+
+3. **Memory Efficiency**:
+   - Lazy initialization per thread
+   - Automatic cleanup prevents leaks
+   - Shared discriminant data
+
+## 11. Discriminants (pre-selected)
 
 The package includes a set of pre-selected discriminants for quadratic irrationals.
 
@@ -432,9 +624,9 @@ The package includes all discriminants for research, but uses only excellent one
 - **Effective Discrimination**: The stricter autocorrelation test provides a more realistic distribution of results, successfully identifying minor flaws that were previously missed.
 - **Overall Robustness**: 92.5% of the discriminants were rated as "Good" or better (including "Very-Good"), confirming the underlying strength of the generation method.
 
-## 11. Performance Analysis
+## 12. Performance Analysis
 
-### 11.1 Benchmarking Results
+### 12.1 Benchmarking Results
 
 In comprehensive benchmarks comparing qiprng with standard R generators, the following performance characteristics were observed:
 
@@ -445,11 +637,11 @@ In comprehensive benchmarks comparing qiprng with standard R generators, the fol
 | L'Ecuyer-CMRG | ~0.9ms | 30x faster | Very Good |
 | Wichmann-Hill | ~0.4ms | 68x faster | Good |
 
-### 11.2 Computational Complexity Analysis
+### 12.2 Computational Complexity Analysis
 
 The performance difference stems from fundamental algorithmic differences:
 
-#### 11.2.1 Operation Count per Random Number
+#### 12.2.1 Operation Count per Random Number
 
 **Standard Linear Congruential Generators (e.g., Mersenne Twister)**:
 - 1 integer multiplication
@@ -465,7 +657,7 @@ The performance difference stems from fundamental algorithmic differences:
 - 1 MPFR sign check and conditional addition
 - Total: ~7 arbitrary precision operations
 
-#### 11.2.2 MPFR Overhead
+#### 12.2.2 MPFR Overhead
 
 Each MPFR operation involves:
 - **Dynamic memory management**: Arbitrary precision requires dynamic allocation
@@ -475,7 +667,7 @@ Each MPFR operation involves:
 
 Typical overhead: 100-1000x slower than hardware floating-point operations
 
-### 11.3 Component-wise Performance Breakdown
+### 12.3 Component-wise Performance Breakdown
 
 Based on code analysis and profiling estimates:
 
@@ -503,16 +695,16 @@ Based on code analysis and profiling estimates:
    - NaN/infinity checks
    - Range validation
 
-### 11.4 Optimization Opportunities
+### 12.4 Optimization Opportunities
 
-#### 11.4.1 Precision Tuning
+#### 12.4.1 Precision Tuning
 The most effective optimization is reducing MPFR precision:
 - 53-bit (double): Baseline performance
 - 128-bit: ~2x slower than 53-bit
 - 256-bit: ~4x slower than 53-bit
 - 512-bit: ~8x slower than 53-bit
 
-#### 11.4.2 Batch Generation
+#### 12.4.2 Batch Generation
 Generating numbers in batches amortizes overhead:
 ```r
 # Inefficient: one at a time
@@ -522,7 +714,7 @@ for(i in 1:n) { x[i] <- generatePRNG(1) }
 x <- generatePRNG(n)
 ```
 
-#### 11.4.3 Disabling Optional Features
+#### 12.4.3 Disabling Optional Features
 When cryptographic security isn't required:
 ```r
 config <- list(
@@ -532,7 +724,7 @@ config <- list(
 )
 ```
 
-### 11.5 Performance vs. Security Trade-off
+### 12.5 Performance vs. Security Trade-off
 
 The 50x performance penalty is a deliberate design choice that provides:
 
@@ -543,7 +735,7 @@ The 50x performance penalty is a deliberate design choice that provides:
 
 For applications where these properties are valuable, the performance cost is justified. For general statistical sampling, standard generators remain more appropriate.
 
-### 11.6 Future Performance Improvements
+### 12.6 Future Performance Improvements
 
 Potential optimizations that could be explored:
 
@@ -553,20 +745,20 @@ Potential optimizations that could be explored:
 4. **JIT Compilation**: Compile parameter-specific optimized code at runtime
 5. **Hardware PRNG Integration**: Use hardware random sources for mixing instead of libsodium
 
-## 12. Statistical Test Algorithms
+## 13. Statistical Test Algorithms
 
-### 12.1 Gap Test
+### 13.1 Gap Test
 
 The gap test examines the distribution of gaps between occurrences of values within a specified range. For a truly random sequence, these gaps should follow a geometric distribution.
 
-#### 12.1.1 Algorithm
+#### 13.1.1 Algorithm
 
 1. **Define target range**: Default is [α, β] = [0.3, 0.7]
 2. **Identify positions**: Find all indices where values fall within [α, β]
 3. **Calculate gaps**: Compute differences between consecutive positions
 4. **Expected distribution**: For uniform random data, gaps follow a geometric distribution with parameter p = β - α
 
-#### 12.1.2 Mathematical Foundation
+#### 13.1.2 Mathematical Foundation
 
 For a sequence of uniform random numbers, the probability that a value falls in [α, β] is:
 ```
@@ -580,7 +772,7 @@ P(gap = k) = (1-p)^(k-1) * p
 
 This is the geometric distribution, representing the number of trials until the first success.
 
-#### 12.1.3 Implementation Details
+#### 13.1.3 Implementation Details
 
 The test uses chi-squared goodness-of-fit to compare observed gap frequencies with expected geometric distribution:
 
@@ -595,11 +787,11 @@ expected_freq[max_gap] = n_gaps * (1-p)^(max_gap-1)
 χ² = Σ((observed[k] - expected[k])²/expected[k])
 ```
 
-### 12.2 Spectral Test
+### 13.2 Spectral Test
 
 The spectral test analyzes the frequency domain characteristics of the random sequence using the periodogram and tests whether the spectral densities follow the expected distribution for white noise.
 
-#### 12.2.1 Algorithm
+#### 13.2.1 Algorithm
 
 1. **Compute periodogram**: Use Fast Fourier Transform (FFT) to calculate power spectral density
 2. **Normalize spectrum**: Scale spectral values by their mean

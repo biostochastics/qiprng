@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <functional>
 #include <memory>
+#include <string>
 #include <Rcpp.h>
 
 namespace qiprng {
@@ -160,6 +161,21 @@ public:
         } catch (...) {
             // Ignore all errors during final cleanup
         }
+    }
+    
+    // v0.5.0: Thread-local storage support for zero-contention access
+    template<typename T>
+    static T& getThreadLocal(const std::string& key, std::function<T()> initializer) {
+        static thread_local std::unordered_map<std::string, std::shared_ptr<void>> tls_map;
+        
+        auto it = tls_map.find(key);
+        if (it == tls_map.end() || !it->second) {
+            auto value = std::make_shared<T>(initializer());
+            tls_map[key] = std::static_pointer_cast<void>(value);
+            return *std::static_pointer_cast<T>(tls_map[key]);
+        }
+        
+        return *std::static_pointer_cast<T>(it->second);
     }
 };
 

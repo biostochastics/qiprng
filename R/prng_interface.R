@@ -28,6 +28,8 @@ NULL
 #'     \item{use_threading}{Logical: whether to enable thread-local PRNG instances}
 #'     \item{use_csv_discriminants}{Logical: whether to use custom discriminants from file}
 #'     \item{use_parallel_filling}{Logical: whether to use parallel buffer filling}
+#'     \item{mixing_strategy}{String: entropy mixing strategy for multi-QI ensemble (v0.5.0).
+#'           Options: "round_robin" (default), "xor_mix", "averaging", "modular_add", "cascade_mix"}
 #'     \item{debug}{Logical: whether to enable debugging output}
 #'   }
 #' @export
@@ -57,6 +59,7 @@ default_config <- list(
     use_excellent_only = TRUE,     # Use only excellent discriminants (max_abs_acf <= 0.010)
     quality_threshold = 0.010,     # Maximum autocorrelation threshold for discriminant selection
     use_parallel_filling = FALSE,
+    mixing_strategy = "round_robin",  # v0.5.0: MultiQI mixing strategy
     debug = FALSE,
     seed = NULL,           # NULL means use random initialization
     deterministic = FALSE  # Force deterministic mode
@@ -82,7 +85,8 @@ validate_config <- function(config) {
     tryCatch({
         # Try to calculate in R, but may overflow
         D <- as.numeric(b) * as.numeric(b) - 4 * as.numeric(a) * as.numeric(c)
-        if (!is.na(D) && D <= 0) {
+        # Use vectorized logical operations to handle both scalars and vectors
+        if (any(!is.na(D) & D <= 0)) {
             stop("Invalid quadratic parameters: discriminant must be positive")
         }
         # If D is NA due to overflow, let C++ handle it
@@ -150,6 +154,14 @@ validate_config <- function(config) {
         stop("Invalid reseed interval: must be positive")
     }
     
+    # Check mixing strategy (v0.5.0)
+    if (!is.null(config$mixing_strategy)) {
+        strategy <- config$mixing_strategy
+        if (!strategy %in% c("round_robin", "xor_mix", "averaging", "modular_add", "cascade_mix")) {
+            stop("Invalid mixing strategy: must be one of 'round_robin', 'xor_mix', 'averaging', 'modular_add', 'cascade_mix'")
+        }
+    }
+    
     TRUE
 }
 
@@ -183,6 +195,8 @@ validate_config <- function(config) {
 #'     \item{use_excellent_only}{Logical: whether to restrict to excellent discriminants (max_abs_acf <= 0.010)}
 #'     \item{quality_threshold}{Numeric: maximum autocorrelation threshold for discriminant selection}
 #'     \item{use_parallel_filling}{Logical: whether to use parallel buffer filling}
+#'     \item{mixing_strategy}{String: entropy mixing strategy for multi-QI ensemble (v0.5.0).
+#'           Options: "round_robin" (default), "xor_mix", "averaging", "modular_add", "cascade_mix"}
 #'     \item{debug}{Logical: whether to enable debugging output}
 #'     \item{seed}{Numeric seed for reproducible sequences (0 to 2^53-1).
 #'           When provided, all random initialization is replaced with
@@ -450,9 +464,10 @@ suppressMPFRWarnings <- function(suppress = TRUE) {
 
 #' Jump ahead in the PRNG sequence
 #' 
-#' Advances the PRNG state by skipping ahead n numbers. This is significantly more
-#' efficient than generating and discarding n numbers, as it uses an optimized
-#' block processing approach to advance the quadratic recurrence.
+#' Advances the PRNG state by skipping ahead n numbers using O(log n) matrix 
+#' exponentiation with MPFR precision arithmetic. This is exponentially more
+#' efficient than generating and discarding n numbers, enabling astronomical
+#' jumps (e.g., 10^18 steps) in microseconds.
 #' 
 #' @details
 #' The jump-ahead functionality is particularly useful for:
@@ -460,11 +475,24 @@ suppressMPFRWarnings <- function(suppress = TRUE) {
 #'   \item Parallel simulations where different workers need non-overlapping sequences
 #'   \item Subsampling from specific points in the random sequence
 #'   \item Skipping large segments without the computational cost of generation
+#'   \item Creating independent streams separated by astronomical distances
 #' }
 #' 
-#' The implementation uses block processing for cache efficiency, processing the
-#' jump in chunks of 1024 steps for optimal performance. Performance scales
-#' sub-linearly with jump size.
+#' Version 0.5.0 introduces revolutionary O(log n) complexity using:
+#' \itemize{
+#'   \item Matrix exponentiation with binary powering algorithm
+#'   \item Continued Fraction Expansion (CFE) period detection using Gauss-Legendre
+#'   \item MPFR arbitrary precision arithmetic for numerical stability
+#'   \item Automatic optimization selection based on jump size and CFE period
+#' }
+#' 
+#' Performance characteristics:
+#' \itemize{
+#'   \item Small jumps (< 1000): Direct iteration
+#'   \item Medium jumps (1000-1M): Block processing with cache optimization
+#'   \item Large jumps (> 1M): O(log n) matrix exponentiation
+#'   \item Astronomical jumps (> 10^9): Pure logarithmic scaling
+#' }
 #' 
 #' Note: Due to the security-focused design with random initialization, two PRNGs
 #' created with identical parameters may start at different positions in the
@@ -476,7 +504,8 @@ suppressMPFRWarnings <- function(suppress = TRUE) {
 #' storage during jump-ahead operations.
 #' 
 #' @param n Number of steps to jump ahead (positive integer or numeric value).
-#'   Can be very large (e.g., 1e9) as the implementation handles large jumps efficiently.
+#'   Can be astronomically large (e.g., 1e18) as the implementation uses
+#'   O(log n) matrix exponentiation for optimal performance.
 #' @return Invisibly returns NULL
 #' @examples
 #' # Create default PRNG

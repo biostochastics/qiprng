@@ -8,7 +8,6 @@
 #' benchmarking, and comprehensive reporting.
 #'
 #' @name validation_suite
-#' @import testthat
 
 # Source required test files
 source_test_files <- function() {

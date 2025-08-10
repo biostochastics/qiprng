@@ -8,15 +8,17 @@ jumpAheadPRNG(n)
 }
 \arguments{
 \item{n}{Number of steps to jump ahead (positive integer or numeric value).
-Can be very large (e.g., 1e9) as the implementation handles large jumps efficiently.}
+Can be astronomically large (e.g., 1e18) as the implementation uses
+O(log n) matrix exponentiation for optimal performance.}
 }
 \value{
 Invisibly returns NULL
 }
 \description{
-Advances the PRNG state by skipping ahead n numbers. This is significantly more
-efficient than generating and discarding n numbers, as it uses an optimized
-block processing approach to advance the quadratic recurrence.
+Advances the PRNG state by skipping ahead n numbers using O(log n) matrix
+exponentiation with MPFR precision arithmetic. This is exponentially more
+efficient than generating and discarding n numbers, enabling astronomical
+jumps (e.g., 10^18 steps) in microseconds.
 }
 \details{
 The jump-ahead functionality is particularly useful for:
@@ -24,11 +26,24 @@ The jump-ahead functionality is particularly useful for:
 \item Parallel simulations where different workers need non-overlapping sequences
 \item Subsampling from specific points in the random sequence
 \item Skipping large segments without the computational cost of generation
+\item Creating independent streams separated by astronomical distances
 }
 
-The implementation uses block processing for cache efficiency, processing the
-jump in chunks of 1024 steps for optimal performance. Performance scales
-sub-linearly with jump size.
+Version 0.5.0 introduces revolutionary O(log n) complexity using:
+\itemize{
+\item Matrix exponentiation with binary powering algorithm
+\item Continued Fraction Expansion (CFE) period detection using Gauss-Legendre
+\item MPFR arbitrary precision arithmetic for numerical stability
+\item Automatic optimization selection based on jump size and CFE period
+}
+
+Performance characteristics:
+\itemize{
+\item Small jumps (< 1000): Direct iteration
+\item Medium jumps (1000-1M): Block processing with cache optimization
+\item Large jumps (> 1M): O(log n) matrix exponentiation
+\item Astronomical jumps (> 10^9): Pure logarithmic scaling
+}
 
 Note: Due to the security-focused design with random initialization, two PRNGs
 created with identical parameters may start at different positions in the

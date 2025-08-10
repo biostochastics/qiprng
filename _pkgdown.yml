@@ -16,6 +16,7 @@ home:
     href: https://github.com/biostochastics/qiprng
   - text: Report a bug
     href: https://github.com/biostochastics/qiprng/issues
+  strip: [CLAUDE.md, GEMINI.md]
 
 authors:
   Steven Tobin:
@@ -53,6 +54,15 @@ reference:
   - cleanup_prng
   - updatePRNG
   - suppressMPFRWarnings
+
+- title: "Extended Statistical Distributions"
+  desc: "Advanced statistical distributions for specialized applications"
+  contents:
+  - generate_levy_stable
+  - generate_pareto
+  - generate_cauchy
+  - generate_multivariate_normal
+  - generate_with_copula
   
 - title: "Discriminant Analysis and Management"
   desc: "Functions for analyzing, validating, and managing discriminant parameters"

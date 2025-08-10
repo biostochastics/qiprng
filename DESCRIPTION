@@ -1,7 +1,7 @@
 Package: qiprng
 Type: Package
 Title: Quadratic Irrational PRNG
-Version: 0.4.1
+Version: 0.5.0
 Authors@R: person("Sergey", "Kornilov", email = "sergey.kornilov@biostochastics.com", role = c("aut", "cre"))
 Author: Sergey Kornilov [aut, cre]
 Maintainer: Sergey Kornilov <sergey.kornilov@biostochastics.com>
@@ -30,5 +30,6 @@ LinkingTo:
     Rcpp
 SystemRequirements: 
     OpenSSL (>= 1.0),
-    libsodium (>= 1.0.11)
+    libsodium (>= 1.0.11),
+    Eigen3 (>= 3.3, optional for multivariate distributions)
 BugReports: https://github.com/biostochastics/qiprng/issues

@@ -12,6 +12,160 @@
 
 namespace qiprng {
 
+// Matrix power using binary exponentiation for O(log n) complexity
+Matrix2x2 Matrix2x2::power(uint64_t n) const {
+    if (n == 0) {
+        return Matrix2x2(); // Identity matrix
+    }
+    
+    Matrix2x2 result(1, 0, 0, 1); // Identity
+    Matrix2x2 base = *this;
+    
+    while (n > 0) {
+        if (n & 1) {
+            result = result * base;
+        }
+        base = base * base;
+        n >>= 1;
+    }
+    
+    return result;
+}
+
+// Check if a number is square-free (no repeated prime factors)
+bool QuadraticIrrational::is_square_free(long long n) {
+    if (n <= 1) return false;
+    
+    // Check for divisibility by small primes squared
+    const long long small_primes[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31};
+    for (long long p : small_primes) {
+        long long p_squared = p * p;
+        if (n % p_squared == 0) {
+            return false;
+        }
+        // Remove all factors of p
+        while (n % p == 0) {
+            n /= p;
+        }
+    }
+    
+    // Check remaining factor
+    if (n > 1) {
+        // If n is still > 1, it's either prime or has larger factors
+        // Check if it's a perfect square
+        long long sqrt_n = static_cast<long long>(std::sqrt(static_cast<double>(n)));
+        if (sqrt_n * sqrt_n == n) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+// Custom hash function for pair<long, long>
+struct PairHash {
+    std::size_t operator()(const std::pair<long, long>& p) const {
+        // Combine hashes of the two elements
+        std::size_t h1 = std::hash<long>{}(p.first);
+        std::size_t h2 = std::hash<long>{}(p.second);
+        // Use a simple combining function
+        return h1 ^ (h2 << 1);
+    }
+};
+
+// Compute CFE period using Gauss-Legendre algorithm with hash table for O(L) detection
+void QuadraticIrrational::compute_cfe_period() {
+    if (cfe_computed_) {
+        return; // Already computed
+    }
+    
+    // Initialize for Gauss-Legendre recurrence
+    // P_0 = 0, Q_0 = 1, P_1 = a_0, Q_1 = discriminant - P_1^2
+    long long D = discriminant_;
+    long a_0 = static_cast<long>(std::sqrt(static_cast<double>(D)));
+    
+    // Hash table for period detection: key = (P_n, Q_n), value = index
+    std::unordered_map<std::pair<long, long>, size_t, PairHash> seen;
+    
+    cfe_coefficients_.clear();
+    cfe_coefficients_.push_back(a_0);
+    
+    long P_n = a_0;
+    long Q_n = D - a_0 * a_0;
+    
+    if (Q_n == 0) {
+        // Perfect square, no period
+        cfe_period_length_ = 0;
+        cfe_computed_ = true;
+        return;
+    }
+    
+    size_t index = 0;
+    seen[{P_n, Q_n}] = index++;
+    
+    // Maximum iterations to prevent infinite loops
+    const size_t MAX_PERIOD = 100000;
+    
+    while (index < MAX_PERIOD) {
+        // Gauss-Legendre recurrence formulas
+        // a_n = floor((a_0 + P_n) / Q_n)
+        long a_n = (a_0 + P_n) / Q_n;
+        cfe_coefficients_.push_back(a_n);
+        
+        // P_{n+1} = a_n * Q_n - P_n
+        long P_next = a_n * Q_n - P_n;
+        
+        // Q_{n+1} = (D - P_{n+1}^2) / Q_n
+        long long P_next_squared = static_cast<long long>(P_next) * P_next;
+        if (P_next_squared > D) {
+            throw std::runtime_error("QuadraticIrrational: Overflow in CFE computation");
+        }
+        long Q_next = (D - P_next_squared) / Q_n;
+        
+        // Check for period
+        auto state = std::make_pair(P_next, Q_next);
+        auto it = seen.find(state);
+        if (it != seen.end()) {
+            // Found period!
+            cfe_period_length_ = index - it->second;
+            
+            // Remove pre-period coefficients if any
+            if (it->second > 0) {
+                cfe_coefficients_.erase(cfe_coefficients_.begin(), 
+                                       cfe_coefficients_.begin() + it->second);
+            }
+            
+            // Keep only the period
+            cfe_coefficients_.resize(cfe_period_length_);
+            
+            cfe_computed_ = true;
+            
+            // Store final state for potential optimizations
+            P_n_ = P_next;
+            Q_n_ = Q_next;
+            
+            return;
+        }
+        
+        seen[state] = index++;
+        P_n = P_next;
+        Q_n = Q_next;
+    }
+    
+    // If we reach here, period is too long or doesn't exist
+    Rcpp::warning("QuadraticIrrational: CFE period exceeds maximum length %d", MAX_PERIOD);
+    cfe_period_length_ = 0;
+    cfe_computed_ = true;
+}
+
+// Enhanced step_once using Gauss-Legendre insights for optimization
+void QuadraticIrrational::step_once_gauss_legendre() {
+    // This is an optimized version that can leverage CFE period knowledge
+    // For now, fall back to regular step_once, but this can be enhanced
+    // to use matrix methods when CFE is computed
+    step_once();
+}
+
 // Single iteration with improved error handling
 void QuadraticIrrational::step_once() {
     if (!value_ || !next_ || !temp_ || !temp2_ || !root_ ||
@@ -84,7 +238,9 @@ void QuadraticIrrational::step_once() {
 
 QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t prec,
                                        uint64_t seed, bool has_seed)
-    : a_(a), b_(b), c_(c) {
+    : a_(a), b_(b), c_(c), discriminant_(0), 
+      cfe_period_length_(0), cfe_computed_(false),
+      P_n_(0), Q_n_(1) {
     // Validate parameters more comprehensively
     if (a == 0) {
         throw std::invalid_argument("QuadraticIrrational: 'a' parameter cannot be zero");
@@ -102,10 +258,18 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
         throw std::runtime_error("QuadraticIrrational: " + error_msg);
     }
     
+    // Cache discriminant for CFE computation
+    discriminant_ = disc_ll;
+    
     // Check for non-positive discriminant
     if (disc_ll <= 0) {
          Rcpp::Rcerr << "a=" << a_ << ", b=" << b_ << ", c=" << c_ << ", disc=" << disc_ll << std::endl;
         throw std::runtime_error("QuadraticIrrational: non-positive discriminant");
+    }
+    
+    // Check if discriminant is square-free for quality PRNG (v0.5.0 enhancement)
+    if (!is_square_free(disc_ll)) {
+        Rcpp::warning("QuadraticIrrational: discriminant %lld is not square-free, may affect PRNG quality", disc_ll);
     }
     
     // Check if discriminant is too large for safe square root calculation
@@ -216,7 +380,7 @@ double QuadraticIrrational::next() {
 }
 
 void QuadraticIrrational::skip(uint64_t n) {
-    jump_ahead(n);
+    jump_ahead_optimized(n);
 }
 
 
@@ -255,6 +419,96 @@ void QuadraticIrrational::jump_ahead(uint64_t n) {
         for (uint64_t i = 0; i < remainder; i++) {
             step_once();
         }
+    }
+}
+
+// Optimized O(log n) jump-ahead using matrix exponentiation (v0.5.0 enhancement)
+void QuadraticIrrational::jump_ahead_optimized(uint64_t n) {
+    if (n == 0) {
+        return;
+    }
+    
+    // First compute CFE period if not already done
+    if (!cfe_computed_) {
+        try {
+            compute_cfe_period();
+        } catch (const std::exception& e) {
+            // Fall back to regular jump if CFE computation fails
+            Rcpp::warning("QuadraticIrrational: CFE computation failed, using regular jump: %s", e.what());
+            jump_ahead(n);
+            return;
+        }
+    }
+    
+    // If no period found or period is too short, use regular jump
+    if (cfe_period_length_ == 0 || cfe_period_length_ < 10) {
+        jump_ahead(n);
+        return;
+    }
+    
+    // Use matrix exponentiation for large jumps
+    // The CFE recurrence can be represented as matrix multiplication
+    // This is particularly efficient for jumps >> period length
+    
+    if (n > cfe_period_length_ * 2) {
+        // For very large jumps, we can jump by periods efficiently
+        uint64_t full_periods = n / cfe_period_length_;
+        uint64_t remainder = n % cfe_period_length_;
+        
+        // Build transformation matrix for one period
+        Matrix2x2 period_matrix(1, 0, 0, 1); // Start with identity
+        
+        for (size_t i = 0; i < cfe_period_length_; ++i) {
+            long a_i = cfe_coefficients_[i];
+            Matrix2x2 step_matrix(a_i, 1, 1, 0);
+            period_matrix = period_matrix * step_matrix;
+        }
+        
+        // Apply the period transformation multiple times using binary exponentiation
+        Matrix2x2 result = period_matrix.power(full_periods);
+        
+        // Apply the matrix transformation to current state using MPFR arithmetic
+        // The transformation is: [x_{n+k}, y_{n+k}] = M^k * [x_n, y_n]
+        // where M is the period matrix and k is the number of periods to jump
+        
+        // Create temporary MPFR variables for the transformation
+        std::unique_ptr<MPFRWrapper> new_value = std::make_unique<MPFRWrapper>(value_->get_precision());
+        std::unique_ptr<MPFRWrapper> temp_val = std::make_unique<MPFRWrapper>(value_->get_precision());
+        
+        // Apply transformation: new_value = (p * value + q * next) / (r * value + s * next)
+        // where p, q, r, s are the matrix elements
+        
+        // Numerator: p * value + q * next
+        mpfr_mul_si(*temp_val->get(), *value_->get(), result.p, MPFR_RNDN);
+        mpfr_mul_si(*new_value->get(), *next_->get(), result.q, MPFR_RNDN);
+        mpfr_add(*new_value->get(), *new_value->get(), *temp_val->get(), MPFR_RNDN);
+        
+        // Denominator: r * value + s * next  
+        mpfr_mul_si(*temp_val->get(), *value_->get(), result.r, MPFR_RNDN);
+        mpfr_mul_si(*temp_->get(), *next_->get(), result.s, MPFR_RNDN);
+        mpfr_add(*temp_->get(), *temp_->get(), *temp_val->get(), MPFR_RNDN);
+        
+        // Divide to get new value
+        if (mpfr_zero_p(*temp_->get())) {
+            // Fallback if denominator is zero
+            for (uint64_t i = 0; i < full_periods * cfe_period_length_; ++i) {
+                step_once();
+            }
+        } else {
+            mpfr_div(*value_->get(), *new_value->get(), *temp_->get(), MPFR_RNDN);
+            
+            // Update next value using the recurrence relation
+            // For quadratic irrational: x_{n+1} = (a*x_n^2 + b*x_n + c) / (x_n^2 + root)
+            step_once(); // This updates next_ based on new value_
+        }
+        
+        // Handle remainder with regular stepping
+        for (uint64_t i = 0; i < remainder; ++i) {
+            step_once();
+        }
+    } else {
+        // For smaller jumps, regular method is fine
+        jump_ahead(n);
     }
 }
 

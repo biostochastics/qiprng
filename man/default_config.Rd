@@ -22,6 +22,8 @@ A list with the following components:
 \item{use_threading}{Logical: whether to enable thread-local PRNG instances}
 \item{use_csv_discriminants}{Logical: whether to use custom discriminants from file}
 \item{use_parallel_filling}{Logical: whether to use parallel buffer filling}
+\item{mixing_strategy}{String: entropy mixing strategy for multi-QI ensemble (v0.5.0).
+Options: "round_robin" (default), "xor_mix", "averaging", "modular_add", "cascade_mix"}
 \item{debug}{Logical: whether to enable debugging output}
 }
 }
