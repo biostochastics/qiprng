@@ -11,20 +11,9 @@
 [![SIMD](https://img.shields.io/badge/SIMD-AVX2%2FNEON-orange)](https://github.com/biostochastics/qiprng)
 [![Parallel](https://img.shields.io/badge/Parallel-OpenMP-green)](https://github.com/biostochastics/qiprng)
 
-> High-performance, cryptographically-secure PRNG with hardware acceleration, parallel generation, and advanced mixing strategies
-
-## 🚀 Version 0.5.0 Highlights
-
-- **Hardware Acceleration**: SIMD vectorization (AVX2/NEON), OpenMP parallelization
-- **Advanced Mixing Strategies**: XOR, averaging, modular, cascade mixing
-- **Parallel Generation**: Work-stealing queue for optimal load balancing
-- **Matrix Jump-Ahead**: O(log n) complexity with MPFR precision
-- **Extended Distributions**: Levy stable, Pareto, Cauchy, multivariate normal
-- **Apple Silicon Optimized**: Native ARM64 with NEON acceleration
-
 ## Overview
 
-The `qiprng` package implements a cutting-edge pseudo-random number generator based on quadratic irrational numbers with advanced parallelization and hardware acceleration. It offers superior statistical properties, cryptographic security, and blazing-fast performance through modern CPU features.
+The `qiprng` package implements a pseudo-random number generator based on quadratic irrational numbers with hardware acceleration and parallel generation capabilities. It provides cryptographic security features and extensive statistical distribution support.
 
 ```r
 library(qiprng)
@@ -33,55 +22,24 @@ x <- generatePRNG(10000)
 hist(x, breaks = 50, main = "qiprng uniform distribution", col = "skyblue")
 ```
 
-## Extended Statistical Distributions
+## Key Features
 
-Version 0.5.0 introduces advanced statistical distributions powered by the core QIPRNG engine:
+### Version 0.5.0 Enhancements
+- **Hardware Acceleration**: SIMD vectorization (AVX2/NEON), OpenMP parallelization
+- **Advanced Mixing Strategies**: XOR, averaging, modular, cascade mixing for enhanced entropy
+- **Parallel Generation**: Work-stealing queue for optimal load balancing
+- **Matrix Jump-Ahead**: O(log n) complexity using matrix exponentiation with MPFR precision
+- **Extended Distributions**: Levy stable, Pareto, Cauchy, multivariate normal, Gaussian copula
+- **Apple Silicon Optimized**: Native ARM64 with NEON acceleration
 
-### Levy Stable Distribution
-Generate alpha-stable random variates using the Chambers-Mallows-Stuck algorithm:
-```r
-# Generate Levy stable random numbers
-levy_samples <- generate_levy_stable(n = 1000, alpha = 1.5, beta = 0.5, mu = 0, sigma = 1)
-# alpha: stability parameter (0,2], beta: skewness [-1,1]
-```
-
-### Pareto Distribution
-Heavy-tailed distribution for modeling extreme events:
-```r
-# Generate Pareto distributed values
-pareto_samples <- generate_pareto(n = 1000, xm = 1, alpha = 2.5)
-# xm: scale (minimum value), alpha: shape parameter
-```
-
-### Cauchy Distribution
-Fat-tailed distribution with undefined mean:
-```r
-# Generate Cauchy distributed values
-cauchy_samples <- generate_cauchy(n = 1000, location = 0, scale = 1)
-```
-
-### Multivariate Normal Distribution
-Generate correlated normal vectors (requires Eigen3):
-```r
-# Define mean and covariance
-mean_vec <- c(0, 0, 0)
-cov_mat <- matrix(c(1, 0.5, 0.2,
-                    0.5, 1, 0.3,
-                    0.2, 0.3, 1), 3, 3)
-mvn_samples <- generate_multivariate_normal(n = 1000, mean_vec, cov_mat)
-```
-
-### Gaussian Copula
-Model complex dependencies between different marginal distributions:
-```r
-# Define correlation and marginals
-correlation <- matrix(c(1, 0.7, 0.7, 1), 2, 2)
-marginals <- list(
-  list(type = "cauchy", location = 0, scale = 1),
-  list(type = "pareto", xm = 1, alpha = 3)
-)
-copula_samples <- generate_with_copula(n = 1000, correlation, marginals)
-```
+### Core Capabilities
+- **High-precision computation** using MPFR library (24-10000 bits precision)
+- **14+ statistical distributions** with optimized algorithms
+- **Cryptographic-grade security** using ChaCha20 cipher
+- **Thread-safe operation** with mutex protection and thread-local resources
+- **Deterministic/reproducible mode** with seed support
+- **Comprehensive testing framework** with 70+ statistical tests
+- **Validated discriminants** with 370 excellent-rated parameters
 
 ## Acknowledgments
 
@@ -91,45 +49,30 @@ copula_samples <- generate_with_copula(n = 1000, correlation, marginals)
 
 ## Quality Assurance
 
-### Comprehensive Discriminant Validation
+### Discriminant Validation
 
-The `qiprng` package has undergone rigorous quality analysis of all 750 possible discriminants. Each discriminant configuration was tested with 1,000,000 samples against our comprehensive statistical test suite.
+All 750 possible discriminants have been tested with 1,000,000 samples against the comprehensive statistical test suite:
 
-**Validation Results:**
+| Quality Rating | Count | Percentage |
+|----------------|-------|------------|
+| Excellent | 370 | 49.3% |
+| Very Good | 324 | 43.2% |
+| Good | 50 | 6.7% |
+| Poor | 6 | 0.8% |
 
-| Quality Rating | Count | Percentage | Description |
-|----------------|-------|------------|-------------|
-| Excellent | 370 | 49.3% | Passed all tests with p-values > 0.01 |
-| Very Good | 324 | 43.2% | Minor deviations, suitable for most applications |
-| Good | 50 | 6.7% | Acceptable for non-critical uses |
-| Poor | 6 | 0.8% | Failed multiple tests, not recommended |
-
-**Key Findings:**
-
-- **370 Excellent Discriminants:** These parameter sets demonstrate exceptional statistical properties across all test categories
-- **Robust Autocorrelation Testing:** Enhanced testing framework with stricter thresholds (max correlation < 0.010)
-- **Production-Ready Selection:** Default configuration uses only the 370 excellent-rated discriminants
-- **Statistical Guarantee:** 92.5% of discriminants rated "Good" or better, confirming the mathematical soundness
-
-### Production-Ready Defaults
-
-By default, qiprng uses only the 370 "Excellent" rated discriminants, ensuring maximum quality and reliability for production use:
+By default, qiprng uses only the 370 "Excellent" rated discriminants:
 
 ```r
 # Production configuration (default)
 config <- list(
-  use_excellent_only = TRUE,    # Use only validated excellent discriminants
+  use_excellent_only = TRUE,    # Use validated excellent discriminants
   quality_threshold = 0.010     # Maximum autocorrelation threshold
 )
-```
 
-For research or legacy compatibility:
-
-```r
-# Research configuration (all 750 discriminants)
+# Research configuration (all discriminants)
 config <- list(
-  use_excellent_only = FALSE,   # Use all discriminants
-  use_csv_discriminants = TRUE  # Load from discriminants.csv
+  use_excellent_only = FALSE,
+  use_csv_discriminants = TRUE
 )
 ```
 
@@ -191,57 +134,48 @@ if (!require("remotes")) {
 remotes::install_github("biostochastics/qiprng")
 ```
 
-## Features
-
-- **High-precision computation** using the MPFR library (24-10000 bits precision)
-- **14 statistical distributions**: uniform, normal, exponential, Poisson, gamma, beta, Bernoulli, binomial, log-normal, Weibull, chi-squared, Student's t, negative binomial
-- **Cryptographic-grade security** using ChaCha20 cipher for enhanced randomness
-- **Deterministic/reproducible mode** with seed support for scientific computing (v0.2.7)
-- **Configurable parameters** for the quadratic recurrence relation
-- **Robust thread-safe operation** with proper mutex protection and thread-local resources
-- **Thread-safe normal distribution** with both Box-Muller and Ziggurat methods
-- **Reliable distribution transitions** with proper multi-step process for switching distributions
-- **Automatic reseeding** with configurable intervals
-- **Enhanced error handling** with thread-local fallback generators for statistical correctness
-- **Comprehensive statistical testing** framework with 70+ tests for PRNG quality evaluation
-- **Optimized jump-ahead** with O(log n) complexity using matrix exponentiation and MPFR arithmetic (v0.5.0)
-- **Validated discriminants** with 370 excellent-rated parameters for optimal quality
-- **MultiQI ensemble management** with 5 mixing strategies for enhanced entropy (v0.5.0)
-- **CFE period detection** using Gauss-Legendre algorithm for O(L) complexity (v0.5.0)
-- **Dynamic QI generation** with square-free validation and D = k² + 1 pattern (v0.5.0)
-- **Memory pooling** for MPFR objects reducing allocation overhead (v0.5.0)
 
 ## Supported Distributions
 
-### Continuous Distributions
+### Standard Distributions
+**Continuous**: Uniform, Normal, Exponential, Gamma, Beta, Log-Normal, Weibull, Chi-Squared, Student's t  
+**Discrete**: Bernoulli, Binomial, Poisson, Negative Binomial
 
-| Distribution | Parameters | Description | Example Usage |
-|-------------|------------|-------------|---------------|
-| **Uniform** | `range_min`, `range_max` | Uniform distribution on [min, max] | `distribution = "uniform_range"` |
-| **Normal** | `normal_mean`, `normal_sd` | Normal (Gaussian) distribution | `distribution = "normal"` |
-| **Exponential** | `exponential_lambda` | Exponential distribution with rate λ | `distribution = "exponential"` |
-| **Gamma** | `gamma_shape`, `gamma_scale` | Gamma distribution | `distribution = "gamma"` |
-| **Beta** | `beta_alpha`, `beta_beta` | Beta distribution on [0,1] | `distribution = "beta"` |
-| **Log-Normal** | `lognormal_mu`, `lognormal_sigma` | Exponential of normal distribution | `distribution = "lognormal"` |
-| **Weibull** | `weibull_shape`, `weibull_scale` | Weibull distribution (reliability analysis) | `distribution = "weibull"` |
-| **Chi-Squared** | `chisquared_df` | Chi-squared distribution with df degrees of freedom | `distribution = "chisquared"` |
-| **Student's t** | `student_t_df` | Student's t-distribution with df degrees of freedom | `distribution = "student_t"` |
+### Extended Distributions (v0.5.0)
+- **Levy Stable**: Alpha-stable random variates using Chambers-Mallows-Stuck algorithm
+- **Pareto**: Heavy-tailed distribution for extreme events modeling
+- **Cauchy**: Fat-tailed distribution with undefined mean
+- **Multivariate Normal**: Correlated normal vectors (requires Eigen3)
+- **Gaussian Copula**: Complex dependencies between different marginal distributions
 
-### Discrete Distributions
+### Distribution Examples
 
-| Distribution | Parameters | Description | Example Usage |
-|-------------|------------|-------------|---------------|
-| **Bernoulli** | `bernoulli_p` | Binary outcome with probability p | `distribution = "bernoulli"` |
-| **Binomial** | `binomial_n`, `binomial_p` | Sum of n Bernoulli trials | `distribution = "binomial"` |
-| **Poisson** | `poisson_lambda` | Poisson distribution with mean λ | `distribution = "poisson"` |
-| **Negative Binomial** | `negative_binomial_r`, `negative_binomial_p` | Number of failures before r successes | `distribution = "negative_binomial"` |
+```r
+# Standard distributions
+createPRNG(list(distribution = "normal", normal_mean = 0, normal_sd = 1))
+normal_samples <- generatePRNG(1000)
 
-### Distribution Features
+createPRNG(list(distribution = "exponential", exponential_lambda = 0.5))
+exp_samples <- generatePRNG(1000)
 
-- **Optimized algorithms**: Normal approximations for large parameters (e.g., binomial with n > 50 and np > 5)
-- **Numerical stability**: Robust handling of edge cases and extreme parameter values
-- **Thread-safe**: All distributions maintain thread safety with proper state management
-- **Efficient reuse**: Complex distributions leverage simpler ones (e.g., chi-squared uses gamma)
+# Extended distributions
+levy_samples <- generate_levy_stable(n = 1000, alpha = 1.5, beta = 0.5, mu = 0, sigma = 1)
+pareto_samples <- generate_pareto(n = 1000, xm = 1, alpha = 2.5)
+cauchy_samples <- generate_cauchy(n = 1000, location = 0, scale = 1)
+
+# Multivariate normal
+mean_vec <- c(0, 0, 0)
+cov_mat <- matrix(c(1, 0.5, 0.2, 0.5, 1, 0.3, 0.2, 0.3, 1), 3, 3)
+mvn_samples <- generate_multivariate_normal(n = 1000, mean_vec, cov_mat)
+
+# Gaussian copula
+correlation <- matrix(c(1, 0.7, 0.7, 1), 2, 2)
+marginals <- list(
+  list(type = "cauchy", location = 0, scale = 1),
+  list(type = "pareto", xm = 1, alpha = 3)
+)
+copula_samples <- generate_with_copula(n = 1000, correlation, marginals)
+```
 
 ## Usage
 
@@ -261,10 +195,10 @@ mean(x)     # Should be close to 0.5 for uniform_01
 var(x)      # Should be close to 1/12 for uniform_01
 ```
 
-### v0.5.0 New Features
+### Advanced Configuration
 
 ```r
-# Advanced Mixing Strategies for improved randomness
+# Mixing strategies for enhanced entropy
 cfg <- list(
   a = 2L, b = 5L, c = -2L,
   mixing_strategy = "xor_mixing",  # Options: round_robin, xor_mixing, averaging, modular_add, cascade
@@ -273,45 +207,32 @@ cfg <- list(
 )
 createPRNG(cfg)
 
-# Benchmark parallel vs sequential generation
-system.time(vals <- generatePRNG(1000000))  # Parallel: ~0.5s on Apple Silicon M1
-
-# Jump-ahead for independent parallel streams
+# Jump-ahead for parallel streams
 cfg$offset <- 1000000  # Jump ahead 1M values
 createPRNG(cfg)
 stream2 <- generatePRNG(10000)  # Independent stream
 ```
 
-### Advanced Example
+### Custom Configuration
 
 ```r
-# Create PRNG with custom configuration
+# Configure PRNG with specific parameters
 cfg <- list(
   a = 2L,                    # Quadratic coefficient (must be positive)
   b = 5L,                    # Linear coefficient
   c = -2L,                   # Constant term (must be negative)
   mpfr_precision = 128L,     # Precision in bits (24-10000)
   use_crypto_mixing = TRUE,  # Apply cryptographic mixing
-  distribution = "normal",   # Output distribution
-  normal_mean = 0,           # Mean for normal distribution
-  normal_sd = 1              # SD for normal distribution
+  distribution = "normal",
+  normal_mean = 0,
+  normal_sd = 1
 )
 createPRNG(cfg)
-
-# Generate normal random numbers
 norm_samples <- generatePRNG(10000)
-qqnorm(norm_samples)
-qqline(norm_samples)
 
-# Update to exponential distribution
-updatePRNG(list(
-  distribution = "exponential",
-  exponential_lambda = 0.5   # Rate parameter (mean = 1/lambda)
-))
-
-# Generate exponential random numbers
+# Switch distribution dynamically
+updatePRNG(list(distribution = "exponential", exponential_lambda = 0.5))
 exp_samples <- generatePRNG(10000)
-hist(exp_samples, breaks = 50, main = "Exponential Distribution", col = "lightgreen")
 ```
 
 ### Thread-safe Example
@@ -371,19 +292,12 @@ set2 <- generatePRNG(100)
 all(set1 == set2)  # TRUE
 ```
 
-Note: When seed is provided, the PRNG uses deterministic initialization while maintaining all mathematical properties:
-- **Discriminant selection**: When a seed is provided, discriminants are shuffled using a deterministic RNG seeded with the user's seed, providing reproducible but still randomized selection. Without a seed, discriminants are shuffled using the thread-local random RNG.
-- **Warm-up period**: The generator performs 10,000-100,000 initial iterations to ensure proper mixing and unpredictable starting states.
-- This mode is suitable for research and testing but should not be used when cryptographic randomness is required.
+Note: When seed is provided, the PRNG uses deterministic initialization while maintaining mathematical properties. The generator performs a warm-up period for proper mixing. This mode is suitable for research and testing but not for cryptographic applications. For full determinism with normal distributions, use `normal_method = "box_muller"`.
 
-For full determinism with normal distributions, use `normal_method = "box_muller"` instead of the default ziggurat method, as the ziggurat implementation uses additional randomness for efficiency.
-
-### MultiQI Mixing Strategies (v0.5.0)
-
-The `qiprng` package now supports multiple quadratic irrationals working in ensemble with configurable mixing strategies for enhanced entropy:
+### MultiQI Mixing Strategies
 
 ```r
-# Create PRNG with specific mixing strategy
+# Multiple quadratic irrationals with mixing
 cfg <- list(
   a = c(2, 3, 5),          # Multiple QI coefficients
   b = c(7, 11, 13),
@@ -392,143 +306,60 @@ cfg <- list(
 )
 createPRNG(cfg)
 
-# Available mixing strategies:
-# - "round_robin": Cycles through QIs sequentially (fastest)
-# - "xor_mix": XOR combines outputs for bit diffusion
-# - "averaging": Averages multiple QI outputs
-# - "modular_add": Modular addition of outputs
-# - "cascade_mix": Cascaded mixing for maximum entropy
-
-# Update mixing strategy on the fly
-updatePRNG(list(mixing_strategy = "xor_mix"))
+# Available strategies:
+# round_robin: Cycles through QIs sequentially (fastest)
+# xor_mix: XOR combines outputs for bit diffusion
+# averaging: Averages multiple QI outputs
+# modular_add: Modular addition of outputs
+# cascade_mix: Cascaded mixing for maximum entropy
 ```
 
-Each mixing strategy offers different trade-offs between performance and entropy quality:
-- **round_robin**: Best performance, good for general use
-- **xor_mix**: Excellent bit diffusion, ideal for cryptographic applications
-- **cascade_mix**: Maximum entropy mixing, best for high-security scenarios
-
-### Jump-Ahead Example
+### Jump-Ahead Functionality
 
 ```r
-# The jump-ahead functionality allows efficient skipping in the sequence
+# Efficiently skip ahead in the sequence
 createPRNG()
-
-# Generate initial values
 initial <- generatePRNG(5)
 
-# Jump ahead 1 billion steps in the sequence - O(log n) complexity!
+# Jump ahead 1 billion steps - O(log n) complexity
 jumpAheadPRNG(1000000000)
-
-# Generate values after the jump
 after_jump <- generatePRNG(5)
 
-# v0.5.0: Uses matrix exponentiation with MPFR arithmetic
-# - O(log n) time complexity instead of O(n)
-# - Can jump ahead by astronomical numbers efficiently
-# - Maintains full precision and periodicity properties
+# Uses matrix exponentiation with MPFR arithmetic for:
+# - O(log n) time complexity
+# - Astronomical jump distances
+# - Full precision preservation
 ```
 
 ## Statistical Testing Framework
 
-The `qiprng` package includes a comprehensive statistical testing suite with over 70 tests to validate PRNG quality. The framework evaluates randomness across multiple dimensions:
+The package includes a comprehensive testing suite with 70+ tests across multiple categories:
 
 ### Test Categories
 
-1. **Basic Distribution Tests** (7 tests)
-   - Kolmogorov-Smirnov test for uniformity
-   - Chi-squared goodness-of-fit test
-   - Mean and variance tests
-   - Min/max range tests with beta distribution
-   - Effect sizes: Cohen's d, Cramér's V
+1. **Basic Distribution Tests** - Uniformity, chi-squared, mean/variance, effect sizes
+2. **Runs and Independence Tests** - Runs, turning points, trend tests, gap analysis
+3. **Correlation Tests** - Serial correlation, ACF/PACF, spectral analysis
+4. **Binary and Bitwise Tests** - NIST SP 800-22 suite implementation
+5. **Classical PRNG Tests** - Coupon collector, poker, birthday spacing
+6. **Advanced Statistical Tests** - Entropy, gap distribution, pattern analysis
+7. **Compression Tests** - GZIP/BZIP2 ratios, entropy calculations
+8. **External Test Integration** - CryptRndTest, randtests packages
 
-2. **Runs and Independence Tests** (10 tests)
-   - Runs above/below median
-   - Turning points test for local extrema
-   - Difference sign test
-   - Bartels rank test
-   - Cox-Stuart trend test
-   - Gap tests for specific ranges ([0.0-0.1], [0.4-0.6], [0.9-1.0])
+### Statistical Test Results
 
-3. **Correlation Tests** (8 tests)
-   - Serial correlation at multiple lags (1, 2, 3, 5, 10)
-   - Autocorrelation function (ACF) analysis
-   - Partial autocorrelation function (PACF)
-   - Spectral analysis with Kolmogorov-Smirnov test
-   - Ljung-Box test for overall autocorrelation
+Comprehensive testing with 100 runs per test and sample sizes up to 5 million shows:
 
-4. **Binary and Bitwise Tests** (14 tests)
-   - NIST SP 800-22 test suite implementation
-   - Monobit frequency test
-   - Block frequency test
-   - Runs test on binary sequences
-   - Longest run of ones test
-   - Serial test for bit patterns
-   - Approximate entropy test
-   - Random excursions tests
-   - Linear complexity test (Berlekamp-Massey)
+| Generator | Pass Rate | Moments Deviation |
+|-----------|-----------|-------------------|
+| dqrng (Threefry) | 100.0% | 0.009004 |
+| QIPRNG (High Precision) | 96.8% | 0.001758 |
+| QIPRNG (No Crypto) | 95.9% | 0.001427 |
+| QIPRNG (Default) | 95.8% | 0.003427 |
+| R Mersenne-Twister | 95.6% | 0.000804 |
+| QIPRNG (With Crypto) | 95.2% | 0.002300 |
 
-5. **Classical PRNG Tests** (3 tests)
-   - Coupon collector test
-   - Poker hand test with combinatorial probabilities
-   - Birthday spacing test with Poisson distribution
-
-6. **Advanced Statistical Tests** (4 tests)
-   - Shannon entropy test for information content
-   - Gap test with geometric distribution analysis
-   - Serial correlation test at multiple lags
-   - Poker test for digit pattern analysis
-
-7. **Compression Tests** (4 tests)
-   - GZIP and BZIP2 compression ratios
-   - Shannon entropy calculation
-   - Byte frequency chi-square test
-   - Bootstrap-based compression analysis
-
-8. **External Test Integration** (15+ tests)
-   - CryptRndTest package: Adaptive chi-square, birthday spacings, GCD test
-   - randtests package: Complete randomness test battery
-   - Standard R tests with appropriate transformations
-
-### Comprehensive Comparison Results
-
-Based on extensive analysis with 100 runs per test and sample sizes up to 5 million:
-
-| Generator | Overall Pass Rate | Statistical Moments Quality |
-|-----------|------------------|----------------------------|
-| dqrng (Threefry) | 100.0% | 0.009004 total deviation |
-| dqrng (Xoshiro256++) | 98.8% | 0.004434 total deviation |
-| dqrng (Xoroshiro128++) | 98.6% | 0.004670 total deviation |
-| dqrng (PCG64) | 97.3% | 0.007339 total deviation |
-| **QIPRNG (High Precision)** | **96.8%** | **0.001758 total deviation** |
-| R L'Ecuyer-CMRG | 96.3% | 0.001169 total deviation |
-| R Wichmann-Hill | 96.2% | 0.000747 total deviation |
-| **QIPRNG (No Crypto)** | **95.9%** | **0.001427 total deviation** |
-| **QIPRNG (Default)** | **95.8%** | **0.003427 total deviation** |
-| R Marsaglia-Multicarry | 95.7% | 0.002615 total deviation |
-| R Mersenne-Twister | 95.6% | 0.000804 total deviation |
-| Crypto (OpenSSL) | 95.4% | 0.001587 total deviation |
-| **QIPRNG (With Crypto)** | **95.2%** | **0.002300 total deviation** |
-| dqrng (Xoroshiro128+) | 88.4% | 0.004006 total deviation |
-
-**Key Findings:**
-- Best statistical moments: R Knuth-TAOCP (0.000586), R Knuth-TAOCP-2002 (0.000612), R Wichmann-Hill (0.000747)
-- QIPRNG variants show good moments adherence with QIPRNG (No Crypto) at 0.001427 total deviation
-- All generators pass basic statistical tests with high rates (94-97%)
-- Advanced tests (Gap, Spectral) now properly implemented with realistic pass rates
-- Trade-off between raw speed and statistical quality: dqrng is fastest (~100M numbers/sec) while QIPRNG provides cryptographic security (~6M numbers/sec)
-
-### Test Highlights
-
-**Spectral Test**: Use Kolmogorov-Smirnov test to compare spectral densities against exponential distribution (expected for random sequences). Average pass rate: 99.1%
-
-**Gap Test**: Analyze gaps between occurrences of values in range [0.3, 0.7], comparing to geometric distribution. Average pass rate: 96.4%
-
-**Statistical Moments**: Analysis of deviations from theoretical values shows:
-- Best overall: R Knuth-TAOCP with 0.000586 total deviation
-- QIPRNG (No Crypto): 0.001427 total deviation - good performance
-- dqrng variants: 0.004006-0.009004 total deviation
-- All generators show acceptable adherence to theoretical moments
+All QIPRNG variants demonstrate strong statistical properties with pass rates above 95% and low moment deviations, confirming the mathematical soundness of the quadratic irrational approach.
 
 ### Running Tests
 
@@ -567,61 +398,49 @@ results <- test_prng(config = config)
 
 ## Mathematical Foundation
 
-The `qiprng` package implements a PRNG based on the recurrence relation:
+The PRNG is based on the recurrence relation:
 
 ```
 x_{n+1} = (a * x_n^2 + b * x_n + c) mod 1
 ```
 
 Where:
-- a, b, and c are integer coefficients (with constraints: a > 0, c < 0, b² - 4ac > 0)
+- a, b, c are integer coefficients (a > 0, c < 0, b² - 4ac > 0)
 - x_n is the current state in [0,1]
-- x_{n+1} is the next state
-- "mod 1" means taking the fractional part
+- The discriminant Δ = b² - 4ac must be a non-perfect square
 
-The discriminant Δ = b² - 4ac must be a non-perfect square to ensure the generated sequence has desirable randomness properties. The mathematical foundation is based on the ergodic theory of quadratic maps and the work of Vincent Granville (2022).
+Based on ergodic theory of quadratic maps and the work of Vincent Granville (2022).
 
-### Jump-Ahead Functionality (v0.5.0 Enhanced)
+### Jump-Ahead Implementation
 
-The `jumpAheadPRNG()` function allows you to efficiently advance the PRNG state by n steps without generating all intermediate values. Version 0.5.0 introduces a revolutionary O(log n) implementation using matrix exponentiation with MPFR arithmetic.
+The `jumpAheadPRNG()` function efficiently advances the PRNG state by n steps without generating intermediate values. Using matrix exponentiation with MPFR arithmetic achieves O(log n) complexity.
 
-**Key Applications**:
-- **Parallel simulations**: Different workers can jump to non-overlapping segments of the sequence
-- **Reproducible subsampling**: Jump to specific points in the sequence for reproducible results
-- **Astronomical jumps**: Can efficiently jump ahead by 10^18 steps or more
+**Applications**:
+- Parallel simulations with non-overlapping sequences
+- Reproducible subsampling at specific points
+- Efficient jumps by astronomical distances (10^18+ steps)
 
-**v0.5.0 Implementation Details**:
-- **Matrix exponentiation**: Uses 2x2 transformation matrices raised to powers via binary exponentiation
-- **MPFR arithmetic**: All operations maintain full precision during matrix computations
-- **O(log n) complexity**: Jump ahead by n steps in just log₂(n) matrix multiplications
-- **Period-aware**: Leverages CFE period detection for correct modular arithmetic
+**Technical Details**:
+- Matrix exponentiation via binary exponentiation
+- Full precision maintained with MPFR arithmetic
+- O(log n) complexity: jump n steps in log₂(n) operations
+- Period-aware using CFE detection
 
-**Technical Innovation**:
-The jump-ahead transforms the quadratic map into matrix form:
-```
-[x_{n+1}]   [p q] [x_n]
-[   1   ] = [0 1] [ 1 ]
-```
-Where the matrix can be efficiently raised to the nth power using binary exponentiation, reducing complexity from O(n) to O(log n).
+### Performance Considerations
 
-### Performance Characteristics
+The `qiprng` generator prioritizes cryptographic-quality randomness over raw speed. It is approximately 50x slower than standard generators like Mersenne Twister due to:
 
-The `qiprng` generator is designed for cryptographic-quality randomness rather than raw speed. In benchmarks, it is approximately 50x slower than standard generators like Mersenne Twister.
+1. **High-precision arithmetic**: MPFR library for arbitrary precision vs simple integer operations
+2. **Complex algorithm**: Quadratic irrational formula requires 5 MPFR operations per number
+3. **Cryptographic mixing**: Optional ChaCha20 adds security at computational cost
+4. **Thread safety**: Mutex protection and thread-local resources add overhead
 
-**Why the performance difference?**
-
-1. **High-precision arithmetic**: qiprng uses MPFR (Multiple Precision Floating-Point Reliable) library for arbitrary precision calculations, while standard generators use simple integer arithmetic
-2. **Complex algorithm**: The quadratic irrational algorithm (x_{n+1} = frac(a*x_n² + b*x_n + c)) requires 5 MPFR operations per number vs 1-2 integer operations for linear generators
-3. **Cryptographic mixing**: Optional ChaCha20 mixing adds additional security at a computational cost
-4. **Thread safety**: Comprehensive mutex protection and thread-local resources add synchronization overhead
-
-**This is a deliberate trade-off**: qiprng prioritizes cryptographic security and mathematical rigor over speed. Use it when you need:
+Use qiprng when you need:
 - Cryptographic-quality randomness
-- Quantum-inspired unpredictability
 - Precise control over statistical properties
 - Enhanced security features
 
-For general statistical sampling where speed is critical and cryptographic security is not required, standard generators remain the better choice.
+For general statistical sampling where speed is critical, standard generators may be more appropriate.
 
 ### Core Functions
 
@@ -645,17 +464,14 @@ For general statistical sampling where speed is critical and cryptographic secur
 
 ### Configuration Parameters
 
-| Parameter | Type | Description | Default |
-|-----------|------|-------------|---------|
-| `a` | integer/vector | Quadratic coefficient(s) (must be > 0) | 2 |
-| `b` | integer/vector | Linear coefficient(s) | 5 |
-| `c` | integer/vector | Constant term(s) (must be < 0) | -2 |
-| `mpfr_precision` | integer | Precision in bits (24-10000) | 128 |
-| `use_crypto_mixing` | logical | Apply ChaCha20 mixing | TRUE |
-| `distribution` | character | Output distribution | "uniform_01" |
-| `use_excellent_only` | logical | Use only validated discriminants | TRUE |
-| `seed` | integer | Seed for reproducibility | NULL |
-| `mixing_strategy` | character | MultiQI mixing strategy (v0.5.0) | "round_robin" |
+Key parameters for PRNG configuration:
+- `a`, `b`, `c`: Quadratic coefficients (a > 0, c < 0, b² - 4ac > 0)
+- `mpfr_precision`: Precision in bits (24-10000, default: 128)
+- `use_crypto_mixing`: Apply ChaCha20 mixing (default: TRUE)
+- `distribution`: Output distribution (default: "uniform_01")
+- `use_excellent_only`: Use validated discriminants (default: TRUE)
+- `seed`: Seed for reproducibility (default: NULL)
+- `mixing_strategy`: MultiQI mixing strategy (default: "round_robin")
 
 ## Dependencies
 
