@@ -44,6 +44,11 @@ private:
     // Helper for entropy extraction
     uint64_t extract_mantissa(double value);
     double combine_mantissas(uint64_t m1, uint64_t m2);
+    
+    // Refactored helper methods for Single Responsibility Principle
+    double getFromCache();
+    double generateSingleValue(QuadraticIrrational* qi);
+    void refillCache();
 
 public:
     // Enhanced constructor with mixing strategy selection
