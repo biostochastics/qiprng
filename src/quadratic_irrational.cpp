@@ -101,8 +101,12 @@ void QuadraticIrrational::compute_cfe_period() {
     seen[{P_n, Q_n}] = index++;
     
     // Maximum iterations to prevent infinite loops - scale with discriminant
-    const size_t MAX_PERIOD = std::max(static_cast<size_t>(100000), 
-        static_cast<size_t>(10 * std::sqrt(static_cast<double>(D))));
+    // Based on theoretical bounds for continued fraction periods
+    const size_t BASE_MAX_PERIOD = 100000;  // Base maximum period length for safety
+    const size_t DISCRIMINANT_SCALING_FACTOR = 10;  // Scaling factor based on Lagrange's theorem
+    // Period length is O(sqrt(D) * log(D)) in worst case, we use conservative estimate
+    const size_t MAX_PERIOD = std::max(BASE_MAX_PERIOD,
+        static_cast<size_t>(DISCRIMINANT_SCALING_FACTOR * std::sqrt(static_cast<double>(D))));
     
     while (index < MAX_PERIOD) {
         // Gauss-Legendre recurrence formulas

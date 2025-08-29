@@ -160,9 +160,8 @@ void ZigguratNormal::use_cached_tables() {
 }
 
 void ZigguratNormal::initialize_thread_local_tables() {
-    // Skip if cleanup is in progress - use acquire fence for visibility
+    // Skip if cleanup is in progress - acquire ordering already provides necessary synchronization
     if (cleanup_in_progress_.load(std::memory_order_acquire)) {
-        std::atomic_thread_fence(std::memory_order_acquire);
         return;
     }
     
@@ -213,9 +212,8 @@ void ZigguratNormal::initialize_thread_local_tables() {
 }
 
 void ZigguratNormal::initialize_random_cache() {
-    // Skip if cleanup is in progress - use acquire fence for visibility
+    // Skip if cleanup is in progress - acquire ordering already provides necessary synchronization
     if (cleanup_in_progress_.load(std::memory_order_acquire)) {
-        std::atomic_thread_fence(std::memory_order_acquire);
         return;
     }
     
