@@ -14,10 +14,7 @@
 #include <mutex>      // For std::mutex
 #include <thread>     // For std::thread
 #include <future>     // For std::future and other threading utilities
-
-#ifndef M_PI // Ensure M_PI is defined
-#define M_PI 3.14159265358979323846
-#endif
+#include "precision_utils.hpp"  // For high-precision constants and safe conversions
 
 namespace qiprng {
 
@@ -33,8 +30,7 @@ private:
     static std::array<double, ZIGGURAT_TABLE_SIZE> cached_x_table_;
     static std::array<double, ZIGGURAT_TABLE_SIZE> cached_y_table_; // pdf at x_table_
     static std::array<uint32_t, ZIGGURAT_TABLE_SIZE> cached_k_table_; // scaled x_table_[i+1]/x_table_[i]
-    static std::atomic<bool> tables_initialized_;
-    static std::mutex tables_mutex_; // Mutex for thread-safe initialization
+    static std::once_flag tables_init_flag_;  // For thread-safe one-time initialization
     
     // Flag to indicate if cleanup is in progress (used to avoid use-after-free)
     static std::atomic<bool> cleanup_in_progress_;

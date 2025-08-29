@@ -14,23 +14,44 @@ namespace qiprng {
 
 // Thread cleanup helper class - automatically cleans up TLS resources when thread exits
 class ThreadCleanupHelper {
+private:
+    // Use std::once_flag for thread-safe cleanup registration
+    static std::once_flag cleanup_registration_flag_;
+    // Track if this specific thread has performed cleanup
+    std::atomic<bool> thread_cleanup_done_{false};
+    
 public:
     ThreadCleanupHelper() = default;
     ~ThreadCleanupHelper() {
-        // This destructor is called when the thread exits
-        // Clean up all TLS resources for ZigguratNormal
-        if (!ZigguratNormal::is_cleanup_in_progress()) {
-            ZigguratNormal::cleanup_thread_local_resources();
+        // Use atomic compare-exchange to ensure single cleanup per thread
+        bool expected = false;
+        if (thread_cleanup_done_.compare_exchange_strong(expected, true, 
+                                                         std::memory_order_acq_rel)) {
+            // Check global cleanup flag with proper memory ordering
+            if (!ZigguratNormal::is_cleanup_in_progress()) {
+                // Perform thread-local cleanup with proper synchronization
+                ZigguratNormal::cleanup_thread_local_resources();
+            }
         }
     }
+    
+    // Register cleanup for this thread (called once per thread)
+    static void register_cleanup() {
+        std::call_once(cleanup_registration_flag_, []() {
+            // Any one-time global cleanup registration can go here
+            // Currently just a placeholder for future use
+        });
+    }
 };
+
+// Initialize static member
+std::once_flag ThreadCleanupHelper::cleanup_registration_flag_;
 
 // Initialize static members
 std::array<double, ZigguratNormal::ZIGGURAT_TABLE_SIZE> ZigguratNormal::cached_x_table_;
 std::array<double, ZigguratNormal::ZIGGURAT_TABLE_SIZE> ZigguratNormal::cached_y_table_;
 std::array<uint32_t, ZigguratNormal::ZIGGURAT_TABLE_SIZE> ZigguratNormal::cached_k_table_;
-std::atomic<bool> ZigguratNormal::tables_initialized_(false);
-std::mutex ZigguratNormal::tables_mutex_;
+std::once_flag ZigguratNormal::tables_init_flag_;
 
 // Initialize cleanup flag
 std::atomic<bool> ZigguratNormal::cleanup_in_progress_(false);
@@ -56,41 +77,39 @@ thread_local std::atomic<bool> ZigguratNormal::tls_cleanup_registered_(false);
 thread_local bool ZigguratTLSManager::thread_exiting_ = false;
 
 void ZigguratNormal::initialize_static_tables() {
-    // Double-checked locking pattern for thread safety
-    if (!tables_initialized_.load(std::memory_order_acquire)) {
-        std::lock_guard<std::mutex> lock(tables_mutex_);
-        if (!tables_initialized_.load(std::memory_order_relaxed)) {
-            // Constants for Ziggurat tables (Marsaglia and Tsang 2000)
-            const double R_zig = 3.6541528853610088; // x_0, rightmost boundary of rectangles
-            const double V_zig = 0.004928673233992336; // Area under tail R_zig to infinity
+    // Use std::call_once for thread-safe one-time initialization
+    // This eliminates the double-checked locking antipattern and provides proper memory synchronization
+    std::call_once(tables_init_flag_, []() {
+        // Constants for Ziggurat tables (Marsaglia and Tsang 2000)
+        const double R_zig = 3.6541528853610088; // x_0, rightmost boundary of rectangles
+        const double V_zig = 0.004928673233992336; // Area under tail R_zig to infinity
 
-            // k_table_[0] is R_zig * pdf(R_zig) / V_zig scaled to uint32
-            // x_table_[0] is R_zig
-            // y_table_[0] is pdf(R_zig)
-            double f = std::exp(-0.5 * R_zig * R_zig);
-            cached_k_table_[0] = static_cast<uint32_t>((R_zig * f / V_zig) * static_cast<double>(UINT32_MAX));
-            cached_x_table_[0] = R_zig;
-            cached_y_table_[0] = f;
+        // k_table_[0] is R_zig * pdf(R_zig) / V_zig scaled to uint32
+        // x_table_[0] is R_zig
+        // y_table_[0] is pdf(R_zig)
+        double f = std::exp(-0.5 * R_zig * R_zig);
+        cached_k_table_[0] = static_cast<uint32_t>((R_zig * f / V_zig) * static_cast<double>(UINT32_MAX));
+        cached_x_table_[0] = R_zig;
+        cached_y_table_[0] = f;
 
-            // For i = 1 to ZIGGURAT_TABLE_SIZE - 2
-            for (int i = 1; i < ZIGGURAT_TABLE_SIZE - 1; ++i) {
-                double prev_x = cached_x_table_[i-1];
-                double prev_f = cached_y_table_[i-1]; // pdf(prev_x)
-                
-                cached_x_table_[i] = std::sqrt(-2.0 * std::log(V_zig / prev_x + prev_f));
-                cached_y_table_[i] = std::exp(-0.5 * cached_x_table_[i] * cached_x_table_[i]);
-                cached_k_table_[i] = static_cast<uint32_t>((cached_x_table_[i-1] / cached_x_table_[i]) * static_cast<double>(UINT32_MAX));
-            }
-
-            // Special case for the last rectangle
-            cached_k_table_[ZIGGURAT_TABLE_SIZE-1] = UINT32_MAX; // Always accept for the base segment
-            cached_x_table_[ZIGGURAT_TABLE_SIZE-1] = 0.0;
-            cached_y_table_[ZIGGURAT_TABLE_SIZE-1] = 1.0; // pdf(0)
+        // For i = 1 to ZIGGURAT_TABLE_SIZE - 2
+        for (int i = 1; i < ZIGGURAT_TABLE_SIZE - 1; ++i) {
+            double prev_x = cached_x_table_[i-1];
+            double prev_f = cached_y_table_[i-1]; // pdf(prev_x)
             
-            // Make sure all writes are visible to other threads
-            tables_initialized_.store(true, std::memory_order_release);
+            cached_x_table_[i] = std::sqrt(-2.0 * std::log(V_zig / prev_x + prev_f));
+            cached_y_table_[i] = std::exp(-0.5 * cached_x_table_[i] * cached_x_table_[i]);
+            cached_k_table_[i] = static_cast<uint32_t>((cached_x_table_[i-1] / cached_x_table_[i]) * static_cast<double>(UINT32_MAX));
         }
-    }
+
+        // Special case for the last rectangle
+        cached_k_table_[ZIGGURAT_TABLE_SIZE-1] = UINT32_MAX; // Always accept for the base segment
+        cached_x_table_[ZIGGURAT_TABLE_SIZE-1] = 0.0;
+        cached_y_table_[ZIGGURAT_TABLE_SIZE-1] = 1.0; // pdf(0)
+        
+        // std::call_once automatically provides proper memory synchronization
+        // All writes in this lambda are guaranteed to be visible to other threads
+    });
 }
 
 void ZigguratNormal::initialize_tables_original() {
@@ -141,15 +160,22 @@ void ZigguratNormal::use_cached_tables() {
 }
 
 void ZigguratNormal::initialize_thread_local_tables() {
-    // Skip if cleanup is in progress
+    // Skip if cleanup is in progress - use acquire fence for visibility
     if (cleanup_in_progress_.load(std::memory_order_acquire)) {
+        std::atomic_thread_fence(std::memory_order_acquire);
         return;
     }
     
-    // Register cleanup helper for this thread if not already done
+    // Register cleanup helper for this thread using proper synchronization
     if (!tls_cleanup_registered_.load(std::memory_order_acquire)) {
+        // Ensure the cleanup helper is created exactly once per thread
         static thread_local ThreadCleanupHelper cleanup_helper;
+        // Register with the helper's static registration system
+        ThreadCleanupHelper::register_cleanup();
+        // Set flag with release ordering to ensure visibility
         tls_cleanup_registered_.store(true, std::memory_order_release);
+        // Add fence to ensure all writes are visible
+        std::atomic_thread_fence(std::memory_order_release);
     }
     
     // Setup TLS manager if needed
@@ -187,15 +213,22 @@ void ZigguratNormal::initialize_thread_local_tables() {
 }
 
 void ZigguratNormal::initialize_random_cache() {
-    // Skip if cleanup is in progress
+    // Skip if cleanup is in progress - use acquire fence for visibility
     if (cleanup_in_progress_.load(std::memory_order_acquire)) {
+        std::atomic_thread_fence(std::memory_order_acquire);
         return;
     }
     
-    // Register cleanup helper for this thread if not already done
+    // Register cleanup helper for this thread using proper synchronization
     if (!tls_cleanup_registered_.load(std::memory_order_acquire)) {
+        // Ensure the cleanup helper is created exactly once per thread
         static thread_local ThreadCleanupHelper cleanup_helper;
+        // Register with the helper's static registration system
+        ThreadCleanupHelper::register_cleanup();
+        // Set flag with release ordering to ensure visibility
         tls_cleanup_registered_.store(true, std::memory_order_release);
+        // Add fence to ensure all writes are visible
+        std::atomic_thread_fence(std::memory_order_release);
     }
     
     // Setup TLS manager if needed (may not be done if initialize_thread_local_tables wasn't called first)
@@ -1162,8 +1195,28 @@ void ZigguratNormal::prepare_for_shutdown() {
 
 // Static method to clean up thread-local resources
 void ZigguratNormal::cleanup_thread_local_resources() {
-    // This is a thread-local cleanup, not a global one
-    // Each thread cleans up its own resources independently
+    // Thread-local flag to prevent recursive cleanup
+    thread_local std::atomic<bool> cleanup_in_progress_local{false};
+    
+    // Check if cleanup is already in progress for this thread
+    bool expected = false;
+    if (!cleanup_in_progress_local.compare_exchange_strong(expected, true, 
+                                                           std::memory_order_acq_rel)) {
+        // Cleanup already in progress, avoid recursion
+        return;
+    }
+    
+    // RAII guard to reset the flag when we're done
+    struct CleanupGuard {
+        std::atomic<bool>& flag;
+        ~CleanupGuard() { 
+            flag.store(false, std::memory_order_release);
+            std::atomic_thread_fence(std::memory_order_release);
+        }
+    } guard{cleanup_in_progress_local};
+    
+    // Add memory fence to ensure all previous writes are visible
+    std::atomic_thread_fence(std::memory_order_acquire);
     
     if (ZIGGURAT_DEBUG_LOGGING) {
         Rcpp::Rcout << "Thread " << std::this_thread::get_id() 
@@ -1196,8 +1249,11 @@ void ZigguratNormal::cleanup_thread_local_resources() {
             tls_manager_ = nullptr;
         }
         
-        // Reset the cleanup registration flag for this thread
+        // Reset the cleanup registration flag for this thread with proper ordering
         tls_cleanup_registered_.store(false, std::memory_order_release);
+        
+        // Final memory fence to ensure all cleanup is visible
+        std::atomic_thread_fence(std::memory_order_release);
         
         if (ZIGGURAT_DEBUG_LOGGING) {
             Rcpp::Rcout << "Thread " << std::this_thread::get_id() 

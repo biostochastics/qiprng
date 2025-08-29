@@ -10,6 +10,10 @@
 #include <future>
 #include <atomic>
 #include <memory>
+#include <chrono>
+#include <algorithm>
+#include <type_traits>
+#include "cache_aligned.hpp"
 
 namespace qiprng {
 
@@ -18,9 +22,9 @@ template<typename T>
 class SafeQueue {
 private:
     std::queue<T> queue_;
-    std::mutex mutex_;
+    mutable std::mutex mutex_;  // mutable to allow locking in const methods
     std::condition_variable cond_;
-    std::atomic<bool> done_{false};
+    PaddedAtomicBool done_{false};
 
 public:
     SafeQueue() = default;
@@ -48,7 +52,7 @@ public:
     }
 
     bool empty() const {
-        std::lock_guard<std::mutex> lock(const_cast<std::mutex&>(mutex_));
+        std::lock_guard<std::mutex> lock(mutex_);
         return queue_.empty();
     }
 
@@ -71,8 +75,8 @@ class ThreadPool {
 private:
     std::vector<std::thread> workers_;
     SafeQueue<std::function<void()>> tasks_;
-    std::atomic<bool> stop_{false};
-    std::atomic<size_t> active_threads_{0};
+    PaddedAtomicBool stop_{false};
+    PaddedAtomicSize active_threads_{0};
     std::condition_variable all_done_;
     std::mutex all_done_mutex_;
 
@@ -102,12 +106,12 @@ public:
                     
                     // Execute the task
                     try {
-                        ++active_threads_;
+                        active_threads_.fetch_add(1);
                         task();
                     } catch (...) {
                         // Just catch any exceptions to keep the thread alive
                     }
-                    --active_threads_;
+                    active_threads_.fetch_sub(1);
                     
                     // Notify if all tasks are done
                     if (tasks_.empty() && active_threads_ == 0) {
@@ -119,15 +123,15 @@ public:
         }
     }
 
-    // Destructor stops all threads
+    // Destructor stops all threads with timeout
     ~ThreadPool() {
-        stop();
+        shutdown(std::chrono::seconds(5));
     }
 
     // Add a task to the pool
     template<typename F, typename... Args>
-    auto enqueue(F&& f, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type> {
-        using return_type = typename std::result_of<F(Args...)>::type;
+    auto enqueue(F&& f, Args&&... args) -> std::future<typename std::invoke_result<F, Args...>::type> {
+        using return_type = typename std::invoke_result<F, Args...>::type;
 
         // Create a packaged task for the function and arguments
         auto task = std::make_shared<std::packaged_task<return_type()>>(
@@ -157,21 +161,60 @@ public:
         });
     }
 
-    // Stop the thread pool
+    // Stop the thread pool (deprecated, use shutdown instead)
     void stop() {
-        if (stop_) return;
+        shutdown(std::chrono::seconds(0));  // No timeout for backward compatibility
+    }
+    
+    // Shutdown with timeout - returns true if all threads joined successfully
+    template<typename Rep, typename Period>
+    bool shutdown(std::chrono::duration<Rep, Period> timeout) {
+        if (stop_) return true;
         stop_ = true;
         tasks_.done();
         
-        // Join all worker threads
+        bool all_joined = true;
+        auto deadline = std::chrono::steady_clock::now() + timeout;
+        
+        // Try to join all worker threads with timeout
         for (auto& worker : workers_) {
             if (worker.joinable()) {
-                worker.join();
+                if (timeout.count() > 0) {
+                    // Simplified timeout approach: try join with periodic checks
+                    auto remaining = deadline - std::chrono::steady_clock::now();
+                    if (remaining > std::chrono::milliseconds(0)) {
+                        // Wait a short time and check if thread finished
+                        auto wait_time = std::chrono::milliseconds(100);
+                        if (remaining < wait_time) {
+                            wait_time = std::chrono::duration_cast<std::chrono::milliseconds>(remaining);
+                        }
+                        std::this_thread::sleep_for(wait_time);
+                        
+                        // Try join with zero timeout (non-blocking check)
+                        if (worker.joinable()) {
+                            // If still joinable after wait, detach it
+                            if (std::chrono::steady_clock::now() >= deadline) {
+                                worker.detach();
+                                all_joined = false;
+                            } else {
+                                worker.join();  // Try joining again
+                            }
+                        }
+                    } else {
+                        // Timeout already expired, detach
+                        worker.detach();
+                        all_joined = false;
+                    }
+                } else {
+                    // No timeout, just join
+                    worker.join();
+                }
             }
         }
         
         // Clear the workers
         workers_.clear();
+        return all_joined;
     }
 
     // Get the number of threads in the pool
@@ -201,12 +244,12 @@ public:
                     
                     // Execute the task
                     try {
-                        ++active_threads_;
+                        active_threads_.fetch_add(1);
                         task();
                     } catch (...) {
                         // Just catch any exceptions to keep the thread alive
                     }
-                    --active_threads_;
+                    active_threads_.fetch_sub(1);
                     
                     // Notify if all tasks are done
                     if (tasks_.empty() && active_threads_ == 0) {

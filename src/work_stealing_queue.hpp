@@ -8,6 +8,7 @@
 #include <functional>
 #include <vector>
 #include <thread>
+#include "cache_aligned.hpp"
 
 namespace qiprng {
 
@@ -24,7 +25,7 @@ class WorkStealingQueue {
 private:
     std::deque<WorkItem> queue_;
     mutable std::mutex mutex_;
-    std::atomic<size_t> size_{0};
+    PaddedAtomicSize size_{0};
     
 public:
     WorkStealingQueue() = default;
@@ -33,7 +34,7 @@ public:
     void push(WorkItem item) {
         std::lock_guard<std::mutex> lock(mutex_);
         queue_.push_back(std::move(item));
-        size_.fetch_add(1, std::memory_order_relaxed);
+        size_.fetch_add(1);
     }
     
     // Try to pop from the front (owner thread)
@@ -44,7 +45,7 @@ public:
         }
         WorkItem item = std::move(queue_.front());
         queue_.pop_front();
-        size_.fetch_sub(1, std::memory_order_relaxed);
+        size_.fetch_sub(1);
         return item;
     }
     
@@ -56,16 +57,16 @@ public:
         }
         WorkItem item = std::move(queue_.back());
         queue_.pop_back();
-        size_.fetch_sub(1, std::memory_order_relaxed);
+        size_.fetch_sub(1);
         return item;
     }
     
     bool empty() const {
-        return size_.load(std::memory_order_relaxed) == 0;
+        return size_.load() == 0;
     }
     
     size_t size() const {
-        return size_.load(std::memory_order_relaxed);
+        return size_.load();
     }
 };
 
@@ -73,7 +74,7 @@ public:
 class WorkStealingPool {
 private:
     std::vector<std::unique_ptr<WorkStealingQueue>> queues_;
-    std::atomic<bool> done_{false};
+    PaddedAtomicBool done_{false};
     size_t num_threads_;
     
 public:

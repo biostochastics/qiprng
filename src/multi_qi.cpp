@@ -7,7 +7,8 @@
 #include <algorithm> // For std::min, std::max
 #include <numeric>   // For std::accumulate
 #include <random>    // For random QI generation
-#include <cmath>     // For std::sin, M_PI
+#include <cmath>     // For std::sin
+#include "precision_utils.hpp"  // For high-precision constants and safe conversions
 
 // v0.5.0: OpenMP support for parallel generation
 #ifdef _OPENMP
@@ -21,6 +22,16 @@
 #endif
 
 namespace qiprng {
+
+// Thread-local fallback PRNG for error conditions to avoid statistical bias
+thread_local std::random_device tl_rd;
+thread_local std::mt19937_64 tl_fallback_rng(tl_rd());
+thread_local std::uniform_real_distribution<double> tl_fallback_dist(0.0, 1.0);
+
+// Thread-local cache to reduce lock contention
+thread_local std::vector<double> tl_cache;
+thread_local size_t tl_cache_pos = 0;
+const size_t CACHE_SIZE = 256;  // Batch size for reducing lock frequency
 
 // Enhanced constructor with mixing strategy
 MultiQI::MultiQI(const std::vector<std::tuple<long, long, long>>& abc_list, int mpfr_prec,
@@ -97,47 +108,65 @@ MultiQI::MultiQI(size_t num_qis, int mpfr_prec, uint64_t seed, bool has_seed,
 }
 
 double MultiQI::next() {
-    // Critical section with robust error handling
+    // Use cached values if available (no lock needed)
+    if (tl_cache_pos < tl_cache.size()) {
+        return tl_cache[tl_cache_pos++];
+    }
+    
+    // Refill cache under lock
     try {
         std::lock_guard<std::mutex> lock(mutex_);
         
         // Safety check
         if (qis_.empty()) {
-            // Empty state fallback - shouldn't happen in normal operation
-            return 0.5;
+            // Empty state fallback - use thread-local PRNG to avoid bias
+            return tl_fallback_dist(tl_fallback_rng);
         }
         
-        // Check index bounds
-        if (idx_ >= qis_.size()) {
-            idx_ = 0; // Reset to valid index
-        }
+        // Clear and prepare cache
+        tl_cache.clear();
+        tl_cache.reserve(CACHE_SIZE);
         
-        // Get the current QuadraticIrrational
-        QuadraticIrrational* current_qi = qis_[idx_].get();
-        
-        // Safety check for null pointer
-        if (!current_qi) {
-            // Advance index and return fallback value
+        // Generate batch of values
+        for (size_t i = 0; i < CACHE_SIZE && !qis_.empty(); ++i) {
+            // Check index bounds
+            if (idx_ >= qis_.size()) {
+                idx_ = 0; // Reset to valid index
+            }
+            
+            // Get the current QuadraticIrrational
+            QuadraticIrrational* current_qi = qis_[idx_].get();
+            
+            // Safety check for null pointer
+            if (!current_qi) {
+                // Advance index and use fallback value
+                idx_ = (idx_ + 1) % qis_.size();
+                tl_cache.push_back(tl_fallback_dist(tl_fallback_rng));
+                continue;
+            }
+            
+            // Get next value and advance index
+            double val;
+            try {
+                val = current_qi->next();
+            } catch (...) {
+                // If next() throws, use fallback
+                val = tl_fallback_dist(tl_fallback_rng);
+            }
+            
+            tl_cache.push_back(val);
+            
+            // Safely advance the index
             idx_ = (idx_ + 1) % qis_.size();
-            return 0.5;
         }
         
-        // Get next value and advance index
-        double val;
-        try {
-            val = current_qi->next();
-        } catch (...) {
-            // If next() throws, use fallback
-            val = 0.5;
-        }
+        // Reset cache position and return first value
+        tl_cache_pos = 0;
+        return tl_cache.empty() ? tl_fallback_dist(tl_fallback_rng) : tl_cache[tl_cache_pos++];
         
-        // Safely advance the index
-        idx_ = (idx_ + 1) % qis_.size();
-        
-        return val;
     } catch (...) {
-        // Ultimate fallback for any exception
-        return 0.5;
+        // Ultimate fallback for any exception - use thread-local PRNG
+        return tl_fallback_dist(tl_fallback_rng);
     }
 }
 
