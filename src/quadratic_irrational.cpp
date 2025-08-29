@@ -2,12 +2,9 @@
 // --------------------------------------------------------------
 #include "quadratic_irrational.hpp"
 #include "deterministic_rng.hpp"
+#include "precision_utils.hpp"  // For high-precision constants and safe conversions
 #include <limits> // For std::numeric_limits
 #include <cstdlib> // For std::getenv
-
-#ifndef M_PI // Ensure M_PI is defined
-#define M_PI 3.14159265358979323846
-#endif
 
 
 namespace qiprng {
@@ -103,8 +100,9 @@ void QuadraticIrrational::compute_cfe_period() {
     size_t index = 0;
     seen[{P_n, Q_n}] = index++;
     
-    // Maximum iterations to prevent infinite loops
-    const size_t MAX_PERIOD = 100000;
+    // Maximum iterations to prevent infinite loops - scale with discriminant
+    const size_t MAX_PERIOD = std::max(static_cast<size_t>(100000), 
+        static_cast<size_t>(10 * std::sqrt(static_cast<double>(D))));
     
     while (index < MAX_PERIOD) {
         // Gauss-Legendre recurrence formulas
@@ -116,11 +114,24 @@ void QuadraticIrrational::compute_cfe_period() {
         long P_next = a_n * Q_n - P_n;
         
         // Q_{n+1} = (D - P_{n+1}^2) / Q_n
-        long long P_next_squared = static_cast<long long>(P_next) * P_next;
-        if (P_next_squared > D) {
+        // Use safe overflow checking
+#ifdef __SIZEOF_INT128__
+        // Use 128-bit arithmetic for intermediate calculations on 64-bit systems
+        __int128 P_next_128 = static_cast<__int128>(P_next);
+        __int128 P_next_squared = P_next_128 * P_next_128;
+        if (P_next_squared > static_cast<__int128>(D)) {
             throw std::runtime_error("QuadraticIrrational: Overflow in CFE computation");
         }
+        long Q_next = (D - static_cast<long long>(P_next_squared)) / Q_n;
+#else
+        // Fallback: Check for overflow before multiplication
+        double P_next_abs = std::abs(static_cast<double>(P_next));
+        if (P_next_abs > std::sqrt(static_cast<double>(D))) {
+            throw std::runtime_error("QuadraticIrrational: Overflow in CFE computation");
+        }
+        long long P_next_squared = static_cast<long long>(P_next) * P_next;
         long Q_next = (D - P_next_squared) / Q_n;
+#endif
         
         // Check for period
         auto state = std::make_pair(P_next, Q_next);
@@ -371,7 +382,8 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
 
 double QuadraticIrrational::next() {
     step_once();
-    double val = mpfr_get_d(*value_->get(), MPFR_RNDN);
+    // Use safe conversion with extended precision intermediates
+    double val = precision::safe_mpfr_to_double(*value_->get(), true);
     if (std::isnan(val) || std::isinf(val)) {
          Rcpp::warning("QuadraticIrrational::next() produced NaN/Inf. Returning 0.5.");
          return 0.5; // A fallback value

@@ -13,6 +13,7 @@
 #include <limits>  // For numeric_limits
 #include <string>  // For error messages
 #include <cmath>   // For sqrt
+#include "precision_utils.hpp"  // For high-precision constants and safe conversions
 
 namespace qiprng {
 
@@ -532,7 +533,22 @@ public:
         if (is_inf()) [[unlikely]] {
             throw std::runtime_error("MPFRWrapper: Cannot convert infinity to double");
         }
-        return mpfr_get_d(value, MPFR_RNDN);
+        // Use safe conversion with extended precision intermediates
+        return precision::safe_mpfr_to_double(value, true);
+    }
+    
+    // Precision-aware conversion with tracking
+    inline double to_double_extended() const {
+        if (!initialized_) [[unlikely]] {
+            throw std::runtime_error("MPFRWrapper: Attempting to convert uninitialized value to double");
+        }
+        if (is_nan()) [[unlikely]] {
+            throw std::runtime_error("MPFRWrapper: Cannot convert NaN to double");
+        }
+        if (is_inf()) [[unlikely]] {
+            throw std::runtime_error("MPFRWrapper: Cannot convert infinity to double");
+        }
+        return precision::safe_mpfr_to_double(value, true);
     }
     
     // Optimized arithmetic operations for v0.5.0
@@ -587,6 +603,7 @@ public:
 };
 
 // Cache alignment constants
+#ifndef CACHE_LINE_SIZE
 #if defined(_MSC_VER)
 // Windows
 #define CACHE_LINE_SIZE 64
@@ -599,6 +616,7 @@ public:
 #else
 // Default for unknown platforms
 #define CACHE_LINE_SIZE 64
+#endif
 #endif
 
 // Aligned allocation helper

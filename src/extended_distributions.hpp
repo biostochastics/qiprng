@@ -8,6 +8,7 @@
 #include <complex>
 #include <functional>
 #include <Eigen/Dense>  // For multivariate normal
+#include "precision_utils.hpp"  // For high-precision constants and safe conversions
 
 namespace qiprng {
 namespace distributions {

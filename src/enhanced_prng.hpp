@@ -20,10 +20,7 @@
 #include <atomic>  // For std::atomic in parallel fill
 #include <thread>  // For std::thread, std::hardware_concurrency
 #include <mutex>   // For std::mutex in parallel fill
-
-#ifndef M_PI // Ensure M_PI is defined
-#define M_PI 3.14159265358979323846
-#endif
+#include "precision_utils.hpp"  // For high-precision constants and safe conversions
 
 namespace qiprng {
 

@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstring>
 #include <algorithm>
+#include "bit_operations.hpp"
 
 // Platform detection
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
@@ -63,11 +64,7 @@ inline void xor_mix_batch(double* dest, const double* src1, const double* src2, 
     
     // Handle remainder
     for (size_t i = simd_count * 4; i < count; ++i) {
-        uint64_t u1, u2;
-        std::memcpy(&u1, &src1[i], sizeof(uint64_t));
-        std::memcpy(&u2, &src2[i], sizeof(uint64_t));
-        uint64_t result = u1 ^ u2;
-        std::memcpy(&dest[i], &result, sizeof(double));
+        dest[i] = bit_ops::xor_doubles_as_uint64(src1[i], src2[i]);
     }
     
 #elif defined(QIPRNG_SSE2)
@@ -83,11 +80,7 @@ inline void xor_mix_batch(double* dest, const double* src1, const double* src2, 
     
     // Handle remainder
     for (size_t i = simd_count * 2; i < count; ++i) {
-        uint64_t u1, u2;
-        std::memcpy(&u1, &src1[i], sizeof(uint64_t));
-        std::memcpy(&u2, &src2[i], sizeof(uint64_t));
-        uint64_t result = u1 ^ u2;
-        std::memcpy(&dest[i], &result, sizeof(double));
+        dest[i] = bit_ops::xor_doubles_as_uint64(src1[i], src2[i]);
     }
     
 #elif defined(QIPRNG_NEON)
@@ -103,22 +96,12 @@ inline void xor_mix_batch(double* dest, const double* src1, const double* src2, 
     
     // Handle remainder
     for (size_t i = simd_count * 2; i < count; ++i) {
-        uint64_t u1, u2;
-        std::memcpy(&u1, &src1[i], sizeof(uint64_t));
-        std::memcpy(&u2, &src2[i], sizeof(uint64_t));
-        uint64_t result = u1 ^ u2;
-        std::memcpy(&dest[i], &result, sizeof(double));
+        dest[i] = bit_ops::xor_doubles_as_uint64(src1[i], src2[i]);
     }
     
 #else
     // Scalar fallback
-    for (size_t i = 0; i < count; ++i) {
-        uint64_t u1, u2;
-        std::memcpy(&u1, &src1[i], sizeof(uint64_t));
-        std::memcpy(&u2, &src2[i], sizeof(uint64_t));
-        uint64_t result = u1 ^ u2;
-        std::memcpy(&dest[i], &result, sizeof(double));
-    }
+    bit_ops::xor_doubles_batch(dest, src1, src2, count);
 #endif
 }
 
