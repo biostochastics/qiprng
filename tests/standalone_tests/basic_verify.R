@@ -17,4 +17,3 @@ cat("Generated values with mean:", mean(values), "\n")
 cleanup_prng()
 
 cat("Test completed successfully\n")
-EOL < /dev/null

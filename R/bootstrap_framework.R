@@ -58,71 +58,74 @@ bootstrap_p_value <- function(data, test_statistic, observed_stat = NULL,
   if (!is.numeric(data) || length(data) < 2) {
     stop("'data' must be a numeric vector with at least 2 elements")
   }
-  
+
   if (!is.function(test_statistic)) {
     stop("'test_statistic' must be a function")
   }
-  
+
   if (!is.numeric(n_bootstraps) || n_bootstraps < 100) {
     stop("'n_bootstraps' must be a numeric value >= 100")
   }
-  
+
   alternative <- match.arg(alternative, c("two.sided", "less", "greater"))
-  
+
   # Set seed if provided
   if (!is.null(seed)) {
     set.seed(seed)
   }
-  
+
   # Calculate observed statistic if not provided
   if (is.null(observed_stat)) {
     observed_stat <- test_statistic(data)
   }
-  
+
   if (!is.numeric(observed_stat) || length(observed_stat) != 1) {
     stop("Test statistic must return a single numeric value")
   }
-  
+
   n <- length(data)
   bootstrap_stats <- numeric(n_bootstraps)
-  
+
   # Progress bar setup
   if (progress && n_bootstraps >= 1000) {
     pb <- txtProgressBar(min = 0, max = n_bootstraps, style = 3)
   }
-  
+
   # Perform bootstrap resampling
   for (i in seq_len(n_bootstraps)) {
     # Resample with replacement
     bootstrap_sample <- sample(data, n, replace = TRUE)
-    
+
     # Calculate test statistic
-    tryCatch({
-      bootstrap_stats[i] <- test_statistic(bootstrap_sample)
-    }, error = function(e) {
-      warning(sprintf("Error in bootstrap iteration %d: %s", i, e$message))
-      bootstrap_stats[i] <- NA
-    })
-    
+    tryCatch(
+      {
+        bootstrap_stats[i] <- test_statistic(bootstrap_sample)
+      },
+      error = function(e) {
+        warning(sprintf("Error in bootstrap iteration %d: %s", i, e$message))
+        bootstrap_stats[i] <- NA
+      }
+    )
+
     # Update progress
     if (progress && n_bootstraps >= 1000 && i %% 100 == 0) {
       setTxtProgressBar(pb, i)
     }
   }
-  
+
   # Close progress bar
   if (progress && n_bootstraps >= 1000) {
     close(pb)
   }
-  
+
   # Remove any NA values
   valid_stats <- bootstrap_stats[!is.na(bootstrap_stats)]
   n_valid <- length(valid_stats)
-  
+
   if (n_valid < n_bootstraps * 0.9) {
     warning(sprintf("Only %d of %d bootstrap samples were valid", n_valid, n_bootstraps))
   }
-  
+
   # Calculate p-value based on alternative hypothesis
   if (alternative == "two.sided") {
     # Two-sided test: proportion of bootstrap stats at least as extreme
@@ -130,11 +133,11 @@ bootstrap_p_value <- function(data, test_statistic, observed_stat = NULL,
   } else if (alternative == "greater") {
     # One-sided test: proportion of bootstrap stats >= observed
     p_value <- mean(valid_stats >= observed_stat)
-  } else {  # alternative == "less"
+  } else { # alternative == "less"
     # One-sided test: proportion of bootstrap stats <= observed
     p_value <- mean(valid_stats <= observed_stat)
   }
-  
+
   # Return results
   list(
     p.value = p_value,
@@ -183,28 +186,28 @@ permutation_test <- function(x, y = NULL, test_statistic,
   if (!is.numeric(x)) {
     stop("'x' must be numeric")
   }
-  
+
   two_sample <- !is.null(y)
-  
+
   if (two_sample && !is.numeric(y)) {
     stop("'y' must be numeric when provided")
   }
-  
+
   if (!is.function(test_statistic)) {
     stop("'test_statistic' must be a function")
   }
-  
+
   if (!is.numeric(n_permutations) || n_permutations < 100) {
     stop("'n_permutations' must be a numeric value >= 100")
   }
-  
+
   alternative <- match.arg(alternative, c("two.sided", "less", "greater"))
-  
+
   # Set seed if provided
   if (!is.null(seed)) {
     set.seed(seed)
   }
-  
+
   # Calculate observed statistic
   if (two_sample) {
     observed_stat <- test_statistic(x, y)
@@ -215,18 +218,18 @@ permutation_test <- function(x, y = NULL, test_statistic,
     observed_stat <- test_statistic(x)
     n_total <- length(x)
   }
-  
+
   if (!is.numeric(observed_stat) || length(observed_stat) != 1) {
     stop("Test statistic must return a single numeric value")
   }
-  
+
   permutation_stats <- numeric(n_permutations)
-  
+
   # Progress bar setup
   if (progress && n_permutations >= 1000) {
     pb <- txtProgressBar(min = 0, max = n_permutations, style = 3)
   }
-  
+
   # Perform permutations
   for (i in seq_len(n_permutations)) {
     if (two_sample) {
@@ -234,53 +237,59 @@ permutation_test <- function(x, y = NULL, test_statistic,
       perm_indices <- sample(n_total)
       perm_x <- combined[perm_indices[1:n_x]]
       perm_y <- combined[perm_indices[(n_x + 1):n_total]]
-      
-      tryCatch({
-        permutation_stats[i] <- test_statistic(perm_x, perm_y)
-      }, error = function(e) {
-        warning(sprintf("Error in permutation %d: %s", i, e$message))
-        permutation_stats[i] <- NA
-      })
+
+      tryCatch(
+        {
+          permutation_stats[i] <- test_statistic(perm_x, perm_y)
+        },
+        error = function(e) {
+          warning(sprintf("Error in permutation %d: %s", i, e$message))
+          permutation_stats[i] <- NA
+        }
+      )
     } else {
       # One-sample: permute signs or order
       perm_x <- sample(x)
-      
-      tryCatch({
-        permutation_stats[i] <- test_statistic(perm_x)
-      }, error = function(e) {
-        warning(sprintf("Error in permutation %d: %s", i, e$message))
-        permutation_stats[i] <- NA
-      })
+
+      tryCatch(
+        {
+          permutation_stats[i] <- test_statistic(perm_x)
+        },
+        error = function(e) {
+          warning(sprintf("Error in permutation %d: %s", i, e$message))
+          permutation_stats[i] <- NA
+        }
+      )
     }
-    
+
     # Update progress
     if (progress && n_permutations >= 1000 && i %% 100 == 0) {
       setTxtProgressBar(pb, i)
     }
   }
-  
+
   # Close progress bar
   if (progress && n_permutations >= 1000) {
     close(pb)
   }
-  
+
   # Remove any NA values
   valid_stats <- permutation_stats[!is.na(permutation_stats)]
   n_valid <- length(valid_stats)
-  
+
   if (n_valid < n_permutations * 0.9) {
     warning(sprintf("Only %d of %d permutations were valid", n_valid, n_permutations))
   }
-  
+
   # Calculate p-value
   if (alternative == "two.sided") {
     p_value <- mean(abs(valid_stats) >= abs(observed_stat))
   } else if (alternative == "greater") {
     p_value <- mean(valid_stats >= observed_stat)
-  } else {  # alternative == "less"
+  } else { # alternative == "less"
     p_value <- mean(valid_stats <= observed_stat)
   }
-  
+
   # Return results
   list(
     p.value = p_value,
@@ -332,76 +341,79 @@ monte_carlo_p_value <- function(observed_stat, null_simulator, test_statistic,
   if (!is.numeric(observed_stat) || length(observed_stat) != 1) {
     stop("'observed_stat' must be a single numeric value")
   }
-  
+
   if (!is.function(null_simulator)) {
     stop("'null_simulator' must be a function")
   }
-  
+
   if (!is.function(test_statistic)) {
     stop("'test_statistic' must be a function")
   }
-  
+
   if (!is.numeric(n_simulations) || n_simulations < 100) {
     stop("'n_simulations' must be a numeric value >= 100")
   }
-  
+
   alternative <- match.arg(alternative, c("two.sided", "less", "greater"))
-  
+
   # Set seed if provided
   if (!is.null(seed)) {
     set.seed(seed)
   }
-  
+
   simulated_stats <- numeric(n_simulations)
-  
+
   # Progress bar setup
   if (progress && n_simulations >= 1000) {
     pb <- txtProgressBar(min = 0, max = n_simulations, style = 3)
   }
-  
+
   # Perform simulations
   for (i in seq_len(n_simulations)) {
     # Generate data under null hypothesis
-    tryCatch({
-      null_data <- null_simulator(...)
-      simulated_stats[i] <- test_statistic(null_data)
-    }, error = function(e) {
-      warning(sprintf("Error in simulation %d: %s", i, e$message))
-      simulated_stats[i] <- NA
-    })
-    
+    tryCatch(
+      {
+        null_data <- null_simulator(...)
+        simulated_stats[i] <- test_statistic(null_data)
+      },
+      error = function(e) {
+        warning(sprintf("Error in simulation %d: %s", i, e$message))
+        simulated_stats[i] <- NA
+      }
+    )
+
     # Update progress
     if (progress && n_simulations >= 1000 && i %% 100 == 0) {
       setTxtProgressBar(pb, i)
     }
   }
-  
+
   # Close progress bar
   if (progress && n_simulations >= 1000) {
     close(pb)
   }
-  
+
   # Remove any NA values
   valid_stats <- simulated_stats[!is.na(simulated_stats)]
   n_valid <- length(valid_stats)
-  
+
   if (n_valid < n_simulations * 0.9) {
     warning(sprintf("Only %d of %d simulations were valid", n_valid, n_simulations))
   }
-  
+
   if (n_valid == 0) {
     stop("All simulations failed. Check null_simulator and test_statistic functions.")
   }
-  
+
   # Calculate p-value
   if (alternative == "two.sided") {
     p_value <- mean(abs(valid_stats) >= abs(observed_stat))
   } else if (alternative == "greater") {
     p_value <- mean(valid_stats >= observed_stat)
-  } else {  # alternative == "less"
+  } else { # alternative == "less"
     p_value <- mean(valid_stats <= observed_stat)
   }
-  
+
   # Return results
   list(
     p.value = p_value,
@@ -438,32 +450,35 @@ bootstrap_conf_interval <- function(data, statistic, n_bootstraps = 10000,
   if (!is.numeric(data) || length(data) < 2) {
     stop("'data' must be a numeric vector with at least 2 elements")
   }
-  
+
   if (!is.function(statistic)) {
     stop("'statistic' must be a function")
   }
-  
+
   if (!is.numeric(conf_level) || conf_level <= 0 || conf_level >= 1) {
     stop("'conf_level' must be between 0 and 1")
   }
-  
+
   # Calculate point estimate
   estimate <- statistic(data)
-  
+
   # Get bootstrap distribution
-  boot_result <- bootstrap_p_value(data, statistic, observed_stat = estimate,
-                                   n_bootstraps = n_bootstraps,
-                                   progress = progress, seed = seed)
-  
+  boot_result <- bootstrap_p_value(data, statistic,
+    observed_stat = estimate,
+    n_bootstraps = n_bootstraps,
+    progress = progress, seed = seed
+  )
+
   # Calculate confidence interval
   alpha <- 1 - conf_level
   lower_quantile <- alpha / 2
   upper_quantile <- 1 - alpha / 2
-  
+
   conf_int <- quantile(boot_result$bootstrap_stats,
-                       probs = c(lower_quantile, upper_quantile),
-                       na.rm = TRUE)
-  
+    probs = c(lower_quantile, upper_quantile),
+    na.rm = TRUE
+  )
+
   list(
     estimate = estimate,
     conf_int = as.numeric(conf_int),

@@ -8,41 +8,44 @@ cat("\n===== QIPRNG Final Test =====\n\n")
 # Helper function to test different configurations
 test_configuration <- function(description, config) {
   cat(paste0("Testing: ", description, "\n"))
-  
+
   # Create PRNG with the specified configuration
-  tryCatch({
-    cat("  Creating PRNG... ")
-    createPRNG(config)
-    cat("SUCCESS\n")
-    
-    cat("  Generating values... ")
-    values <- generatePRNG(1000)
-    cat("SUCCESS\n")
-    
-    # Calculate statistics
-    mean_val <- mean(values)
-    var_val <- var(values)
-    min_val <- min(values)
-    max_val <- max(values)
-    has_nan <- any(is.nan(values))
-    has_inf <- any(is.infinite(values))
-    
-    cat("  Mean:", mean_val, "\n")
-    cat("  Variance:", var_val, "\n")
-    cat("  Range:", min_val, "to", max_val, "\n")
-    cat("  NaN/Inf values:", has_nan || has_inf, "\n")
-    
-    cat("  Cleaning up... ")
-    cleanup_prng()
-    cat("SUCCESS\n")
-    
-    TRUE
-  }, error = function(e) {
-    cat("ERROR:", e$message, "\n")
-    cleanup_prng()
-    FALSE
-  })
-  
+  tryCatch(
+    {
+      cat("  Creating PRNG... ")
+      createPRNG(config)
+      cat("SUCCESS\n")
+
+      cat("  Generating values... ")
+      values <- generatePRNG(1000)
+      cat("SUCCESS\n")
+
+      # Calculate statistics
+      mean_val <- mean(values)
+      var_val <- var(values)
+      min_val <- min(values)
+      max_val <- max(values)
+      has_nan <- any(is.nan(values))
+      has_inf <- any(is.infinite(values))
+
+      cat("  Mean:", mean_val, "\n")
+      cat("  Variance:", var_val, "\n")
+      cat("  Range:", min_val, "to", max_val, "\n")
+      cat("  NaN/Inf values:", has_nan || has_inf, "\n")
+
+      cat("  Cleaning up... ")
+      cleanup_prng()
+      cat("SUCCESS\n")
+
+      TRUE
+    },
+    error = function(e) {
+      cat("ERROR:", e$message, "\n")
+      cleanup_prng()
+      FALSE
+    }
+  )
+
   cat("\n")
 }
 

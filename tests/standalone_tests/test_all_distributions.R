@@ -10,53 +10,53 @@ cat("\n===== Testing all qiprng distributions =====\n\n")
 
 # Function to run basic statistics test on a distribution
 test_distribution <- function(dist_name, cfg, expected_mean, expected_var, min_val = NULL, max_val = NULL, integer_only = FALSE, n_sample = 5000) {
-  cat(paste0(">>> ENTER test_distribution for: ", dist_name, "\n")) 
-  
-  cat(paste0("  Calling createPRNG for: ", dist_name, "...\n")) 
+  cat(paste0(">>> ENTER test_distribution for: ", dist_name, "\n"))
+
+  cat(paste0("  Calling createPRNG for: ", dist_name, "...\n"))
   createPRNG(cfg)
-  cat(paste0("  DONE createPRNG for: ", dist_name, "\n")) 
-  
+  cat(paste0("  DONE createPRNG for: ", dist_name, "\n"))
+
   # Generate samples
-  cat(paste0("  Calling generatePRNG(n=", n_sample, ") for: ", dist_name, "...\n")) 
+  cat(paste0("  Calling generatePRNG(n=", n_sample, ") for: ", dist_name, "...\n"))
   samples <- generatePRNG(n_sample)
-  cat(paste0("  DONE generatePRNG for: ", dist_name, ". Samples generated: ", length(samples), "\n")) 
-  
+  cat(paste0("  DONE generatePRNG for: ", dist_name, ". Samples generated: ", length(samples), "\n"))
+
   # Basic validation
-  cat(paste0("  Calculating mean for: ", dist_name, "...\n")) 
+  cat(paste0("  Calculating mean for: ", dist_name, "...\n"))
   cat(paste0("  Mean: ", mean(samples), " (expected: ", expected_mean, ")\n"))
-  cat(paste0("  DONE calculating mean for: ", dist_name, "\n")) 
-  
-  cat(paste0("  Calculating variance for: ", dist_name, "...\n")) 
+  cat(paste0("  DONE calculating mean for: ", dist_name, "\n"))
+
+  cat(paste0("  Calculating variance for: ", dist_name, "...\n"))
   cat(paste0("  Variance: ", var(samples), " (expected: ", expected_var, ")\n"))
-  cat(paste0("  DONE calculating variance for: ", dist_name, "\n")) 
-  
+  cat(paste0("  DONE calculating variance for: ", dist_name, "\n"))
+
   # Check value constraints if provided
   if (!is.null(min_val)) {
-    cat(paste0("  Checking min_val (>= ", min_val, ") for: ", dist_name, "...\n")) 
+    cat(paste0("  Checking min_val (>= ", min_val, ") for: ", dist_name, "...\n"))
     min_check <- all(samples >= min_val)
     cat(paste0("  All values >= ", min_val, ": ", min_check, "\n"))
-    cat(paste0("  DONE checking min_val for: ", dist_name, "\n")) 
+    cat(paste0("  DONE checking min_val for: ", dist_name, "\n"))
     if (!min_check) cat("  WARNING: Some values below minimum!\n")
   }
-  
+
   if (!is.null(max_val)) {
-    cat(paste0("  Checking max_val (<= ", max_val, ") for: ", dist_name, "...\n")) 
+    cat(paste0("  Checking max_val (<= ", max_val, ") for: ", dist_name, "...\n"))
     max_check <- all(samples <= max_val)
     cat(paste0("  All values <= ", max_val, ": ", max_check, "\n"))
-    cat(paste0("  DONE checking max_val for: ", dist_name, "\n")) 
+    cat(paste0("  DONE checking max_val for: ", dist_name, "\n"))
     if (!max_check) cat("  WARNING: Some values above maximum!\n")
   }
-  
+
   # Check integer constraint if required
   if (integer_only) {
-    cat(paste0("  Checking integer_only for: ", dist_name, "...\n")) 
+    cat(paste0("  Checking integer_only for: ", dist_name, "...\n"))
     int_check <- all(round(samples) == samples)
     cat(paste0("  All values are integers: ", int_check, "\n"))
-    cat(paste0("  DONE checking integer_only for: ", dist_name, "\n")) 
+    cat(paste0("  DONE checking integer_only for: ", dist_name, "\n"))
     if (!int_check) cat("  WARNING: Some values are not integers!\n")
   }
-  
-  cat(paste0(">>> EXIT test_distribution for: ", dist_name, "\n")) 
+
+  cat(paste0(">>> EXIT test_distribution for: ", dist_name, "\n"))
   # Return samples for further analysis if needed
   invisible(samples)
 }
@@ -65,7 +65,7 @@ test_distribution <- function(dist_name, cfg, expected_mean, expected_var, min_v
 # cat("\n----- Uniform(0,1) -----\n")
 # cfg_uniform <- list(
 #   a = 2,
-#   b = 5, 
+#   b = 5,
 #   c = -2,
 #   distribution = "uniform_01"
 # )

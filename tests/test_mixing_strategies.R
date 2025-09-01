@@ -16,56 +16,58 @@ results <- list()
 
 for (strategy in strategies) {
   cat(sprintf("Testing %s strategy...\n", strategy))
-  
-  tryCatch({
-    # Create PRNG with specific mixing strategy
-    config <- list(
-      a = c(1, 2, 3),
-      b = c(5, 7, 11),
-      c = c(-2, -3, -5),
-      mpfr_precision = 256,
-      distribution = "uniform_01",
-      mixing_strategy = strategy
-    )
-    
-    # Note: MultiQI with vectors needs enhanced interface
-    # For now, test with single QI
-    config_single <- list(
-      a = 2,
-      b = 7,
-      c = -3,
-      mpfr_precision = 256,
-      distribution = "uniform_01",
-      mixing_strategy = strategy,
-      seed = 12345  # Fixed seed for reproducibility
-    )
-    
-    createPRNG(config_single)
-    
-    # Generate samples
-    samples <- generatePRNG(1000)
-    
-    # Calculate statistics
-    mean_val <- mean(samples)
-    var_val <- var(samples)
-    
-    # Store results
-    results[[strategy]] <- list(
-      mean = mean_val,
-      variance = var_val,
-      min = min(samples),
-      max = max(samples)
-    )
-    
-    cat(sprintf("  Mean: %.6f, Variance: %.6f\n", mean_val, var_val))
-    
-    # Cleanup for next test
-    cleanup_prng()
-    
-  }, error = function(e) {
-    cat(sprintf("  ERROR: %s\n", conditionMessage(e)))
-    results[[strategy]] <- list(error = conditionMessage(e))
-  })
+
+  tryCatch(
+    {
+      # Create PRNG with specific mixing strategy
+      config <- list(
+        a = c(1, 2, 3),
+        b = c(5, 7, 11),
+        c = c(-2, -3, -5),
+        mpfr_precision = 256,
+        distribution = "uniform_01",
+        mixing_strategy = strategy
+      )
+
+      # Note: MultiQI with vectors needs enhanced interface
+      # For now, test with single QI
+      config_single <- list(
+        a = 2,
+        b = 7,
+        c = -3,
+        mpfr_precision = 256,
+        distribution = "uniform_01",
+        mixing_strategy = strategy,
+        seed = 12345 # Fixed seed for reproducibility
+      )
+
+      createPRNG(config_single)
+
+      # Generate samples
+      samples <- generatePRNG(1000)
+
+      # Calculate statistics
+      mean_val <- mean(samples)
+      var_val <- var(samples)
+
+      # Store results
+      results[[strategy]] <- list(
+        mean = mean_val,
+        variance = var_val,
+        min = min(samples),
+        max = max(samples)
+      )
+
+      cat(sprintf("  Mean: %.6f, Variance: %.6f\n", mean_val, var_val))
+
+      # Cleanup for next test
+      cleanup_prng()
+    },
+    error = function(e) {
+      cat(sprintf("  ERROR: %s\n", conditionMessage(e)))
+      results[[strategy]] <- list(error = conditionMessage(e))
+    }
+  )
 }
 
 cat("\n")
@@ -133,15 +135,17 @@ for (strategy in strategies) {
     mpfr_precision = 256,
     seed = 99999
   ))
-  
+
   # Time generation
   t <- system.time({
     samples <- generatePRNG(100000)
   })
-  
-  cat(sprintf("%15s: %.4f seconds (%.0f numbers/sec)\n", 
-              strategy, t[3], 100000/t[3]))
-  
+
+  cat(sprintf(
+    "%15s: %.4f seconds (%.0f numbers/sec)\n",
+    strategy, t[3], 100000 / t[3]
+  ))
+
   cleanup_prng()
 }
 
@@ -157,12 +161,14 @@ for (strategy in names(results)) {
   if (!is.null(results[[strategy]]$error)) {
     cat(sprintf("%15s: ERROR - %s\n", strategy, results[[strategy]]$error))
   } else {
-    cat(sprintf("%15s: mean=%.6f, var=%.6f, range=[%.6f, %.6f]\n",
-                strategy,
-                results[[strategy]]$mean,
-                results[[strategy]]$variance,
-                results[[strategy]]$min,
-                results[[strategy]]$max))
+    cat(sprintf(
+      "%15s: mean=%.6f, var=%.6f, range=[%.6f, %.6f]\n",
+      strategy,
+      results[[strategy]]$mean,
+      results[[strategy]]$variance,
+      results[[strategy]]$min,
+      results[[strategy]]$max
+    ))
   }
 }
 

@@ -13,67 +13,72 @@ cat("==========================================================\n\n")
 
 # Function to run in parallel threads
 test_ziggurat <- function(thread_id) {
-  tryCatch({
-    # Create a PRNG configuration for normal distribution
-    # This internally uses the Ziggurat implementation
-    config <- list(
-      distribution = "normal",
-      mean = 0,
-      stddev = 1,
-      thread_safe = TRUE
-    )
-    
-    # Create PRNG instance - this triggers initialize_static_tables()
-    prng <- createPRNG(config)
-    
-    # Generate samples to ensure tables are actually used
-    samples <- generatePRNG(100)
-    
-    # Clean up
-    cleanup_prng()
-    
-    # Verify samples are reasonable (mean ~0, stddev ~1)
-    sample_mean <- mean(samples)
-    sample_sd <- sd(samples)
-    
-    # Check if results are reasonable
-    if (abs(sample_mean) < 1.0 && sample_sd > 0.5 && sample_sd < 2.0) {
-      return(list(
-        success = TRUE,
-        thread_id = thread_id,
-        mean = sample_mean,
-        sd = sample_sd
-      ))
-    } else {
+  tryCatch(
+    {
+      # Create a PRNG configuration for normal distribution
+      # This internally uses the Ziggurat implementation
+      config <- list(
+        distribution = "normal",
+        mean = 0,
+        stddev = 1,
+        thread_safe = TRUE
+      )
+
+      # Create PRNG instance - this triggers initialize_static_tables()
+      prng <- createPRNG(config)
+
+      # Generate samples to ensure tables are actually used
+      samples <- generatePRNG(100)
+
+      # Clean up
+      cleanup_prng()
+
+      # Verify samples are reasonable (mean ~0, stddev ~1)
+      sample_mean <- mean(samples)
+      sample_sd <- sd(samples)
+
+      # Check if results are reasonable
+      if (abs(sample_mean) < 1.0 && sample_sd > 0.5 && sample_sd < 2.0) {
+        return(list(
+          success = TRUE,
+          thread_id = thread_id,
+          mean = sample_mean,
+          sd = sample_sd
+        ))
+      } else {
+        return(list(
+          success = FALSE,
+          thread_id = thread_id,
+          mean = sample_mean,
+          sd = sample_sd,
+          error = "Unexpected statistics"
+        ))
+      }
+    },
+    error = function(e) {
       return(list(
         success = FALSE,
         thread_id = thread_id,
-        mean = sample_mean,
-        sd = sample_sd,
-        error = "Unexpected statistics"
+        error = as.character(e)
       ))
     }
-  }, error = function(e) {
-    return(list(
-      success = FALSE,
-      thread_id = thread_id,
-      error = as.character(e)
-    ))
-  })
+  )
 }
 
 # Number of threads to test with
 num_threads <- 50
 num_iterations <- 3
 
-cat(sprintf("Running %d iterations with %d parallel threads each\n\n", 
-            num_iterations, num_threads))
+cat(sprintf(
+  "Running %d iterations with %d parallel threads each\n\n",
+  num_iterations, num_threads
+))
 
 all_success <- TRUE
 
 for (iter in 1:num_iterations) {
   cat(sprintf("Iteration %d of %d\n", iter, num_iterations))
-  
+
   # Use mclapply for parallel execution (Unix/Mac)
   # On Windows, this will run sequentially
   if (.Platform$OS.type == "unix") {
@@ -85,13 +90,13 @@ for (iter in 1:num_iterations) {
     results <- parLapply(cl, 1:num_threads, test_ziggurat)
     stopCluster(cl)
   }
-  
+
   # Count successes and failures
   successes <- sum(sapply(results, function(r) r$success))
   failures <- num_threads - successes
-  
+
   cat(sprintf("  Results: %d successes, %d failures\n", successes, failures))
-  
+
   # Print any errors
   if (failures > 0) {
     failed_results <- results[!sapply(results, function(r) r$success)]
@@ -102,7 +107,7 @@ for (iter in 1:num_iterations) {
     }
     all_success <- FALSE
   }
-  
+
   cat("\n")
 }
 

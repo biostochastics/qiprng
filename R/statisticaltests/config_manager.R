@@ -3,7 +3,7 @@
 #' Configuration Management for External Testing Tools
 #'
 #' This module provides a flexible configuration management system for
-#' external testing tools, supporting tool paths, parameters, and 
+#' external testing tools, supporting tool paths, parameters, and
 #' platform-specific settings.
 #'
 #' Features:
@@ -49,7 +49,7 @@ default_external_tool_config <- list(
       )
     )
   ),
-  
+
   # Dieharder Test Suite
   dieharder = list(
     enabled = TRUE,
@@ -66,7 +66,7 @@ default_external_tool_config <- list(
       brief = TRUE
     )
   ),
-  
+
   # ENT - Entropy Test
   ent = list(
     enabled = TRUE,
@@ -81,7 +81,7 @@ default_external_tool_config <- list(
       terse = FALSE
     )
   ),
-  
+
   # TestU01
   testu01 = list(
     enabled = FALSE,
@@ -96,7 +96,7 @@ default_external_tool_config <- list(
       res_file = "./testu01_results.txt"
     )
   ),
-  
+
   # PractRand
   practrand = list(
     enabled = FALSE,
@@ -129,7 +129,7 @@ default_internal_test_config <- list(
     random_seed = NULL,
     verbose = FALSE
   ),
-  
+
   # Performance and parallelization
   performance = list(
     parallel_enabled = TRUE,
@@ -140,7 +140,7 @@ default_internal_test_config <- list(
     cache_enabled = TRUE,
     cache_size_mb = 512
   ),
-  
+
   # Classical tests parameters
   classical_tests = list(
     chi_square = list(
@@ -157,7 +157,7 @@ default_internal_test_config <- list(
       min_runs = 5
     )
   ),
-  
+
   # Binary tests parameters
   binary_tests = list(
     frequency = list(
@@ -172,7 +172,7 @@ default_internal_test_config <- list(
       significance_level = 0.01
     )
   ),
-  
+
   # Compression tests parameters
   compression_tests = list(
     algorithms = c("gzip", "bzip2", "xz"),
@@ -184,7 +184,7 @@ default_internal_test_config <- list(
     min_compression_ratio = 0.9,
     max_compression_ratio = 1.0
   ),
-  
+
   # Correlation tests parameters
   correlation_tests = list(
     max_lag = 100,
@@ -195,7 +195,7 @@ default_internal_test_config <- list(
       partial = TRUE
     )
   ),
-  
+
   # External tests parameters
   external_tests = list(
     sample_size = 1000000,
@@ -204,7 +204,7 @@ default_internal_test_config <- list(
     retry_attempts = 3,
     cleanup_temp_files = TRUE
   ),
-  
+
   # Multidimensional tests parameters
   multidim_tests = list(
     dimensions = c(2, 3, 4),
@@ -212,7 +212,7 @@ default_internal_test_config <- list(
     projection_methods = c("pca", "ica", "tsne"),
     distance_metrics = c("euclidean", "manhattan", "mahalanobis")
   ),
-  
+
   # Visualization parameters
   visualization = list(
     enabled = TRUE,
@@ -223,7 +223,7 @@ default_internal_test_config <- list(
     theme = "minimal",
     color_palette = "viridis"
   ),
-  
+
   # Reporting parameters
   reporting = list(
     format = c("html", "pdf", "markdown"),
@@ -255,11 +255,11 @@ get_default_config <- function() {
 #' @export
 load_config <- function(config_file = NULL, merge_defaults = TRUE) {
   config <- list()
-  
+
   # Try to load from file
   if (!is.null(config_file) && file.exists(config_file)) {
     ext <- tolower(tools::file_ext(config_file))
-    
+
     if (ext == "json") {
       config <- jsonlite::fromJSON(config_file, simplifyVector = FALSE)
     } else if (ext %in% c("yaml", "yml")) {
@@ -272,15 +272,15 @@ load_config <- function(config_file = NULL, merge_defaults = TRUE) {
       stop("Unsupported configuration file format. Use JSON or YAML.")
     }
   }
-  
+
   # Load from environment variables
   config <- merge_env_config(config)
-  
+
   # Merge with defaults if requested
   if (merge_defaults) {
     # Get complete default config
     defaults <- get_default_config()
-    
+
     # Handle backward compatibility - if config has tool names at root level
     if (any(names(config) %in% names(default_external_tool_config))) {
       # Old format - convert to new structure
@@ -290,14 +290,14 @@ load_config <- function(config_file = NULL, merge_defaults = TRUE) {
         internal_tests = list()
       )
     }
-    
+
     # Merge external tools
     if (!is.null(config$external_tools)) {
       config$external_tools <- merge_configs(defaults$external_tools, config$external_tools)
     } else {
       config$external_tools <- defaults$external_tools
     }
-    
+
     # Merge internal tests
     if (!is.null(config$internal_tests)) {
       config$internal_tests <- merge_configs(defaults$internal_tests, config$internal_tests)
@@ -305,7 +305,7 @@ load_config <- function(config_file = NULL, merge_defaults = TRUE) {
       config$internal_tests <- defaults$internal_tests
     }
   }
-  
+
   return(config)
 }
 
@@ -322,10 +322,10 @@ merge_env_config <- function(config) {
   if (is.null(config$internal_tests)) {
     config$internal_tests <- list()
   }
-  
+
   # Check for tool-specific environment variables
   tools <- c("nist_sts", "dieharder", "ent", "testu01", "practrand")
-  
+
   for (tool in tools) {
     # Check for path override
     env_var <- paste0("QIPRNG_", toupper(tool), "_PATH")
@@ -339,7 +339,7 @@ merge_env_config <- function(config) {
       }
       config$external_tools[[tool]]$paths[[get_platform()]] <- path
     }
-    
+
     # Check for enabled status
     env_var_enabled <- paste0("QIPRNG_", toupper(tool), "_ENABLED")
     enabled <- Sys.getenv(env_var_enabled)
@@ -350,10 +350,10 @@ merge_env_config <- function(config) {
       config$external_tools[[tool]]$enabled <- as.logical(enabled)
     }
   }
-  
+
   # Merge internal test environment variables
   config <- merge_internal_env_config(config)
-  
+
   return(config)
 }
 
@@ -367,7 +367,7 @@ merge_configs <- function(base, override) {
   if (length(override) == 0) {
     return(base)
   }
-  
+
   for (key in names(override)) {
     if (key %in% names(base) && is.list(base[[key]]) && is.list(override[[key]])) {
       base[[key]] <- merge_configs(base[[key]], override[[key]])
@@ -375,7 +375,7 @@ merge_configs <- function(base, override) {
       base[[key]] <- override[[key]]
     }
   }
-  
+
   return(base)
 }
 
@@ -403,7 +403,7 @@ get_tool_path <- function(tool_name, config = NULL) {
   if (is.null(config)) {
     config <- load_config()
   }
-  
+
   # Handle both old and new config structure
   if (!is.null(config$external_tools)) {
     # New structure
@@ -418,9 +418,9 @@ get_tool_path <- function(tool_name, config = NULL) {
     }
     tool_config <- config[[tool_name]]
   }
-  
+
   platform <- get_platform()
-  
+
   # Get platform-specific path
   if (!is.null(tool_config$paths[[platform]])) {
     path <- tool_config$paths[[platform]]
@@ -429,10 +429,10 @@ get_tool_path <- function(tool_name, config = NULL) {
   } else {
     stop(paste("No path configured for", tool_name, "on", platform))
   }
-  
+
   # Expand path
   path <- path.expand(path)
-  
+
   # Check if it's in PATH
   if (!file.exists(path) && !grepl("/", path) && !grepl("\\\\", path)) {
     which_path <- Sys.which(path)
@@ -440,7 +440,7 @@ get_tool_path <- function(tool_name, config = NULL) {
       path <- which_path
     }
   }
-  
+
   return(path)
 }
 
@@ -454,7 +454,7 @@ validate_tool_config <- function(tool_name, config = NULL) {
   if (is.null(config)) {
     config <- load_config()
   }
-  
+
   # Handle both old and new config structure
   if (!is.null(config$external_tools)) {
     # New structure
@@ -471,24 +471,27 @@ validate_tool_config <- function(tool_name, config = NULL) {
     }
     tool_config <- config[[tool_name]]
   }
-  
+
   # Check if enabled
   if (!isTRUE(tool_config$enabled)) {
     return(FALSE)
   }
-  
+
   # Check if path exists
-  tryCatch({
-    path <- get_tool_path(tool_name, config)
-    if (!file.exists(path) && !nzchar(Sys.which(path))) {
-      warning(paste("Tool", tool_name, "not found at path:", path))
+  tryCatch(
+    {
+      path <- get_tool_path(tool_name, config)
+      if (!file.exists(path) && !nzchar(Sys.which(path))) {
+        warning(paste("Tool", tool_name, "not found at path:", path))
+        return(FALSE)
+      }
+    },
+    error = function(e) {
+      warning(paste("Error validating", tool_name, ":", e$message))
       return(FALSE)
     }
-  }, error = function(e) {
-    warning(paste("Error validating", tool_name, ":", e$message))
-    return(FALSE)
-  })
-  
+  )
+
   return(TRUE)
 }
 
@@ -500,7 +503,7 @@ validate_tool_config <- function(tool_name, config = NULL) {
 #' @export
 save_config <- function(config, file_path, format = "json") {
   format <- tolower(format)
-  
+
   if (format == "json") {
     json_str <- jsonlite::toJSON(config, pretty = TRUE, auto_unbox = TRUE)
     writeLines(json_str, file_path)
@@ -522,7 +525,7 @@ save_config <- function(config, file_path, format = "json") {
 #' @export
 create_example_config <- function(file_path = "qiprng_config.json", format = "json") {
   config <- get_default_config()
-  
+
   # Add comments as metadata
   config$"_comments" <- list(
     description = "QIPRNG Complete Configuration (External Tools + Internal Tests)",
@@ -534,7 +537,7 @@ create_example_config <- function(file_path = "qiprng_config.json", format = "js
       internal_tests = "Configuration for internal test parameters and performance settings"
     )
   )
-  
+
   save_config(config, file_path, format)
   message(paste("Example configuration saved to:", file_path))
 }
@@ -548,23 +551,23 @@ create_example_config <- function(file_path = "qiprng_config.json", format = "js
 #' @param extra_params Additional parameters
 #' @return Command line string
 #' @export
-build_tool_command <- function(tool_name, input_file = NULL, output_file = NULL, 
-                              config = NULL, extra_params = list()) {
+build_tool_command <- function(tool_name, input_file = NULL, output_file = NULL,
+                               config = NULL, extra_params = list()) {
   if (is.null(config)) {
     config <- load_config()
   }
-  
+
   tool_path <- get_tool_path(tool_name, config)
-  
+
   # Get tool config from appropriate structure
   if (!is.null(config$external_tools)) {
     tool_config <- config$external_tools[[tool_name]]
   } else {
     tool_config <- config[[tool_name]]
   }
-  
+
   params <- merge_configs(tool_config$parameters, extra_params)
-  
+
   # Build command based on tool
   cmd <- switch(tool_name,
     dieharder = build_dieharder_command(tool_path, input_file, params),
@@ -574,7 +577,7 @@ build_tool_command <- function(tool_name, input_file = NULL, output_file = NULL,
     practrand = build_practrand_command(tool_path, input_file, params),
     stop(paste("Unknown tool:", tool_name))
   )
-  
+
   return(cmd)
 }
 
@@ -582,25 +585,25 @@ build_tool_command <- function(tool_name, input_file = NULL, output_file = NULL,
 #' @keywords internal
 build_dieharder_command <- function(path, input_file, params) {
   cmd <- path
-  
+
   if (!is.null(input_file)) {
     cmd <- paste(cmd, "-g 201 -f", shQuote(input_file))
   }
-  
+
   if (!is.null(params$test_ids)) {
     for (test_id in params$test_ids) {
       cmd <- paste(cmd, "-d", test_id)
     }
   }
-  
+
   if (!is.null(params$psamples)) {
     cmd <- paste(cmd, "-p", params$psamples)
   }
-  
+
   if (isTRUE(params$quiet)) {
     cmd <- paste(cmd, "-q")
   }
-  
+
   return(cmd)
 }
 
@@ -608,23 +611,23 @@ build_dieharder_command <- function(path, input_file, params) {
 #' @keywords internal
 build_ent_command <- function(path, input_file, params) {
   cmd <- path
-  
+
   if (isTRUE(params$binary_mode)) {
     cmd <- paste(cmd, "-b")
   }
-  
+
   if (isTRUE(params$fold)) {
     cmd <- paste(cmd, "-f")
   }
-  
+
   if (isTRUE(params$terse)) {
     cmd <- paste(cmd, "-t")
   }
-  
+
   if (!is.null(input_file)) {
     cmd <- paste(cmd, shQuote(input_file))
   }
-  
+
   return(cmd)
 }
 
@@ -633,19 +636,21 @@ build_ent_command <- function(path, input_file, params) {
 build_nist_command <- function(path, input_file, output_file, params) {
   # NIST STS typically requires a configuration file
   # This is a simplified version
-  cmd <- paste(path, 
-               "-v", params$significance_level,
-               "-n", params$bitstreams,
-               "-l", params$stream_length)
-  
+  cmd <- paste(
+    path,
+    "-v", params$significance_level,
+    "-n", params$bitstreams,
+    "-l", params$stream_length
+  )
+
   if (!is.null(input_file)) {
     cmd <- paste(cmd, "-i", shQuote(input_file))
   }
-  
+
   if (!is.null(output_file)) {
     cmd <- paste(cmd, "-o", shQuote(output_file))
   }
-  
+
   return(cmd)
 }
 
@@ -653,15 +658,15 @@ build_nist_command <- function(path, input_file, output_file, params) {
 #' @keywords internal
 build_testu01_command <- function(path, input_file, output_file, params) {
   cmd <- paste(path, "-", params$battery)
-  
+
   if (!is.null(input_file)) {
     cmd <- paste(cmd, "-f", shQuote(input_file))
   }
-  
+
   if (!is.null(output_file)) {
     cmd <- paste(cmd, ">", shQuote(output_file))
   }
-  
+
   return(cmd)
 }
 
@@ -669,23 +674,23 @@ build_testu01_command <- function(path, input_file, output_file, params) {
 #' @keywords internal
 build_practrand_command <- function(path, input_file, params) {
   cmd <- paste(path, "stdin", params$length)
-  
+
   if (!is.null(params$folding) && params$folding > 0) {
     cmd <- paste(cmd, "-tf", params$folding)
   }
-  
+
   if (isTRUE(params$expanded)) {
     cmd <- paste(cmd, "-te")
   }
-  
+
   if (isTRUE(params$multithreaded)) {
     cmd <- paste(cmd, "-multithreaded")
   }
-  
+
   if (!is.null(input_file)) {
     cmd <- paste("cat", shQuote(input_file), "|", cmd)
   }
-  
+
   return(cmd)
 }
 
@@ -700,10 +705,10 @@ get_test_param <- function(param_path, config = NULL, default = NULL) {
   if (is.null(config)) {
     config <- load_config()
   }
-  
+
   # Split the path
   path_parts <- strsplit(param_path, ".", fixed = TRUE)[[1]]
-  
+
   # Navigate through the internal_tests config
   current <- config$internal_tests
   for (part in path_parts) {
@@ -713,7 +718,7 @@ get_test_param <- function(param_path, config = NULL, default = NULL) {
       return(default)
     }
   }
-  
+
   return(current)
 }
 
@@ -728,10 +733,10 @@ set_test_param <- function(param_path, value, config = NULL) {
   if (is.null(config)) {
     config <- load_config()
   }
-  
+
   # Split the path
   path_parts <- strsplit(param_path, ".", fixed = TRUE)[[1]]
-  
+
   # Navigate and set the value
   if (length(path_parts) == 1) {
     config$internal_tests[[path_parts[1]]] <- value
@@ -754,7 +759,7 @@ set_test_param <- function(param_path, value, config = NULL) {
       }
     }
   }
-  
+
   return(config)
 }
 
@@ -768,7 +773,7 @@ get_test_config <- function(test_category, config = NULL) {
   if (is.null(config)) {
     config <- load_config()
   }
-  
+
   if (test_category %in% names(config$internal_tests)) {
     return(config$internal_tests[[test_category]])
   } else {
@@ -786,9 +791,9 @@ validate_internal_config <- function(config = NULL) {
   if (is.null(config)) {
     config <- load_config()
   }
-  
+
   valid <- TRUE
-  
+
   # Check required global parameters
   required_global <- c("default_sample_size", "significance_level", "p_value_threshold")
   for (param in required_global) {
@@ -797,7 +802,7 @@ validate_internal_config <- function(config = NULL) {
       valid <- FALSE
     }
   }
-  
+
   # Validate numeric ranges
   if (!is.null(config$internal_tests$global$significance_level)) {
     sig_level <- config$internal_tests$global$significance_level
@@ -806,7 +811,7 @@ validate_internal_config <- function(config = NULL) {
       valid <- FALSE
     }
   }
-  
+
   # Validate performance settings
   if (!is.null(config$internal_tests$performance$max_cores)) {
     max_cores <- config$internal_tests$performance$max_cores
@@ -816,7 +821,7 @@ validate_internal_config <- function(config = NULL) {
       config$internal_tests$performance$max_cores <- available_cores - 1
     }
   }
-  
+
   return(valid)
 }
 
@@ -834,12 +839,12 @@ merge_internal_env_config <- function(config) {
     "QIPRNG_MAX_CORES" = "performance.max_cores",
     "QIPRNG_CACHE_ENABLED" = "performance.cache_enabled"
   )
-  
+
   for (env_var in names(env_vars)) {
     value <- Sys.getenv(env_var)
     if (nzchar(value)) {
       param_path <- env_vars[[env_var]]
-      
+
       # Convert to appropriate type
       if (grepl("enabled|ENABLED", env_var)) {
         value <- as.logical(value)
@@ -848,10 +853,10 @@ merge_internal_env_config <- function(config) {
       } else if (grepl("level|LEVEL", env_var)) {
         value <- as.numeric(value)
       }
-      
+
       config <- set_test_param(param_path, value, config)
     }
   }
-  
+
   return(config)
 }

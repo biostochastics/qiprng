@@ -38,10 +38,10 @@
 #' createPRNG() # Initialize with defaults
 #' suite <- create_prng_test_suite(function(n) generatePRNG(n))
 #' suite <- run_prng_test_suite(suite)
-#' 
+#'
 #' # Generate visualizations
 #' suite <- visualize_all_tests(suite)
-#' 
+#'
 #' # Visualization paths are now available in the suite object
 #' print(names(suite$visualizations))
 #' }
@@ -51,16 +51,16 @@ visualize_all_tests <- function(suite) {
     warning("ggplot2 package is required for visualizations")
     return(suite)
   }
-  
+
   # Ensure visualization directory exists
   output_dir <- file.path(suite$config$output_dir, "visualizations")
   if (!dir.exists(output_dir)) {
     dir.create(output_dir, recursive = TRUE)
   }
-  
+
   # To avoid R CMD check NOTEs
   Category <- Test <- PassFail <- Value <- NULL
-  
+
   # 1. Create a summary visualization of all test results
   if (length(suite$results) > 0) {
     # Extract test results from each category
@@ -70,7 +70,7 @@ visualize_all_tests <- function(suite) {
       PassFail = character(),
       stringsAsFactors = FALSE
     )
-    
+
     for (category in names(suite$results)) {
       for (test_name in names(suite$results[[category]])) {
         test <- suite$results[[category]][[test_name]]
@@ -84,13 +84,15 @@ visualize_all_tests <- function(suite) {
         }
       }
     }
-    
+
     if (nrow(test_summary) > 0) {
       # Create summary plot
       p1 <- ggplot2::ggplot(test_summary, ggplot2::aes(x = Category, fill = PassFail)) +
         ggplot2::geom_bar(position = "stack") +
-        ggplot2::scale_fill_manual(values = c("PASS" = "green", "FAIL" = "red", 
-                                             "SKIPPED" = "gray", "ERROR" = "orange")) +
+        ggplot2::scale_fill_manual(values = c(
+          "PASS" = "green", "FAIL" = "red",
+          "SKIPPED" = "gray", "ERROR" = "orange"
+        )) +
         ggplot2::theme_minimal() +
         ggplot2::labs(
           title = "Statistical Test Results Summary",
@@ -98,11 +100,11 @@ visualize_all_tests <- function(suite) {
           y = "Count",
           fill = "Result"
         )
-      
+
       # Save plot
       summary_path <- file.path(output_dir, "test_results_summary.png")
       ggplot2::ggsave(summary_path, p1, width = 10, height = 6)
-      
+
       # Store visualization path
       if (is.null(suite$visualizations)) {
         suite$visualizations <- list()
@@ -112,7 +114,7 @@ visualize_all_tests <- function(suite) {
       )
     }
   }
-  
+
   # 2. Generate a test-by-test overview table
   test_details <- data.frame(
     Category = character(),
@@ -121,7 +123,7 @@ visualize_all_tests <- function(suite) {
     PValue = numeric(),
     stringsAsFactors = FALSE
   )
-  
+
   for (category in names(suite$results)) {
     for (test_name in names(suite$results[[category]])) {
       test <- suite$results[[category]][[test_name]]
@@ -137,37 +139,38 @@ visualize_all_tests <- function(suite) {
       }
     }
   }
-  
+
   if (nrow(test_details) > 0) {
     # Sort by category and test
     test_details <- test_details[order(test_details$Category, test_details$Test), ]
-    
+
     # Create an HTML table
-    if (requireNamespace("knitr", quietly = TRUE) && 
-        requireNamespace("kableExtra", quietly = TRUE)) {
-      
-      html_table <- knitr::kable(test_details, format = "html", 
-                               caption = "Statistical Test Results") %>%
+    if (requireNamespace("knitr", quietly = TRUE) &&
+      requireNamespace("kableExtra", quietly = TRUE)) {
+      html_table <- knitr::kable(test_details,
+        format = "html",
+        caption = "Statistical Test Results"
+      ) %>%
         kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
-      
+
       # Save table to file
       table_path <- file.path(output_dir, "test_results_table.html")
       writeLines(html_table, table_path)
-      
+
       # Store path
       suite$visualizations$summary$results_table <- table_path
     }
   }
-  
+
   # 3. Generate dashboard if requested
-  if (suite$config$generate_dashboard && 
-      requireNamespace("flexdashboard", quietly = TRUE)) {
+  if (suite$config$generate_dashboard &&
+    requireNamespace("flexdashboard", quietly = TRUE)) {
     dashboard_path <- generate_dashboard(suite)
     if (!is.null(dashboard_path)) {
       suite$visualizations$dashboard <- dashboard_path
     }
   }
-  
+
   return(suite)
 }
 
@@ -181,20 +184,20 @@ generate_dashboard <- function(suite) {
     warning("rmarkdown package is required for dashboard generation")
     return(NULL)
   }
-  
+
   # Create dashboard directory
   dashboard_dir <- file.path(suite$config$output_directory, "dashboard")
   if (!dir.exists(dashboard_dir)) {
     dir.create(dashboard_dir, recursive = TRUE)
   }
-  
+
   # Create Rmd content for dashboard
   dashboard_rmd <- file.path(dashboard_dir, "prng_test_dashboard.Rmd")
-  
+
   # Dashboard header
   header <- '---
 title: "PRNG Statistical Test Results"
-output: 
+output:
   flexdashboard::flex_dashboard:
     orientation: rows
     theme: cosmo
@@ -207,7 +210,7 @@ library(DT)
 ```
 
 '
-  
+
   # Dashboard content
   content <- "
 Overview
@@ -228,7 +231,7 @@ test_summary <- data.frame(
 )
 
 "
-  
+
   # Add code to load test results
   result_loading <- ""
   for (category in names(suite$results)) {
@@ -246,10 +249,10 @@ test_summary <- data.frame(
       }
     }
   }
-  
+
   content <- paste0(content, result_loading, "
 # Show interactive table of results
-DT::datatable(test_summary, 
+DT::datatable(test_summary,
               options = list(pageLength = 25),
               rownames = FALSE)
 ```
@@ -263,7 +266,7 @@ Row
 # Create summary plot by category
 ggplot(test_summary, aes(x = Category, fill = Result)) +
   geom_bar(position = 'stack') +
-  scale_fill_manual(values = c('PASS' = 'green', 'FAIL' = 'red', 
+  scale_fill_manual(values = c('PASS' = 'green', 'FAIL' = 'red',
                                'SKIPPED' = 'gray', 'ERROR' = 'orange')) +
   theme_minimal() +
   labs(
@@ -300,7 +303,7 @@ Visualizations
 =====================================
 
 ")
-  
+
   # Add tabs for each category of visualizations
   if (!is.null(suite$visualizations)) {
     for (category in names(suite$visualizations)) {
@@ -310,12 +313,12 @@ Row {.tabset}
 -------------------------------------
 
 ### ", toupper(substr(category, 1, 1)), substr(category, 2, nchar(category)), " Tests\n")
-        
+
         for (viz_name in names(suite$visualizations[[category]])) {
           viz_path <- suite$visualizations[[category]][[viz_name]]
           # Replace absolute path with relative path for dashboard
           rel_path <- gsub(dashboard_dir, ".", viz_path)
-          
+
           content <- paste0(content, "
 #### ", gsub("_", " ", viz_name), "
 
@@ -324,25 +327,28 @@ Row {.tabset}
       }
     }
   }
-  
+
   # Write to file
   writeLines(paste0(header, content), dashboard_rmd)
-  
+
   # Render the dashboard
   output_file <- file.path(dashboard_dir, "prng_test_dashboard.html")
-  tryCatch({
-    rmarkdown::render(dashboard_rmd, output_file = output_file)
-    return(output_file)
-  }, error = function(e) {
-    warning(paste("Failed to render dashboard:", e$message))
-    return(NULL)
-  })
+  tryCatch(
+    {
+      rmarkdown::render(dashboard_rmd, output_file = output_file)
+      return(output_file)
+    },
+    error = function(e) {
+      warning(paste("Failed to render dashboard:", e$message))
+      return(NULL)
+    }
+  )
 }
 
 #' Create a combined test report in PDF or HTML format
 #'
 #' Generates a comprehensive statistical report from test results in PDF or HTML format.
-#' The report includes summary tables, visualizations, and detailed test results with 
+#' The report includes summary tables, visualizations, and detailed test results with
 #' statistics and p-values. This is useful for documenting PRNG quality and
 #' sharing results with others.
 #'
@@ -355,13 +361,13 @@ Row {.tabset}
 #' createPRNG()
 #' suite <- create_prng_test_suite(function(n) generatePRNG(n))
 #' suite <- run_prng_test_suite(suite)
-#' 
+#'
 #' # Generate visualizations first
 #' suite <- visualize_all_tests(suite)
-#' 
+#'
 #' # Generate an HTML report
 #' report_path <- generate_report(suite, format = "html")
-#' 
+#'
 #' # Open the report
 #' browseURL(report_path)
 #' }
@@ -371,24 +377,25 @@ generate_report <- function(suite, format = "html") {
     warning("rmarkdown package is required for report generation")
     return(NULL)
   }
-  
+
   # Create report directory
   report_dir <- file.path(suite$config$output_directory, "report")
   if (!dir.exists(report_dir)) {
     dir.create(report_dir, recursive = TRUE)
   }
-  
+
   # Create Rmd content for report
   report_rmd <- file.path(report_dir, "prng_test_report.Rmd")
-  
+
   # Report header
-  header <- paste0('---
+  header <- paste0(
+    '---
 title: "PRNG Statistical Test Report"
 author: "Generated by qiprng package"
 date: "', format(Sys.time(), "%Y-%m-%d %H:%M:%S"), '"
-output: ', 
-  ifelse(format == "pdf", "pdf_document", "html_document"),
-  '
+output: ',
+    ifelse(format == "pdf", "pdf_document", "html_document"),
+    "
 ---
 
 ```{r setup, include=FALSE}
@@ -403,12 +410,13 @@ This report presents the results of statistical tests conducted on a pseudo-rand
 
 ## Test Configuration
 
-- Sample size: ', suite$config$sample_size, '
-- Significance level: ', suite$config$significance_level, '
-- PRNG type: ', ifelse(!is.null(suite$config$prng_type), suite$config$prng_type, "Custom"), '
+- Sample size: ", suite$config$sample_size, "
+- Significance level: ", suite$config$significance_level, "
+- PRNG type: ", ifelse(!is.null(suite$config$prng_type), suite$config$prng_type, "Custom"), "
 
-')
-  
+"
+  )
+
   # Report content - Overview of test results
   content <- "
 ## Test Results Summary
@@ -423,7 +431,7 @@ test_summary <- data.frame(
 )
 
 "
-  
+
   # Add code to load test results
   result_loading <- ""
   for (category in names(suite$results)) {
@@ -441,10 +449,10 @@ test_summary <- data.frame(
       }
     }
   }
-  
+
   content <- paste0(content, result_loading, "
 # Create summary table
-kable(test_summary, 
+kable(test_summary,
       caption = 'Statistical Test Results',
       align = c('l', 'l', 'c', 'r'))
 ```
@@ -455,7 +463,7 @@ kable(test_summary,
 # Create summary plot by category
 ggplot(test_summary, aes(x = Category, fill = Result)) +
   geom_bar(position = 'stack') +
-  scale_fill_manual(values = c('PASS' = 'green', 'FAIL' = 'red', 
+  scale_fill_manual(values = c('PASS' = 'green', 'FAIL' = 'red',
                                'SKIPPED' = 'gray', 'ERROR' = 'orange')) +
   theme_minimal() +
   labs(
@@ -488,58 +496,61 @@ if(nrow(p_value_df) > 0) {
 ## Detailed Test Results
 
 ")
-  
+
   # Add detailed sections for each category
   for (category in names(suite$results)) {
     content <- paste0(content, "
 ### ", toupper(substr(category, 1, 1)), substr(category, 2, nchar(category)), " Tests\n\n")
-    
+
     for (test_name in names(suite$results[[category]])) {
       test <- suite$results[[category]][[test_name]]
       if (!is.null(test$result)) {
         content <- paste0(content, "#### ", test$description, "\n\n")
         content <- paste0(content, "- **Result:** ", test$result, "\n")
-        
+
         if (!is.null(test$p_value)) {
           content <- paste0(content, "- **P-value:** ", round(test$p_value, 4), "\n")
         }
-        
+
         if (!is.null(test$statistic)) {
           content <- paste0(content, "- **Test statistic:** ", round(test$statistic, 4), "\n")
         }
-        
+
         if (!is.null(test$details)) {
           content <- paste0(content, "- **Details:** ", test$details, "\n")
         }
-        
+
         content <- paste0(content, "\n")
       }
     }
-    
+
     # Add category visualizations if available
     if (!is.null(suite$visualizations) && !is.null(suite$visualizations[[category]])) {
       content <- paste0(content, "#### Visualizations\n\n")
-      
+
       for (viz_name in names(suite$visualizations[[category]])) {
         viz_path <- suite$visualizations[[category]][[viz_name]]
         # Replace absolute path with relative path for report
         rel_path <- gsub(report_dir, ".", viz_path)
-        
+
         content <- paste0(content, "![", gsub("_", " ", viz_name), "](", rel_path, ")\n\n")
       }
     }
   }
-  
+
   # Write to file
   writeLines(paste0(header, content), report_rmd)
-  
+
   # Render the report
   output_file <- file.path(report_dir, paste0("prng_test_report.", ifelse(format == "pdf", "pdf", "html")))
-  tryCatch({
-    rmarkdown::render(report_rmd, output_file = output_file)
-    return(output_file)
-  }, error = function(e) {
-    warning(paste("Failed to render report:", e$message))
-    return(NULL)
-  })
+  tryCatch(
+    {
+      rmarkdown::render(report_rmd, output_file = output_file)
+      return(output_file)
+    },
+    error = function(e) {
+      warning(paste("Failed to render report:", e$message))
+      return(NULL)
+    }
+  )
 }

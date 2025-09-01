@@ -1,21 +1,27 @@
 #!/usr/bin/env Rscript
 # Load required packages
 library(stats)
-tryCatch({
-  library(qiprng)
-  message("Successfully loaded qiprng package")
-}, error = function(e) {
-  message("Could not load qiprng package: ", e$message, ". Will try to use devtools.")
-  # Try loading the package using devtools if it's not installed
-  if (requireNamespace("devtools", quietly = TRUE)) {
-    tryCatch({
-      devtools::load_all(".")
-      message("Successfully loaded qiprng package using devtools")
-    }, error = function(e) {
-      message("Could not load qiprng using devtools: ", e$message)
-    })
+tryCatch(
+  {
+    library(qiprng)
+    message("Successfully loaded qiprng package")
+  },
+  error = function(e) {
+    message("Could not load qiprng package: ", e$message, ". Will try to use devtools.")
+    # Try loading the package using devtools if it's not installed
+    if (requireNamespace("devtools", quietly = TRUE)) {
+      tryCatch(
+        {
+          devtools::load_all(".")
+          message("Successfully loaded qiprng package using devtools")
+        },
+        error = function(e) {
+          message("Could not load qiprng using devtools: ", e$message)
+        }
+      )
+    }
   }
-})
+)
 
 # Integrated Statistical Testing Framework for QPRNG
 # This script provides a unified testing framework with configurable parameters
@@ -29,50 +35,50 @@ CONFIG <- list(
   # === FAST TEST CONFIGURATION ===
   # Sample sizes are kept high for thoroughness, but other PRNGs are disabled for speed.
   # To run the full comparison suite, enable other PRNGs in the TEST_PRNGS list below.
-  basic_sample_size = 10000,     # For distribution tests
-  runs_sample_size = 10000,      # For runs and independence tests
+  basic_sample_size = 10000, # For distribution tests
+  runs_sample_size = 10000, # For runs and independence tests
   correlation_sample_size = 10000, # For correlation tests
-  binary_sample_size = 10000,    # For binary and bitwise tests
+  binary_sample_size = 10000, # For binary and bitwise tests
   classical_sample_size = 10000, # For classical statistical tests
   compression_sample_size = 10000, # For compression-based tests
-  
+
   # Test parameters
   chi_squared_bins = 100,
   significance_level = 0.01,
-  
+
   # Output options
   output_dir = "test_results",
   save_results = TRUE,
   save_visualizations = TRUE,
   verbose = TRUE,
-  
+
   # Quarto report options (disabled for speed in dev mode)
-  generate_report = FALSE,    # Set to TRUE to generate a Quarto report
-  report_format = "html",     # 'pdf', 'html', or 'docx'
+  generate_report = FALSE, # Set to TRUE to generate a Quarto report
+  report_format = "html", # 'pdf', 'html', or 'docx'
   report_title = "PRNG Statistical Testing Report"
 )
 
 # PRNGs to test (TRUE = include in test, FALSE = skip)
 # For a full comparison, set all to TRUE. For quick development, only test qiprng.
 TEST_PRNGS <- list(
-  r_builtin = FALSE,    # R's built-in runif
-  lcg = FALSE,          # Simple Linear Congruential Generator
-  poor = FALSE,         # Intentionally poor PRNG (for comparison)
-  qiprng = TRUE,        # Our QIPRNG implementation
+  r_builtin = FALSE, # R's built-in runif
+  lcg = FALSE, # Simple Linear Congruential Generator
+  poor = FALSE, # Intentionally poor PRNG (for comparison)
+  qiprng = TRUE, # Our QIPRNG implementation
   qiprng_nocrypto = TRUE, # QIPRNG without cryptomixing
-  dqrng = FALSE         # dqrng package (if available)
+  dqrng = FALSE # dqrng package (if available)
 )
 
 # Tests to run (TRUE = run test, FALSE = skip)
-# For a quick development check, only 'basic' is enabled. 
+# For a quick development check, only 'basic' is enabled.
 # For the full suite, set all categories to TRUE.
 TEST_CATEGORIES <- list(
-  basic = TRUE,         # Basic distribution tests (fast)
-  runs = FALSE,          # Runs and independence tests (slower)
-  correlation = FALSE,   # Correlation tests (slower)
-  binary = FALSE,        # Binary and bitwise tests (slow)
-  classical = FALSE,     # Classical statistical tests (slow)
-  compression = FALSE    # Compression tests (very slow)
+  basic = TRUE, # Basic distribution tests (fast)
+  runs = FALSE, # Runs and independence tests (slower)
+  correlation = FALSE, # Correlation tests (slower)
+  binary = FALSE, # Binary and bitwise tests (slow)
+  classical = FALSE, # Classical statistical tests (slow)
+  compression = FALSE # Compression tests (very slow)
 )
 
 # ========================= HELPER FUNCTIONS =========================
@@ -95,18 +101,18 @@ lcg_prng <- function(n, seed = 12345) {
   a <- 1664525
   c <- 1013904223
   m <- 2^32
-  
+
   # Initialize
   set.seed(seed)
   x <- as.numeric(sample.int(.Machine$integer.max, 1) %% m)
   result <- numeric(n)
-  
+
   # Generate sequence
   for (i in seq_len(n)) {
     x <- (a * x + c) %% m
     result[i] <- x / m
   }
-  
+
   return(result)
 }
 
@@ -141,60 +147,69 @@ qiprng_func <- function(n) {
   # Check the most direct way to use qiprng package
   if (requireNamespace("qiprng", quietly = TRUE)) {
     log_info("Using qiprng package with crypto mixing enabled")
-    tryCatch({
-      # Create a fresh PRNG configuration with crypto mixing ENABLED
-      config <- list(distribution = "uniform_01", use_crypto_mixing = TRUE)
-      
-      # Create the PRNG instance
-      qiprng::createPRNG(config)
-      
-      # Generate the random numbers
-      result <- qiprng::generatePRNG(n)
-      log_info(paste("Successfully generated", n, "random numbers with QIPRNG (crypto)."))
-      return(result)
-    }, error = function(e) {
-      log_warning(paste("Error using qiprng package:", conditionMessage(e)))
-    })
+    tryCatch(
+      {
+        # Create a fresh PRNG configuration with crypto mixing ENABLED
+        config <- list(distribution = "uniform_01", use_crypto_mixing = TRUE)
+
+        # Create the PRNG instance
+        qiprng::createPRNG(config)
+
+        # Generate the random numbers
+        result <- qiprng::generatePRNG(n)
+        log_info(paste("Successfully generated", n, "random numbers with QIPRNG (crypto)."))
+        return(result)
+      },
+      error = function(e) {
+        log_warning(paste("Error using qiprng package:", conditionMessage(e)))
+      }
+    )
   }
-  
+
   # Check if we have direct access to the C++ API in the environment
-  if (exists("createPRNG", mode = "function") && 
-      exists("updatePRNG", mode = "function") && 
-      exists("generatePRNG", mode = "function")) {
+  if (exists("createPRNG", mode = "function") &&
+    exists("updatePRNG", mode = "function") &&
+    exists("generatePRNG", mode = "function")) {
     log_info("Using direct C++ QIPRNG implementation with crypto mixing enabled")
-    tryCatch({
-      # Create or update PRNG with crypto mixing ENABLED
-      config <- list(distribution = "uniform_01", use_crypto_mixing = TRUE)
-      createPRNG(config)
-      
-      # Generate random numbers
-      result <- generatePRNG(n)
-      log_info("Successfully used direct C++ API for QIPRNG")
-      return(result)
-    }, error = function(e) {
-      log_warning(paste("Error using C++ QIPRNG implementation:", conditionMessage(e)))
-    })
-  }
-  
-  # If we couldn't load the package directly, try loading with devtools
-  tryCatch({
-    if (requireNamespace("devtools", quietly = TRUE)) {
-      log_info("Attempting to load qiprng using devtools")
-      devtools::load_all(".")
-      
-      if (exists("createPRNG", mode = "function") && 
-          exists("generatePRNG", mode = "function")) {
+    tryCatch(
+      {
+        # Create or update PRNG with crypto mixing ENABLED
         config <- list(distribution = "uniform_01", use_crypto_mixing = TRUE)
         createPRNG(config)
+
+        # Generate random numbers
         result <- generatePRNG(n)
-        log_info("Successfully loaded and used qiprng via devtools")
+        log_info("Successfully used direct C++ API for QIPRNG")
         return(result)
+      },
+      error = function(e) {
+        log_warning(paste("Error using C++ QIPRNG implementation:", conditionMessage(e)))
       }
+    )
+  }
+
+  # If we couldn't load the package directly, try loading with devtools
+  tryCatch(
+    {
+      if (requireNamespace("devtools", quietly = TRUE)) {
+        log_info("Attempting to load qiprng using devtools")
+        devtools::load_all(".")
+
+        if (exists("createPRNG", mode = "function") &&
+          exists("generatePRNG", mode = "function")) {
+          config <- list(distribution = "uniform_01", use_crypto_mixing = TRUE)
+          createPRNG(config)
+          result <- generatePRNG(n)
+          log_info("Successfully loaded and used qiprng via devtools")
+          return(result)
+        }
+      }
+    },
+    error = function(e) {
+      log_warning(paste("Error loading qiprng via devtools:", conditionMessage(e)))
     }
-  }, error = function(e) {
-    log_warning(paste("Error loading qiprng via devtools:", conditionMessage(e)))
-  })
-  
+  )
+
   # Fallback to base R if all else fails
   log_warning("QIPRNG implementation not found or failed, using runif as placeholder")
   return(stats::runif(n))
@@ -205,60 +220,69 @@ qiprng_nocrypto_func <- function(n) {
   # Check the most direct way to use qiprng package
   if (requireNamespace("qiprng", quietly = TRUE)) {
     log_info("Using qiprng package with crypto mixing DISABLED")
-    tryCatch({
-      # Create a fresh PRNG configuration with crypto mixing DISABLED
-      config <- list(distribution = "uniform_01", use_crypto_mixing = FALSE)
-      
-      # Create the PRNG instance
-      qiprng::createPRNG(config)
-      
-      # Generate the random numbers
-      result <- qiprng::generatePRNG(n)
-      log_info(paste("Successfully generated", n, "random numbers with QIPRNG (no crypto)."))
-      return(result)
-    }, error = function(e) {
-      log_warning(paste("Error using qiprng package (no crypto):", conditionMessage(e)))
-    })
+    tryCatch(
+      {
+        # Create a fresh PRNG configuration with crypto mixing DISABLED
+        config <- list(distribution = "uniform_01", use_crypto_mixing = FALSE)
+
+        # Create the PRNG instance
+        qiprng::createPRNG(config)
+
+        # Generate the random numbers
+        result <- qiprng::generatePRNG(n)
+        log_info(paste("Successfully generated", n, "random numbers with QIPRNG (no crypto)."))
+        return(result)
+      },
+      error = function(e) {
+        log_warning(paste("Error using qiprng package (no crypto):", conditionMessage(e)))
+      }
+    )
   }
-  
+
   # Check if we have direct access to the C++ API in the environment
-  if (exists("createPRNG", mode = "function") && 
-      exists("updatePRNG", mode = "function") && 
-      exists("generatePRNG", mode = "function")) {
+  if (exists("createPRNG", mode = "function") &&
+    exists("updatePRNG", mode = "function") &&
+    exists("generatePRNG", mode = "function")) {
     log_info("Using direct C++ QIPRNG implementation with crypto mixing DISABLED")
-    tryCatch({
-      # Create PRNG with crypto mixing DISABLED
-      config <- list(distribution = "uniform_01", use_crypto_mixing = FALSE)
-      createPRNG(config)
-      
-      # Generate random numbers
-      result <- generatePRNG(n)
-      log_info("Successfully generated random numbers using C++ API (no crypto)")
-      return(result)
-    }, error = function(e) {
-      log_warning(paste("Error using C++ QIPRNG implementation (no crypto):", conditionMessage(e)))
-    })
-  }
-  
-  # If we couldn't load the package directly, try loading with devtools
-  tryCatch({
-    if (requireNamespace("devtools", quietly = TRUE)) {
-      log_info("Attempting to load qiprng using devtools (no crypto)")
-      devtools::load_all(".")
-      
-      if (exists("createPRNG", mode = "function") && 
-          exists("generatePRNG", mode = "function")) {
+    tryCatch(
+      {
+        # Create PRNG with crypto mixing DISABLED
         config <- list(distribution = "uniform_01", use_crypto_mixing = FALSE)
         createPRNG(config)
+
+        # Generate random numbers
         result <- generatePRNG(n)
-        log_info("Successfully loaded and used qiprng via devtools (no crypto)")
+        log_info("Successfully generated random numbers using C++ API (no crypto)")
         return(result)
+      },
+      error = function(e) {
+        log_warning(paste("Error using C++ QIPRNG implementation (no crypto):", conditionMessage(e)))
       }
+    )
+  }
+
+  # If we couldn't load the package directly, try loading with devtools
+  tryCatch(
+    {
+      if (requireNamespace("devtools", quietly = TRUE)) {
+        log_info("Attempting to load qiprng using devtools (no crypto)")
+        devtools::load_all(".")
+
+        if (exists("createPRNG", mode = "function") &&
+          exists("generatePRNG", mode = "function")) {
+          config <- list(distribution = "uniform_01", use_crypto_mixing = FALSE)
+          createPRNG(config)
+          result <- generatePRNG(n)
+          log_info("Successfully loaded and used qiprng via devtools (no crypto)")
+          return(result)
+        }
+      }
+    },
+    error = function(e) {
+      log_warning(paste("Error loading qiprng via devtools (no crypto):", conditionMessage(e)))
     }
-  }, error = function(e) {
-    log_warning(paste("Error loading qiprng via devtools (no crypto):", conditionMessage(e)))
-  })
-  
+  )
+
   # Fall back to runif
   log_warning("QIPRNG no-crypto implementation not found or failed, using runif as placeholder")
   return(stats::runif(n))
@@ -282,14 +306,14 @@ log_error <- function(msg) {
 # Helper function to source modules safely
 source_modules <- function() {
   log_info("Loading test modules...")
-  
+
   # First, load or install necessary packages
   required_packages <- c("ggplot2", "randtests", "stats")
-  
+
   # Additional packages for report generation
   if (CONFIG$generate_report) {
     required_packages <- c(required_packages, "knitr", "rmarkdown", "kableExtra", "dplyr", "tidyr", "patchwork", "gridExtra")
-    
+
     # Check if quarto is needed and available
     if (CONFIG$report_format == "pdf" || CONFIG$report_format == "html" || CONFIG$report_format == "docx") {
       if (!requireNamespace("quarto", quietly = TRUE)) {
@@ -298,9 +322,9 @@ source_modules <- function() {
       }
     }
   }
-  
-  for(pkg in required_packages) {
-    if(!requireNamespace(pkg, quietly = TRUE)) {
+
+  for (pkg in required_packages) {
+    if (!requireNamespace(pkg, quietly = TRUE)) {
       log_info(paste("Installing package:", pkg))
       # Set a CRAN mirror before installing
       repos <- "https://cloud.r-project.org"
@@ -308,76 +332,89 @@ source_modules <- function() {
     }
     library(pkg, character.only = TRUE)
   }
-  
-  modules <- c("basic_tests.R", "runs_tests.R", "correlation_tests.R", 
-              "binary_tests.R", "classical_tests.R", "compression_tests.R", 
-              "visualization.R")
-  
+
+  modules <- c(
+    "basic_tests.R", "runs_tests.R", "correlation_tests.R",
+    "binary_tests.R", "classical_tests.R", "compression_tests.R",
+    "visualization.R"
+  )
+
   # Also look for a consolidated module if available
   if (file.exists("R/statistical_testing.R")) {
     log_info("Found consolidated statistical_testing.R module")
     source("R/statistical_testing.R", local = FALSE)
     return()
   }
-  
+
   # Otherwise load individual modules
   for (module in modules) {
     file_path <- file.path("R/statisticaltests", module)
     if (file.exists(file_path)) {
       log_info(paste("Loading", module))
-      tryCatch({
-        source(file_path, local = FALSE) # Make functions globally available
-      }, error = function(e) {
-        log_error(paste("Failed to load", module, ":", conditionMessage(e)))
-      })
+      tryCatch(
+        {
+          source(file_path, local = FALSE) # Make functions globally available
+        },
+        error = function(e) {
+          log_error(paste("Failed to load", module, ":", conditionMessage(e)))
+        }
+      )
     } else {
       log_warning(paste("Could not find", module))
     }
   }
-  
+
   # Try to load C++ based QIPRNG code if available
-  tryCatch({
-    if (file.exists("src/rcpp_interface.cpp")) {
-      log_info("Found C++ implementation, attempting to load...")
-      dyn.load(paste0("src/", .Platform$dynlib.ext))
+  tryCatch(
+    {
+      if (file.exists("src/rcpp_interface.cpp")) {
+        log_info("Found C++ implementation, attempting to load...")
+        dyn.load(paste0("src/", .Platform$dynlib.ext))
+      }
+    },
+    error = function(e) {
+      log_warning(paste("Could not load C++ implementation:", conditionMessage(e)))
     }
-  }, error = function(e) {
-    log_warning(paste("Could not load C++ implementation:", conditionMessage(e)))
-  })
+  )
 }
 
 # Function to run with diagnostic output
 run_with_diagnostics <- function(name, func, suite) {
   log_info(paste("Running", name, "..."))
   start_time <- Sys.time()
-  
-  result <- tryCatch({
-    suite <- func(suite)
-    log_info(paste("✓", name, "completed in", 
-              round(difftime(Sys.time(), start_time, units = "secs"), 2), 
-              "seconds"))
-    suite
-  }, error = function(e) {
-    log_error(paste("✗", name, "failed:", conditionMessage(e)))
-    suite
-  })
-  
+
+  result <- tryCatch(
+    {
+      suite <- func(suite)
+      log_info(paste(
+        "✓", name, "completed in",
+        round(difftime(Sys.time(), start_time, units = "secs"), 2),
+        "seconds"
+      ))
+      suite
+    },
+    error = function(e) {
+      log_error(paste("✗", name, "failed:", conditionMessage(e)))
+      suite
+    }
+  )
+
   return(result)
 }
 
 # Function to run a selected test suite
 run_test_suite <- function(prng_name, prng_func, config, categories) {
   cat("\n===== Testing", prng_name, "=====\n")
-  
+
   # Create the output directory for this PRNG
   prng_output_dir <- file.path(output_dir, tolower(gsub("[^[:alnum:]]", "_", prng_name)))
   dir.create(prng_output_dir, showWarnings = FALSE, recursive = TRUE)
-  
+
   # Update config with PRNG-specific settings
   prng_config <- config
   prng_config$output_dir <- prng_output_dir
   prng_config$prng_type <- prng_name
-  
+
   # Create test suite structure
   suite <- list(
     prng_func = prng_func,
@@ -385,32 +422,32 @@ run_test_suite <- function(prng_name, prng_func, config, categories) {
     categories = names(categories)[unlist(categories)],
     results = list()
   )
-  
+
   # Run each enabled test category with diagnostics
   if (categories$basic) {
     suite <- run_with_diagnostics("Basic Distribution Tests", run_basic_tests, suite)
   }
-  
+
   if (categories$runs) {
     suite <- run_with_diagnostics("Runs and Independence Tests", run_runs_tests, suite)
   }
-  
+
   if (categories$correlation) {
     suite <- run_with_diagnostics("Correlation Tests", run_correlation_tests, suite)
   }
-  
+
   if (categories$binary) {
     suite <- run_with_diagnostics("Binary and Bitwise Tests", run_binary_tests, suite)
   }
-  
+
   if (categories$classical) {
     suite <- run_with_diagnostics("Classical Tests", run_classical_tests, suite)
   }
-  
+
   if (categories$compression) {
     suite <- run_with_diagnostics("Compression Tests", run_compression_tests, suite)
   }
-  
+
   return(suite)
 }
 # ========================= VISUALIZATION ============================
@@ -421,34 +458,42 @@ print_test_summary <- function(suite) {
   total_pass <- 0
   total_fail <- 0
   total_tests <- 0
-  
+
   for (category in names(suite$results)) {
-    cat("\n", toupper(category), " TESTS:\n", sep="")
+    cat("\n", toupper(category), " TESTS:\n", sep = "")
     if (length(suite$results[[category]]) == 0) {
       cat("  No results available\n")
       next
     }
-    
+
     for (test_name in names(suite$results[[category]])) {
       test_result <- suite$results[[category]][[test_name]]
       result_str <- if (is.null(test_result$result)) "UNKNOWN" else test_result$result
-      p_val_str <- if (is.null(test_result$p_value) || is.na(test_result$p_value)) 
-                   "N/A" else sprintf("%.4f", test_result$p_value)
-      
-      cat(sprintf("  %s: %s (p-value: %s)\n", 
-               test_result$description, result_str, p_val_str))
-      
+      p_val_str <- if (is.null(test_result$p_value) || is.na(test_result$p_value)) {
+        "N/A"
+      } else {
+        sprintf("%.4f", test_result$p_value)
+      }
+
+      cat(sprintf(
+        "  %s: %s (p-value: %s)\n",
+        test_result$description, result_str, p_val_str
+      ))
+
       total_tests <- total_tests + 1
-      if (result_str == "PASS") total_pass <- total_pass + 1
-      else if (result_str == "FAIL") total_fail <- total_fail + 1
+      if (result_str == "PASS") {
+        total_pass <- total_pass + 1
+      } else if (result_str == "FAIL") total_fail <- total_fail + 1
     }
   }
-  
+
   # Print overall summary
   if (total_tests > 0) {
     pass_rate <- round(100 * total_pass / total_tests, 1)
-    cat("\nOverall results: ", total_pass, "/", total_tests, " tests passed (", 
-        pass_rate, "%)\n", sep="")
+    cat("\nOverall results: ", total_pass, "/", total_tests, " tests passed (",
+      pass_rate, "%)\n",
+      sep = ""
+    )
   }
 }
 
@@ -458,11 +503,11 @@ compare_prng_results <- function(suites) {
     cat("Need at least 2 PRNGs to compare\n")
     return()
   }
-  
+
   cat("\n=========================================\n")
   cat("PRNG COMPARISON SUMMARY\n")
   cat("=========================================\n\n")
-  
+
   # Get all unique test categories across all suites
   all_categories <- list()
   for (name in names(suites)) {
@@ -470,11 +515,11 @@ compare_prng_results <- function(suites) {
       all_categories[[category]] <- TRUE
     }
   }
-  
+
   # For each category and test, show results from all PRNGs
   for (category in names(all_categories)) {
-    cat("\n", toupper(category), " TESTS:\n", sep="")
-    
+    cat("\n", toupper(category), " TESTS:\n", sep = "")
+
     # Get all unique tests in this category across all PRNGs
     all_tests <- list()
     for (name in names(suites)) {
@@ -485,11 +530,11 @@ compare_prng_results <- function(suites) {
         }
       }
     }
-    
+
     # Print comparison for each test
     for (test_desc in names(all_tests)) {
-      cat("  ", test_desc, ":\n", sep="")
-      
+      cat("  ", test_desc, ":\n", sep = "")
+
       # Print results for each PRNG
       for (name in names(suites)) {
         found_test <- FALSE
@@ -498,24 +543,29 @@ compare_prng_results <- function(suites) {
             test_result <- suites[[name]]$results[[category]][[test_name]]
             if (test_result$description == test_desc) {
               result_str <- if (is.null(test_result$result)) "UNKNOWN" else test_result$result
-              p_val_str <- if (is.null(test_result$p_value) || is.na(test_result$p_value)) 
-                           "N/A" else sprintf("%.4f", test_result$p_value)
-              
-              cat(sprintf("    %s: %s (p-value: %s)\n", 
-                         suites[[name]]$config$prng_type, result_str, p_val_str))
+              p_val_str <- if (is.null(test_result$p_value) || is.na(test_result$p_value)) {
+                "N/A"
+              } else {
+                sprintf("%.4f", test_result$p_value)
+              }
+
+              cat(sprintf(
+                "    %s: %s (p-value: %s)\n",
+                suites[[name]]$config$prng_type, result_str, p_val_str
+              ))
               found_test <- TRUE
               break
             }
           }
         }
-        
+
         if (!found_test) {
           cat(sprintf("    %s: Not tested\n", suites[[name]]$config$prng_type))
         }
       }
     }
   }
-  
+
   cat("\n=========================================\n")
 }
 
@@ -643,54 +693,54 @@ prng_results <- list()
 # Run tests for each enabled PRNG
 if (TEST_PRNGS$r_builtin) {
   prng_results$r_builtin <- run_test_suite(
-    "R's Built-in runif", 
-    runif_prng, 
-    CONFIG, 
+    "R's Built-in runif",
+    runif_prng,
+    CONFIG,
     TEST_CATEGORIES
   )
 }
 
 if (TEST_PRNGS$lcg) {
   prng_results$lcg <- run_test_suite(
-    "Linear Congruential Generator", 
-    lcg_prng, 
-    CONFIG, 
+    "Linear Congruential Generator",
+    lcg_prng,
+    CONFIG,
     TEST_CATEGORIES
   )
 }
 
 if (TEST_PRNGS$poor) {
   prng_results$poor <- run_test_suite(
-    "Poor PRNG (pattern with noise)", 
-    poor_prng, 
-    CONFIG, 
+    "Poor PRNG (pattern with noise)",
+    poor_prng,
+    CONFIG,
     TEST_CATEGORIES
   )
 }
 
 if (TEST_PRNGS$qiprng) {
   prng_results$qiprng <- run_test_suite(
-    "QIPRNG Implementation", 
-    qiprng_func, 
-    CONFIG, 
+    "QIPRNG Implementation",
+    qiprng_func,
+    CONFIG,
     TEST_CATEGORIES
   )
 }
 
 if (TEST_PRNGS$qiprng_nocrypto) {
   prng_results$qiprng_nocrypto <- run_test_suite(
-    "QIPRNG Without Cryptomixing", 
-    qiprng_nocrypto_func, 
-    CONFIG, 
+    "QIPRNG Without Cryptomixing",
+    qiprng_nocrypto_func,
+    CONFIG,
     TEST_CATEGORIES
   )
 }
 
 if (TEST_PRNGS$dqrng) {
   prng_results$dqrng <- run_test_suite(
-    "dqrng Package", 
-    dqrng_prng, 
-    CONFIG, 
+    "dqrng Package",
+    dqrng_prng,
+    CONFIG,
     TEST_CATEGORIES
   )
 }
@@ -699,20 +749,22 @@ if (TEST_PRNGS$dqrng) {
 for (name in names(prng_results)) {
   cat("\n=========================================\n")
   print_test_summary(prng_results[[name]])
-  
+
   # Save detailed results to CSV for further analysis
   if (CONFIG$save_results) {
     results_file <- file.path(output_dir, paste0(name, "_results.csv"))
     log_info(paste("Saving detailed results to", results_file))
-    
+
     # Create a data frame with all test results
-    results_df <- data.frame(Category = character(),
-                            Test = character(),
-                            Result = character(),
-                            PValue = numeric(),
-                            Details = character(),
-                            stringsAsFactors = FALSE)
-    
+    results_df <- data.frame(
+      Category = character(),
+      Test = character(),
+      Result = character(),
+      PValue = numeric(),
+      Details = character(),
+      stringsAsFactors = FALSE
+    )
+
     for (cat_name in names(prng_results[[name]]$results)) {
       for (test_name in names(prng_results[[name]]$results[[cat_name]])) {
         test_result <- prng_results[[name]]$results[[cat_name]][[test_name]]
@@ -726,13 +778,16 @@ for (name in names(prng_results)) {
         ))
       }
     }
-    
+
     # Write to CSV
-    tryCatch({
-      write.csv(results_df, results_file, row.names = FALSE)
-    }, error = function(e) {
-      log_error(paste("Failed to save results to CSV:", conditionMessage(e)))
-    })
+    tryCatch(
+      {
+        write.csv(results_df, results_file, row.names = FALSE)
+      },
+      error = function(e) {
+        log_error(paste("Failed to save results to CSV:", conditionMessage(e)))
+      }
+    )
   }
 }
 
@@ -747,15 +802,15 @@ log_info(paste("Results saved to:", output_dir))
 # Function to generate Quarto report
 generate_quarto_report <- function(prng_results, config) {
   log_info("Generating Quarto report...")
-  
+
   # Create report directory
   report_dir <- file.path(config$output_dir, "report")
   dir.create(report_dir, showWarnings = FALSE, recursive = TRUE)
-  
+
   # Create figures directory
   figures_dir <- file.path(report_dir, "figures")
   dir.create(figures_dir, showWarnings = FALSE, recursive = TRUE)
-  
+
   # Copy existing figures if they exist
   for (name in names(prng_results)) {
     prng_dir <- file.path(config$output_dir, tolower(gsub("[^[:alnum:]]", "_", name)))
@@ -767,39 +822,41 @@ generate_quarto_report <- function(prng_results, config) {
       }
     }
   }
-  
+
   # Create data directory and save summaries
   data_dir <- file.path(report_dir, "data")
   dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
-  
+
   # Prepare summary data
-  all_results <- data.frame(PRNG = character(),
-                          Category = character(),
-                          Test = character(),
-                          Statistic = numeric(),
-                          p_value = numeric(),
-                          Result = character(),
-                          stringsAsFactors = FALSE)
-  
+  all_results <- data.frame(
+    PRNG = character(),
+    Category = character(),
+    Test = character(),
+    Statistic = numeric(),
+    p_value = numeric(),
+    Result = character(),
+    stringsAsFactors = FALSE
+  )
+
   for (name in names(prng_results)) {
     prng_name <- prng_results[[name]]$config$prng_type
-    
+
     for (cat_name in names(prng_results[[name]]$results)) {
       for (test_name in names(prng_results[[name]]$results[[cat_name]])) {
         test_result <- prng_results[[name]]$results[[cat_name]][[test_name]]
-        
+
         # Extract p-value and statistic if available
         p_value <- NA
         statistic <- NA
-        
+
         if (!is.null(test_result$p_value) && !is.na(test_result$p_value)) {
           p_value <- as.numeric(test_result$p_value)
         }
-        
+
         if (!is.null(test_result$statistic) && !is.na(test_result$statistic)) {
           statistic <- as.numeric(test_result$statistic)
         }
-        
+
         all_results <- rbind(all_results, data.frame(
           PRNG = prng_name,
           Category = cat_name,
@@ -812,15 +869,15 @@ generate_quarto_report <- function(prng_results, config) {
       }
     }
   }
-  
+
   # Save all results
   saveRDS(all_results, file.path(data_dir, "all_test_results.rds"))
-  
+
   # Calculate summary by category
   if (requireNamespace("dplyr", quietly = TRUE) && requireNamespace("tidyr", quietly = TRUE)) {
     library(dplyr)
     library(tidyr)
-    
+
     # Create category summary
     category_summary <- all_results %>%
       group_by(PRNG, Category) %>%
@@ -832,7 +889,7 @@ generate_quarto_report <- function(prng_results, config) {
         PassRate = Passed / Total,
         .groups = "drop"
       )
-    
+
     # Create overall summary
     overall_summary <- all_results %>%
       group_by(PRNG) %>%
@@ -854,21 +911,21 @@ generate_quarto_report <- function(prng_results, config) {
           TRUE ~ "☆☆☆☆☆"
         )
       )
-    
+
     saveRDS(category_summary, file.path(data_dir, "category_summary.rds"))
     saveRDS(overall_summary, file.path(data_dir, "overall_summary.rds"))
   } else {
     log_warning("dplyr and tidyr packages required for detailed summary statistics in report")
   }
-  
+
   # Create Quarto document
   quarto_file <- file.path(report_dir, "prng_report.qmd")
-  
+
   quarto_content <- paste0('---
 title: "', config$report_title, '"
 author: "Statistical Testing Framework"
 date: "', format(Sys.time(), "%Y-%m-%d"), '"
-format: 
+format:
   ', config$report_format, ':
     toc: true
     number-sections: true
@@ -906,8 +963,8 @@ This report presents the results of statistical tests performed on multiple pseu
 # Show overall results table
 overall_summary %>%
   mutate(PassRate = paste0(round(PassRate * 100, 1), "%")) %>%
-  kable(caption = "Overall PRNG Performance", 
-        col.names = c("PRNG", "Total Tests", "Tests Passed", "Tests Failed", 
+  kable(caption = "Overall PRNG Performance",
+        col.names = c("PRNG", "Total Tests", "Tests Passed", "Tests Failed",
                      "Inconclusive Tests", "Pass Rate", "Rating")) %>%
   kable_styling()
 ```
@@ -919,7 +976,7 @@ The statistical testing framework evaluates PRNGs across multiple categories:
 1. **Basic Distribution Tests**: Evaluate whether the output follows the expected uniform distribution
 2. **Runs and Independence Tests**: Analyze sequential patterns and independence
 3. **Correlation Tests**: Measure relationships between values at various lags
-4. **Binary and Bitwise Tests**: Examine randomness at the bit level 
+4. **Binary and Bitwise Tests**: Examine randomness at the bit level
 5. **Classical Tests**: Apply traditional statistical approaches for randomness evaluation
 6. **Compression Tests**: Leverage the principle that truly random data should not be significantly compressible
 
@@ -931,7 +988,7 @@ category_summary %>%
   mutate(PassRate = paste0(round(PassRate * 100, 1), "%")) %>%
   arrange(PRNG, Category) %>%
   kable(caption = "Performance by Test Category",
-        col.names = c("PRNG", "Category", "Total Tests", "Tests Passed", 
+        col.names = c("PRNG", "Category", "Total Tests", "Tests Passed",
                      "Tests Failed", "Inconclusive Tests", "Pass Rate")) %>%
   kable_styling()
 ```
@@ -948,7 +1005,7 @@ display_category_results <- function(category_name) {
     kable(caption = paste(category_name, "Test Results"),
           col.names = c("PRNG", "Test", "p-value", "Result")) %>%
     kable_styling() %>%
-    row_spec(which(all_results$Result[all_results$Category == category_name] == "FAIL"), 
+    row_spec(which(all_results$Result[all_results$Category == category_name] == "FAIL"),
              background = "#FFDDDD")
 }
 ```
@@ -1089,40 +1146,42 @@ Based on the test results, the following conclusions can be drawn:
 - **Bit Position Test**: Verifies that each bit position has balanced 0s and 1s
 - **Bit Runs Test**: Analyzes runs of 0s and 1s in the bit sequence
 ')
-  
+
   # Write the Quarto document
   writeLines(quarto_content, quarto_file)
-  
+
   # Render the report
-  tryCatch({
-    if (requireNamespace("quarto", quietly = TRUE)) {
-      log_info("Rendering report using quarto R package...")
-      quarto::quarto_render(quarto_file)
-    } else {
-      # Try using system quarto command
-      log_info("Attempting to render report using system quarto command...")
-      cmd <- sprintf("quarto render %s", quarto_file)
-      
-      if (.Platform$OS.type == "windows") {
-        shell(cmd)
+  tryCatch(
+    {
+      if (requireNamespace("quarto", quietly = TRUE)) {
+        log_info("Rendering report using quarto R package...")
+        quarto::quarto_render(quarto_file)
       } else {
-        system(cmd)
+        # Try using system quarto command
+        log_info("Attempting to render report using system quarto command...")
+        cmd <- sprintf("quarto render %s", quarto_file)
+
+        if (.Platform$OS.type == "windows") {
+          shell(cmd)
+        } else {
+          system(cmd)
+        }
       }
+
+      # Check if the output file exists
+      expected_output <- file.path(report_dir, paste0("prng_report.", config$report_format))
+      if (file.exists(expected_output)) {
+        log_info(paste("Report successfully generated at:", expected_output))
+      } else {
+        log_warning("Report generation may have failed. Check for errors above.")
+      }
+    },
+    error = function(e) {
+      log_error(paste("Failed to render report:", conditionMessage(e)))
+      log_info("You can manually render the report by opening prng_report.qmd in RStudio or using quarto CLI")
     }
-    
-    # Check if the output file exists
-    expected_output <- file.path(report_dir, paste0("prng_report.", config$report_format))
-    if (file.exists(expected_output)) {
-      log_info(paste("Report successfully generated at:", expected_output))
-    } else {
-      log_warning("Report generation may have failed. Check for errors above.")
-    }
-    
-  }, error = function(e) {
-    log_error(paste("Failed to render report:", conditionMessage(e)))
-    log_info("You can manually render the report by opening prng_report.qmd in RStudio or using quarto CLI")
-  })
-  
+  )
+
   return(invisible(NULL))
 }
 
@@ -1134,8 +1193,8 @@ cat("=====================================================================\n\n")
 cat(paste("Total PRNGs tested: ", length(prng_results), "\n"))
 cat(paste("Sample size: ", CONFIG$basic_sample_size, "\n"))
 cat(paste("Test categories enabled: ", sum(unlist(TEST_CATEGORIES)), "/", length(TEST_CATEGORIES), "\n"))
-cat(paste("Test duration: ", round(total_time, 2), " minutes\n", sep=""))
-cat(paste("Output directory: ", output_dir, "\n\n", sep=""))
+cat(paste("Test duration: ", round(total_time, 2), " minutes\n", sep = ""))
+cat(paste("Output directory: ", output_dir, "\n\n", sep = ""))
 
 cat("PRNGs tested:\n")
 for (name in names(prng_results)) {
@@ -1150,11 +1209,13 @@ for (name in names(prng_results)) {
       }
     }
   }
-  
-  pass_rate <- if(total_tests > 0) round(100 * total_pass / total_tests, 1) else 0
-  cat(sprintf("  - %s: %d/%d tests passed (%.1f%%)\n", 
-            prng_results[[name]]$config$prng_type, 
-            total_pass, total_tests, pass_rate))
+
+  pass_rate <- if (total_tests > 0) round(100 * total_pass / total_tests, 1) else 0
+  cat(sprintf(
+    "  - %s: %d/%d tests passed (%.1f%%)\n",
+    prng_results[[name]]$config$prng_type,
+    total_pass, total_tests, pass_rate
+  ))
 }
 
 cat("\nFor detailed results, see the CSV files in the output directory.\n")
@@ -1164,4 +1225,3 @@ cat("=====================================================================\n")
 if (CONFIG$generate_report) {
   generate_quarto_report(prng_results, CONFIG)
 }
-

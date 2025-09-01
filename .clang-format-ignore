@@ -1,0 +1,19 @@
+# Files to exclude from clang-format
+# These files are either auto-generated or should not be reformatted
+
+# Auto-generated files
+src/RcppExports.cpp
+R/RcppExports.R
+
+# Build artifacts
+src/*.o
+src/*.so
+src/*.dll
+
+# Temporary files
+src/*.new
+src/*.fixed
+src/*.bak
+
+# Documentation artifacts
+src/code_concat_output.markdown

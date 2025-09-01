@@ -1,5 +1,6 @@
-#include "prng_common.hpp"
 #include <atomic>
+
+#include "prng_common.hpp"
 
 namespace qiprng {
 
@@ -9,4 +10,4 @@ std::atomic<bool> suppress_mpfr_warnings{false};
 // Initialize thread-local warning counter
 thread_local int mpfr_warning_count = 0;
 
-} // namespace qiprng
+}  // namespace qiprng

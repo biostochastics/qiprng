@@ -6,7 +6,7 @@ test_that("PRNG initialization works", {
   cfg <- list(
     a = 2,
     b = 5,
-    c = -2,  # Updated to ensure positive discriminant
+    c = -2, # Updated to ensure positive discriminant
     mpfr_precision = 53,
     distribution = "uniform_01"
   )
@@ -27,20 +27,20 @@ test_that("PRNG generates valid uniform numbers", {
   cfg <- list(
     a = 2,
     b = 5,
-    c = -2,  # Updated to ensure positive discriminant
+    c = -2, # Updated to ensure positive discriminant
     mpfr_precision = 53,
     distribution = "uniform_01"
   )
   createPRNG(cfg)
-  
+
   # Generate some random numbers
   n <- 1000
   nums <- generatePRNG(n)
-  
+
   # Check basic properties
   expect_equal(length(nums), n)
-  expect_true(all(nums >= 0 & nums <= 1))  # Changed < 1 to <= 1
-  
+  expect_true(all(nums >= 0 & nums <= 1)) # Changed < 1 to <= 1
+
   # Check for reasonable uniformity
   expect_gt(ks.test(nums, "punif")$p.value, 0.01)
 })
@@ -50,17 +50,17 @@ test_that("PRNG generates valid normal numbers", {
   cfg <- list(
     a = 2,
     b = 5,
-    c = -2,  # Updated to ensure positive discriminant
+    c = -2, # Updated to ensure positive discriminant
     mpfr_precision = 53,
     distribution = "normal",
     normal_mean = 0,
     normal_sd = 1
   )
   createPRNG(cfg)
-  
+
   # Generate numbers
   nums <- generatePRNG(1000)
-  
+
   # Test normality
   expect_gt(shapiro.test(nums)$p.value, 0.01)
   expect_lt(abs(mean(nums)), 0.1)
@@ -72,17 +72,17 @@ test_that("PRNG config updates work", {
   cfg <- list(
     a = 2,
     b = 5,
-    c = -2,  # Updated to ensure positive discriminant
+    c = -2, # Updated to ensure positive discriminant
     mpfr_precision = 53,
     distribution = "uniform_01"
   )
   createPRNG(cfg)
-  
+
   # Test uniform distribution
   nums <- generatePRNG(1000)
   expect_true(all(nums >= 0 & nums <= 1))
   expect_gt(ks.test(nums, "punif")$p.value, 0.01)
-  
+
   # Update to normal distribution - multistep process for stability
   reseedPRNG()
   updatePRNG(list(distribution = "normal"))

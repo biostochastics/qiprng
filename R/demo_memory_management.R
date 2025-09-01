@@ -20,10 +20,10 @@ mem_manager$start_monitoring()
 
 # Create some large objects
 cat("\nCreating large objects...\n")
-large_vector <- runif(1e7)  # ~76 MB
+large_vector <- runif(1e7) # ~76 MB
 mem_manager$track_object_size("large_vector", large_vector, "demo")
 
-large_matrix <- matrix(runif(5e6), nrow = 5000)  # ~38 MB
+large_matrix <- matrix(runif(5e6), nrow = 5000) # ~38 MB
 mem_manager$track_object_size("large_matrix", large_matrix, "demo")
 
 # Check memory
@@ -37,7 +37,7 @@ cat("\n=== Demo 2: Automatic Garbage Collection ===\n")
 for (i in 1:5) {
   temp_data <- runif(5e6)
   mem_manager$track_object_size(paste0("temp_data_", i), temp_data, "temp")
-  
+
   # Check memory (will trigger GC if threshold exceeded)
   mem_manager$check_memory()
 }
@@ -57,7 +57,7 @@ process_chunk <- function(chunk) {
 }
 
 # Process large dataset in chunks
-large_data <- runif(2e7)  # ~152 MB
+large_data <- runif(2e7) # ~152 MB
 cat("Processing large dataset in chunks...\n")
 
 results <- mem_manager$process_in_chunks(
@@ -67,8 +67,10 @@ results <- mem_manager$process_in_chunks(
   gc_between_chunks = TRUE
 )
 
-cat(sprintf("Processed %d chunks, results length: %d\n", 
-           ceiling(length(large_data) / 1e6), length(results)))
+cat(sprintf(
+  "Processed %d chunks, results length: %d\n",
+  ceiling(length(large_data) / 1e6), length(results)
+))
 
 # Clean up
 rm(large_data)
@@ -103,24 +105,24 @@ cat("\n=== Demo 5: Integration with Test Suite ===\n")
 # Simulate a test suite with memory management
 run_test_with_memory_management <- function(test_name, sample_size) {
   cat(sprintf("\nRunning test: %s\n", test_name))
-  
+
   # Track test data
   test_data <- runif(sample_size)
   mem_manager$track_object_size(paste0(test_name, "_data"), test_data, "tests")
-  
+
   # Simulate test computation
   test_result <- list(
     mean = mean(test_data),
     sd = sd(test_data),
     p_value = runif(1)
   )
-  
+
   # Clean up test data
   rm(test_data)
-  
+
   # Check memory after test
   mem_info <- mem_manager$check_memory()
-  
+
   return(test_result)
 }
 
@@ -160,9 +162,11 @@ random_numbers <- generate_random_chunked(
 )
 
 end_time <- Sys.time()
-cat(sprintf("Generated %d numbers in %.2f seconds\n", 
-           length(random_numbers), 
-           as.numeric(difftime(end_time, start_time, units = "secs"))))
+cat(sprintf(
+  "Generated %d numbers in %.2f seconds\n",
+  length(random_numbers),
+  as.numeric(difftime(end_time, start_time, units = "secs"))
+))
 
 # Clean up
 rm(random_numbers)
@@ -177,9 +181,11 @@ if (length(largest) > 0) {
   cat("\nTracked objects:\n")
   for (name in names(largest)) {
     obj <- largest[[name]]
-    cat(sprintf("- %s: %.1f MB (%s, created at %s)\n",
-               obj$name, obj$size_mb, obj$class,
-               format(obj$timestamp, "%H:%M:%S")))
+    cat(sprintf(
+      "- %s: %.1f MB (%s, created at %s)\n",
+      obj$name, obj$size_mb, obj$class,
+      format(obj$timestamp, "%H:%M:%S")
+    ))
   }
 }
 

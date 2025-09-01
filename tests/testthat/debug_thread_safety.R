@@ -10,7 +10,7 @@ create_test_discriminants <- function() {
     "../discriminants.csv",
     "../../discriminants.csv"
   )
-  
+
   # Check if any file exists
   file_exists <- FALSE
   for (path in test_paths) {
@@ -20,7 +20,7 @@ create_test_discriminants <- function() {
       break
     }
   }
-  
+
   # If no file exists, create one
   if (!file_exists) {
     cat("Creating temporary discriminants.csv file for testing\n")
@@ -30,10 +30,10 @@ create_test_discriminants <- function() {
       a <- 1 + (i %% 10)
       b <- 3 + 2 * (i %% 8)
       c <- -1 - (i %% 5)
-      discriminant <- b^2 - 4*a*c
+      discriminant <- b^2 - 4 * a * c
       csv_data <- paste0(csv_data, a, ",", b, ",", c, ",", discriminant, "\n")
     }
-    
+
     # Write to file
     writeLines(csv_data, "discriminants.csv")
     cat("Created discriminants.csv with 100 entries\n")
@@ -56,12 +56,15 @@ createPRNG(config)
 cat("Current directory:", getwd(), "\n")
 
 # Try to select one discriminant
-tryCatch({
-  discriminant <- .Call("_qiprng_chooseUniqueDiscriminant_wrapped", 5, 1000000)
-  cat("Selected discriminant:", discriminant, "\n")
-}, error = function(e) {
-  cat("Error selecting discriminant:", e$message, "\n")
-})
+tryCatch(
+  {
+    discriminant <- .Call("_qiprng_chooseUniqueDiscriminant_wrapped", 5, 1000000)
+    cat("Selected discriminant:", discriminant, "\n")
+  },
+  error = function(e) {
+    cat("Error selecting discriminant:", e$message, "\n")
+  }
+)
 
 # Clean up
 cleanup_prng()
@@ -76,28 +79,34 @@ config <- list(
 createPRNG(config)
 
 # Run the test but with explicit verbose flag
-tryCatch({
-  # Add a wrapper function to the global env
-  .chooseUniqueDiscriminant <- function(min_val = 5, max_val = 1000000) {
-    return(.Call("_qiprng_chooseUniqueDiscriminant_wrapped", min_val, max_val))
+tryCatch(
+  {
+    # Add a wrapper function to the global env
+    .chooseUniqueDiscriminant <- function(min_val = 5, max_val = 1000000) {
+      return(.Call("_qiprng_chooseUniqueDiscriminant_wrapped", min_val, max_val))
+    }
+
+    # Try to select some discriminants
+    discriminants <- list()
+    for (i in 1:5) {
+      tryCatch(
+        {
+          disc <- .chooseUniqueDiscriminant(5, 1000000)
+          discriminants[[i]] <- disc
+          cat("Thread 1 - Selected discriminant", i, ":", disc, "\n")
+        },
+        error = function(e) {
+          cat("Thread 1 - Error selecting discriminant", i, ":", e$message, "\n")
+        }
+      )
+    }
+
+    cat("Selected", length(discriminants), "discriminants\n")
+  },
+  error = function(e) {
+    cat("Error in test:", e$message, "\n")
   }
-  
-  # Try to select some discriminants
-  discriminants <- list()
-  for (i in 1:5) {
-    tryCatch({
-      disc <- .chooseUniqueDiscriminant(5, 1000000)
-      discriminants[[i]] <- disc
-      cat("Thread 1 - Selected discriminant", i, ":", disc, "\n")
-    }, error = function(e) {
-      cat("Thread 1 - Error selecting discriminant", i, ":", e$message, "\n")
-    })
-  }
-  
-  cat("Selected", length(discriminants), "discriminants\n")
-}, error = function(e) {
-  cat("Error in test:", e$message, "\n")
-})
+)
 
 # Clean up
 cleanup_prng()

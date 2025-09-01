@@ -15,7 +15,7 @@ config <- list(
 )
 createPRNG(config)
 
-# Generate normal values 
+# Generate normal values
 cat("Generating 10,000 normal values...\n")
 normal_values <- generatePRNG(10000)
 
@@ -28,7 +28,7 @@ shapiro_result <- shapiro.test(normal_values[1:5000])$p.value
 
 # Print results
 cat("Mean:", mean_val, "(expect ~0)\n")
-cat("Variance:", var_val, "(expect ~1)\n") 
+cat("Variance:", var_val, "(expect ~1)\n")
 cat("Range: [", min_val, ",", max_val, "]\n")
 cat("Shapiro-Wilk p-value:", shapiro_result, "(expect > 0.05 for normality)\n")
 cat("Are all values identical:", all(normal_values == normal_values[1]), "\n")

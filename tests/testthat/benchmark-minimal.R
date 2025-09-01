@@ -17,14 +17,14 @@ test_prng <- function() {
   vals <- generatePRNG(1000)
   cat(sprintf("Mean: %.4f, SD: %.4f\n", mean(vals), sd(vals)))
   cleanup_prng()
-  
+
   # Configuration with crypto mixing
   cat("\nTesting with crypto mixing...\n")
   createPRNG(list(use_crypto_mixing = TRUE))
   vals <- generatePRNG(1000)
   cat(sprintf("Mean: %.4f, SD: %.4f\n", mean(vals), sd(vals)))
   cleanup_prng()
-  
+
   # Test normal distribution with Ziggurat method
   cat("\nTesting normal distribution with Ziggurat method...\n")
   createPRNG(list(
@@ -34,7 +34,7 @@ test_prng <- function() {
   vals <- generatePRNG(1000)
   cat(sprintf("Mean: %.4f, SD: %.4f\n", mean(vals), sd(vals)))
   cleanup_prng()
-  
+
   # Test normal distribution with Box-Muller method
   cat("\nTesting normal distribution with Box-Muller method...\n")
   createPRNG(list(
@@ -55,27 +55,27 @@ benchmark_prng <- function() {
     "Normal (Ziggurat)" = list(distribution = "normal", normal_method = "ziggurat"),
     "Normal (Box-Muller)" = list(distribution = "normal", normal_method = "box_muller")
   )
-  
+
   n <- 100000
   results <- data.frame(
     Configuration = character(),
     Time_ms = numeric(),
     stringsAsFactors = FALSE
   )
-  
+
   for (name in names(configs)) {
     cat(sprintf("Testing %s: ", name))
     cfg <- configs[[name]]
-    
+
     # Run the test
     time_ms <- system.time({
       createPRNG(cfg)
       vals <- generatePRNG(n)
       cleanup_prng()
-    })[3] * 1000  # Convert to milliseconds
-    
+    })[3] * 1000 # Convert to milliseconds
+
     cat(sprintf("%.2f ms\n", time_ms))
-    
+
     # Add to results
     results <- rbind(results, data.frame(
       Configuration = name,
@@ -83,7 +83,7 @@ benchmark_prng <- function() {
       stringsAsFactors = FALSE
     ))
   }
-  
+
   # Return results
   return(results)
 }

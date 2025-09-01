@@ -17,7 +17,7 @@ stress_test <- function(num_cores = 2, iterations = 5, samples_per_iter = 10000)
     use_threading = TRUE,
     debug = TRUE
   ))
-  
+
   # Make cluster and export qiprng
   cl <- makeCluster(num_cores)
   clusterEvalQ(cl, {
@@ -30,14 +30,14 @@ stress_test <- function(num_cores = 2, iterations = 5, samples_per_iter = 10000)
       debug = TRUE
     ))
   })
-  
+
   # Function to run in parallel
   test_fun <- function(id, iterations, samples) {
     results <- list()
     for (i in 1:iterations) {
       # Generate values
       values <- generatePRNG(samples)
-      
+
       # Calculate statistics
       stats <- list(
         thread = id,
@@ -48,24 +48,26 @@ stress_test <- function(num_cores = 2, iterations = 5, samples_per_iter = 10000)
         max = max(values),
         identical = all(values == values[1])
       )
-      
+
       results[[i]] <- stats
     }
     return(results)
   }
-  
+
   # Run the stress test in parallel
-  cat(sprintf("Running test with %d cores, %d iterations each, %d samples per iteration\n", 
-              num_cores, iterations, samples_per_iter))
-  
+  cat(sprintf(
+    "Running test with %d cores, %d iterations each, %d samples per iteration\n",
+    num_cores, iterations, samples_per_iter
+  ))
+
   results <- parLapply(cl, 1:num_cores, test_fun, iterations, samples_per_iter)
-  
+
   # Stop the cluster
   stopCluster(cl)
-  
+
   # Analyze results
   cat("\nResults Summary:\n")
-  
+
   # Flatten results
   all_stats <- list()
   for (thread_results in results) {
@@ -73,25 +75,27 @@ stress_test <- function(num_cores = 2, iterations = 5, samples_per_iter = 10000)
       all_stats <- c(all_stats, list(iter_result))
     }
   }
-  
+
   # Check for identical values (indicating error)
   identical_count <- sum(sapply(all_stats, function(x) x$identical))
   if (identical_count > 0) {
-    cat(sprintf("  WARNING: %d / %d runs had all identical values\n", 
-                identical_count, length(all_stats)))
+    cat(sprintf(
+      "  WARNING: %d / %d runs had all identical values\n",
+      identical_count, length(all_stats)
+    ))
   } else {
     cat("  All runs generated unique values (good!)\n")
   }
-  
+
   # Calculate mean statistics
   means <- sapply(all_stats, function(x) x$mean)
   variances <- sapply(all_stats, function(x) x$var)
-  
+
   cat(sprintf("  Mean of means: %.6f (expect ~0)\n", mean(means)))
   cat(sprintf("  SD of means: %.6f\n", sd(means)))
   cat(sprintf("  Mean of variances: %.6f (expect ~1)\n", mean(variances)))
   cat(sprintf("  SD of variances: %.6f\n", sd(variances)))
-  
+
   # Clean up
   cleanup_prng()
   return(all_stats)

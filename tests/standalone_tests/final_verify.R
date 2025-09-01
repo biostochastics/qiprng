@@ -25,6 +25,5 @@ for (i in 1:iterations) {
   cat("OK\n")
 }
 
-cat("\nAll", iterations, "iterations completed successfully\!\n")
+cat("\nAll", iterations, "iterations completed successfully!\n")
 cat("Thread safety in Ziggurat is confirmed - NO SEGFAULTS\n")
-EOF < /dev/null

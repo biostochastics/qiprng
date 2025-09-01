@@ -15,7 +15,7 @@ cat("Using", num_cores, "cores for extreme stress test\n")
 # Function to create/generate/cleanup in rapid succession
 rapid_cycle <- function(i) {
   results <- numeric(100)
-  
+
   for (j in 1:10) {
     cat(sprintf("Thread %d cycle %d: Creating PRNG\n", i, j))
     createPRNG(list(
@@ -24,15 +24,15 @@ rapid_cycle <- function(i) {
       use_threading = TRUE,
       debug = FALSE
     ))
-    
+
     cat(sprintf("Thread %d cycle %d: Generating values\n", i, j))
     values <- generatePRNG(1000)
     results[j] <- mean(values)
-    
+
     cat(sprintf("Thread %d cycle %d: Cleaning up\n", i, j))
     cleanupPRNG()
   }
-  
+
   cat(sprintf("Thread %d completed all cycles\n", i))
   return(results)
 }
@@ -51,7 +51,7 @@ createPRNG(list(
   normal_method = "ziggurat",
   use_threading = TRUE,
   debug = FALSE,
-  buffer_size = 1024 * 32  # Large buffer
+  buffer_size = 1024 * 32 # Large buffer
 ))
 
 cat("Generating 5 million values...\n")

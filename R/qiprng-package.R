@@ -6,7 +6,7 @@
 #' @details
 #' The QIPRNG package implements a high-precision pseudo-random number generator
 #' based on mathematical properties of quadratic irrational numbers. It features:
-#' 
+#'
 #' \itemize{
 #'   \item Multiple probability distributions (uniform, normal, exponential, etc.)
 #'   \item Optional cryptographic mixing for enhanced security
@@ -17,7 +17,7 @@
 #'   \item Automatic reseeding for enhanced statistical quality
 #'   \item Buffer management for performance optimization
 #' }
-#' 
+#'
 #' Key functions:
 #' \itemize{
 #'   \item \code{\link{createPRNG}}: Initialize a new PRNG with specified configuration
