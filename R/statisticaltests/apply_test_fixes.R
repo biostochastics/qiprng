@@ -22,22 +22,21 @@ source_if_exists <- function(file) {
 
 # Apply multi-dimensional test fixes
 apply_all_test_fixes <- function(verbose = TRUE) {
-  
   if (verbose) {
     cat("Applying statistical test fixes...\n")
   }
-  
+
   # Source fix file
   fix_file <- "R/statisticaltests/multidim_tests_fixes.R"
   if (!source_if_exists(fix_file)) {
     warning("Could not find multidim_tests_fixes.R")
     return(FALSE)
   }
-  
+
   # Apply the fixes
   if (exists("apply_multidim_test_fixes")) {
     apply_multidim_test_fixes()
-    
+
     if (verbose) {
       cat("\nTest fixes applied successfully!\n")
       cat("The following tests have been fixed:\n")
@@ -47,7 +46,7 @@ apply_all_test_fixes <- function(verbose = TRUE) {
       cat("- 3D minimum distance test\n")
       cat("\nAll generators should now show improved pass rates.\n")
     }
-    
+
     return(TRUE)
   } else {
     warning("apply_multidim_test_fixes function not found")

@@ -3,26 +3,27 @@
 #ifndef QIPRNG_CRYPTO_MIXER_HPP
 #define QIPRNG_CRYPTO_MIXER_HPP
 
-#include "prng_common.hpp" // For SecureBuffer
-#include <sodium.h>         // For libsodium functions
-#include <Rcpp.h>           // For Rcpp::warning
-#include <cstddef>        // For size_t
-#include <cstdint>        // For uint64_t
-#include <functional>     // For std::function
-#include <random>         // For std::mt19937_64, std::uniform_real_distribution (used in .cpp)
+#include <Rcpp.h>  // For Rcpp::warning
 
+#include <sodium.h>  // For libsodium functions
+
+#include <cstddef>     // For size_t
+#include <cstdint>     // For uint64_t
+#include <functional>  // For std::function
+#include <random>      // For std::mt19937_64, std::uniform_real_distribution (used in .cpp)
+
+#include "prng_common.hpp"  // For SecureBuffer
 
 // Forward declaration
 namespace qiprng {
-    std::mt19937_64& getThreadLocalEngine(); // Declared in prng_utils.hpp/cpp
-    extern bool sodium_initialized; // Declared in prng_utils.hpp/cpp
-}
-
+std::mt19937_64& getThreadLocalEngine();  // Declared in prng_utils.hpp/cpp
+extern bool sodium_initialized;           // Declared in prng_utils.hpp/cpp
+}  // namespace qiprng
 
 namespace qiprng {
 
 class CryptoMixer {
-private:
+   private:
     SecureBuffer<unsigned char> key_;
     SecureBuffer<unsigned char> nonce_;
     bool adhoc_corrections_;
@@ -33,19 +34,19 @@ private:
 
     void secure_random(unsigned char* buf, size_t len);
 
-public:
+   public:
     static constexpr uint64_t MANTISSA_MASK = 0x000FFFFFFFFFFFFFULL;
-    static constexpr uint64_t ONE_BITS      = 0x3FF0000000000000ULL;
+    static constexpr uint64_t ONE_BITS = 0x3FF0000000000000ULL;
 
     // SECURITY FIX: Removed seed parameters - crypto must always use secure random
     CryptoMixer(bool adhoc_corrections, bool use_tie_breaking);
-    ~CryptoMixer(); // SecureBuffer handles its own cleanup
+    ~CryptoMixer();  // SecureBuffer handles its own cleanup
 
     void reseed();
     bool is_initialized() const;
-    bool mix(unsigned char* data, size_t len); // data is interpreted as array of doubles
+    bool mix(unsigned char* data, size_t len);  // data is interpreted as array of doubles
 };
 
-} // namespace qiprng
+}  // namespace qiprng
 
-#endif // QIPRNG_CRYPTO_MIXER_HPP 
+#endif  // QIPRNG_CRYPTO_MIXER_HPP

@@ -16,7 +16,7 @@ for (i in 1:10) {
     buffer_size = 1000,
     distribution = "uniform_01"
   )
-  
+
   createPRNG(cfg)
   vals <- generatePRNG(100)
   cleanup_prng()
@@ -38,7 +38,7 @@ test_concurrent <- function(i) {
     buffer_size = 500,
     distribution = "uniform_01"
   )
-  
+
   createPRNG(cfg)
   vals <- generatePRNG(1000)
   cleanup_prng()
@@ -70,7 +70,7 @@ for (j in 1:5) {
       buffer_size = 100,
       distribution = "uniform_01"
     )
-    
+
     createPRNG(cfg)
     vals <- generatePRNG(10)
     cleanup_prng()
@@ -93,7 +93,7 @@ for (dist in distributions) {
     buffer_size = 500,
     distribution = dist
   )
-  
+
   # Add distribution-specific parameters
   if (dist == "normal") {
     cfg$normal_mean <- 0
@@ -107,7 +107,7 @@ for (dist in distributions) {
     cfg$beta_alpha <- 2
     cfg$beta_beta <- 3
   }
-  
+
   createPRNG(cfg)
   vals <- generatePRNG(100)
   cleanup_prng()

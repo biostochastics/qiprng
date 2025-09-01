@@ -1,0 +1,156 @@
+# Makefile for code formatting and linting in qiprng
+# Supports clang-format 17+ and styler 1.10.0+
+# Last updated: 2025-01-01
+
+# Tool versions (n-1 compatibility)
+CLANG_FORMAT ?= clang-format
+CLANG_FORMAT_MIN_VERSION = 17
+R ?= R
+
+# Directories
+SRC_DIR = src
+R_DIR = R
+TEST_DIR = tests
+
+# File patterns
+CPP_FILES = $(wildcard $(SRC_DIR)/*.cpp)
+HPP_FILES = $(wildcard $(SRC_DIR)/*.hpp) $(wildcard $(SRC_DIR)/*.h)
+R_FILES = $(wildcard $(R_DIR)/*.R)
+TEST_FILES = $(wildcard $(TEST_DIR)/testthat/*.R)
+
+# Exclude auto-generated files
+EXCLUDE_CPP = $(SRC_DIR)/RcppExports.cpp
+EXCLUDE_R = $(R_DIR)/RcppExports.R
+
+# Filter out excluded files
+CPP_FORMAT_FILES = $(filter-out $(EXCLUDE_CPP),$(CPP_FILES))
+R_FORMAT_FILES = $(filter-out $(EXCLUDE_R),$(R_FILES))
+
+.PHONY: all format format-cpp format-r check check-cpp check-r install-tools help
+
+all: format
+
+## format: Format all C++ and R code
+format: format-cpp format-r
+	@echo "✅ All code formatted successfully"
+
+## format-cpp: Format C++ source files with clang-format
+format-cpp: check-clang-format
+	@echo "Formatting C++ files..."
+	@for file in $(CPP_FORMAT_FILES) $(HPP_FILES); do \
+		echo "  Formatting $$file"; \
+		$(CLANG_FORMAT) -i $$file; \
+	done
+	@echo "✅ C++ formatting complete"
+
+## format-r: Format R source files with styler
+format-r: check-styler
+	@echo "Formatting R files..."
+	@$(R) --vanilla --slave -e "styler::style_dir('$(R_DIR)', filetype = 'R', exclude_files = 'RcppExports.R')"
+	@$(R) --vanilla --slave -e "styler::style_dir('$(TEST_DIR)', filetype = 'R', recursive = TRUE)"
+	@echo "✅ R formatting complete"
+
+## check: Check formatting without modifying files
+check: check-cpp check-r
+	@echo "✅ Format check complete"
+
+## check-cpp: Check C++ formatting (dry run)
+check-cpp: check-clang-format
+	@echo "Checking C++ formatting..."
+	@FAILED=0; \
+	for file in $(CPP_FORMAT_FILES) $(HPP_FILES); do \
+		$(CLANG_FORMAT) --dry-run --Werror $$file 2>/dev/null || { \
+			echo "  ❌ $$file needs formatting"; \
+			FAILED=1; \
+		}; \
+	done; \
+	if [ $$FAILED -eq 0 ]; then \
+		echo "✅ All C++ files are properly formatted"; \
+	else \
+		echo "⚠️  Some C++ files need formatting. Run 'make format-cpp' to fix."; \
+		exit 1; \
+	fi
+
+## check-r: Check R formatting (dry run)
+check-r: check-styler
+	@echo "Checking R formatting..."
+	@$(R) --vanilla --slave -e " \
+		styled <- styler::style_dir('$(R_DIR)', dry = 'on', filetype = 'R', exclude_files = 'RcppExports.R'); \
+		if (any(styled\$$changed)) { \
+			cat('❌ The following R files need formatting:\n'); \
+			print(styled[styled\$$changed, 'file']); \
+			quit(status = 1); \
+		} else { \
+			cat('✅ All R files are properly formatted\n'); \
+		}"
+
+## check-clang-format: Verify clang-format is installed and version compatible
+check-clang-format:
+	@command -v $(CLANG_FORMAT) >/dev/null 2>&1 || { \
+		echo "❌ clang-format is not installed"; \
+		echo "Install with: brew install llvm (macOS) or apt install clang-format (Linux)"; \
+		exit 1; \
+	}
+	@VERSION=$$($(CLANG_FORMAT) --version | grep -oE '[0-9]+' | head -1); \
+	if [ $$VERSION -lt $(CLANG_FORMAT_MIN_VERSION) ]; then \
+		echo "❌ clang-format version $$VERSION is too old (minimum: $(CLANG_FORMAT_MIN_VERSION))"; \
+		exit 1; \
+	fi
+
+## check-styler: Verify styler R package is installed
+check-styler:
+	@$(R) --vanilla --slave -e " \
+		if (!requireNamespace('styler', quietly = TRUE)) { \
+			cat('❌ styler package is not installed\n'); \
+			cat('Install with: install.packages(\"styler\")\n'); \
+			quit(status = 1); \
+		} else { \
+			cat('✅ styler package is available\n'); \
+		}"
+
+## install-tools: Install formatting tools
+install-tools:
+	@echo "Installing formatting tools..."
+	@echo "Installing clang-format..."
+	@if [ "$$(uname)" = "Darwin" ]; then \
+		brew install llvm || echo "clang-format may already be installed"; \
+	else \
+		sudo apt-get update && sudo apt-get install -y clang-format || echo "clang-format may already be installed"; \
+	fi
+	@echo "Installing styler R package..."
+	@$(R) --vanilla --slave -e "if (!requireNamespace('styler', quietly = TRUE)) install.packages('styler', repos = 'https://cloud.r-project.org/')"
+	@echo "✅ Tools installation complete"
+
+## lint: Run additional linting checks
+lint: check-cpp check-r
+	@echo "Running additional linting..."
+	@if command -v clang-tidy >/dev/null 2>&1; then \
+		echo "Running clang-tidy..."; \
+		clang-tidy $(CPP_FORMAT_FILES) -- -I/usr/local/include -std=c++17; \
+	else \
+		echo "⚠️  clang-tidy not installed (optional)"; \
+	fi
+
+## clean-cache: Clean formatting caches
+clean-cache:
+	@echo "Cleaning formatting caches..."
+	@rm -rf .styler_cache
+	@echo "✅ Caches cleaned"
+
+## help: Show this help message
+help:
+	@echo "qiprng Code Formatting and Linting"
+	@echo "===================================="
+	@echo ""
+	@echo "Available targets:"
+	@grep -E '^## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ": "}; {printf "  %-15s %s\n", $$1, $$2}' | sed 's/## //'
+	@echo ""
+	@echo "Configuration:"
+	@echo "  C++ style:     Google C++ Style Guide (via .clang-format)"
+	@echo "  R style:       Tidyverse Style Guide (via styler)"
+	@echo "  Min versions:  clang-format $(CLANG_FORMAT_MIN_VERSION)+, styler 1.10.0+"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make format           # Format all code"
+	@echo "  make check            # Check formatting without changes"
+	@echo "  make install-tools    # Install required tools"

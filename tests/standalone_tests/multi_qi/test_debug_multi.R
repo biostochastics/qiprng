@@ -10,11 +10,11 @@ Sys.setenv(DEBUG_MIXING = "1")
 
 # Test creating Multi-QI config
 cfg <- list(
-    a = c(2, 3),
-    b = c(5, 7),
-    c = c(-1, -2),
-    buffer_size = 10,
-    mpfr_precision = 53
+  a = c(2, 3),
+  b = c(5, 7),
+  c = c(-1, -2),
+  buffer_size = 10,
+  mpfr_precision = 53
 )
 
 cat("Config:\n")

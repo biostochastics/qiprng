@@ -1,28 +1,28 @@
 #ifndef QIPRNG_BIT_OPERATIONS_HPP
 #define QIPRNG_BIT_OPERATIONS_HPP
 
-#include <cstring>
 #include <cstdint>
+#include <cstring>
 #include <type_traits>
 
 // Check for C++20 support
 #if __cplusplus >= 202002L
-#include <bit>
-#define QIPRNG_HAS_BIT_CAST 1
+#    include <bit>
+#    define QIPRNG_HAS_BIT_CAST 1
 #else
-#define QIPRNG_HAS_BIT_CAST 0
+#    define QIPRNG_HAS_BIT_CAST 0
 #endif
 
 namespace qiprng {
 namespace bit_ops {
 
 // Safe bit casting that avoids strict aliasing violations
-template<typename To, typename From>
+template <typename To, typename From>
 inline To safe_bit_cast(const From& from) noexcept {
     static_assert(sizeof(To) == sizeof(From), "Sizes must match");
     static_assert(std::is_trivially_copyable_v<To>, "To must be trivially copyable");
     static_assert(std::is_trivially_copyable_v<From>, "From must be trivially copyable");
-    
+
 #if QIPRNG_HAS_BIT_CAST
     return std::bit_cast<To>(from);
 #else
@@ -46,13 +46,14 @@ inline double xor_doubles_as_uint64(double a, double b) noexcept {
 }
 
 // Batch XOR with proper aliasing
-inline void xor_doubles_batch(double* dest, const double* src1, const double* src2, size_t count) noexcept {
+inline void xor_doubles_batch(double* dest, const double* src1, const double* src2,
+                              size_t count) noexcept {
     for (size_t i = 0; i < count; ++i) {
         dest[i] = xor_doubles_as_uint64(src1[i], src2[i]);
     }
 }
 
-} // namespace bit_ops
-} // namespace qiprng
+}  // namespace bit_ops
+}  // namespace qiprng
 
-#endif // QIPRNG_BIT_OPERATIONS_HPP
+#endif  // QIPRNG_BIT_OPERATIONS_HPP

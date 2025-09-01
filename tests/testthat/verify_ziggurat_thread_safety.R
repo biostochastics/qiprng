@@ -15,25 +15,25 @@ test_ziggurat_cleanup <- function() {
     b = 5,
     c = -3,
     distribution = "normal",
-    normal_method = "ziggurat", 
+    normal_method = "ziggurat",
     use_threading = TRUE,
     debug = TRUE
   )
-  
+
   # Generate some numbers
   values <- generatePRNG(n = 1000)
-  
+
   # Calculate stats to make sure we're actually using the generator
   cat(sprintf("Mean: %f\n", mean(values)))
   cat(sprintf("Variance: %f\n", var(values)))
-  
+
   # Clean up the PRNG
   cat("Cleaning up PRNG...\n")
   cleanup_prng()
-  
+
   # Force garbage collection
   gc()
-  
+
   cat("First cleanup completed successfully\n")
 }
 
@@ -41,7 +41,7 @@ test_ziggurat_cleanup <- function() {
 for (i in 1:10) {
   cat(sprintf("\n===== Test iteration %d =====\n", i))
   test_ziggurat_cleanup()
-  
+
   # Another garbage collection after each iteration
   gc()
 }

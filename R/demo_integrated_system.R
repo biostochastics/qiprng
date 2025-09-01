@@ -35,16 +35,16 @@ monitor$start(total_tests, categories)
 set.seed(123)
 for (cat in categories) {
   monitor$update_category(cat, total = 7, status = "running")
-  
+
   for (i in 1:7) {
     test_name <- paste0(cat, "_test_", i)
-    
+
     # Start test
     monitor$update_test(test_name, "running")
-    
+
     # Simulate test execution
     Sys.sleep(0.1)
-    
+
     # Complete test
     status <- if (runif(1) > 0.1) "completed" else "failed"
     monitor$update_test(test_name, status)
@@ -65,7 +65,7 @@ for (cat in categories) {
   for (i in 1:7) {
     test_name <- paste0(cat, "_test_", i)
     p_value <- runif(1)
-    
+
     result <- list(
       result = if (p_value > 0.01) "PASS" else "FAIL",
       p_value = p_value,
@@ -75,7 +75,7 @@ for (cat in categories) {
         sample_size = get_test_param("global.default_sample_size", config)
       )
     )
-    
+
     aggregator$add_result(cat, test_name, result)
   }
 }
@@ -103,10 +103,10 @@ monitor2$add_callback(function(event, data, monitor) {
       p_value = if (data$status == "completed") runif(1, 0.05, 0.95) else runif(1, 0, 0.01),
       statistic = rnorm(1)
     )
-    
+
     # Extract category from test name
     category <- strsplit(data$test, "_")[[1]][1]
-    
+
     # Add to aggregator
     aggregator2$add_result(category, data$test, result)
   }
@@ -120,10 +120,10 @@ cat("\nRunning integrated test simulation...\n")
 for (i in 1:total_tests2) {
   category <- sample(c("basic", "classical", "binary"), 1)
   test_name <- paste0(category, "_test_", i)
-  
+
   monitor2$update_test(test_name, "running")
   Sys.sleep(0.05)
-  
+
   status <- if (runif(1) > 0.15) "completed" else "failed"
   monitor2$update_test(test_name, status)
 }
@@ -144,21 +144,21 @@ run_configured_test <- function(data, test_type, config = NULL) {
   if (is.null(config)) {
     config <- load_config()
   }
-  
+
   # Get test-specific parameters
   test_config <- get_test_config(paste0(test_type, "_tests"), config)
-  
+
   # Get global parameters
   sig_level <- get_test_param("global.significance_level", config, 0.01)
-  
+
   cat(sprintf("\nRunning %s test with:\n", test_type))
   cat(sprintf("- Significance level: %.3f\n", sig_level))
-  
+
   if (test_type == "classical" && !is.null(test_config$chi_square)) {
     cat(sprintf("- Chi-square bins: %d\n", test_config$chi_square$bins))
     cat(sprintf("- Min expected count: %d\n", test_config$chi_square$min_expected_count))
   }
-  
+
   # Simulate test result
   p_value <- runif(1)
   result <- list(
@@ -170,7 +170,7 @@ run_configured_test <- function(data, test_type, config = NULL) {
       test_config = test_config
     )
   )
-  
+
   return(result)
 }
 

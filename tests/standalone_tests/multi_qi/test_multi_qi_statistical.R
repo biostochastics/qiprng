@@ -10,11 +10,11 @@ cat("===========================================\n\n")
 # Test 1: Manual Multi-QI configuration
 cat("Test 1: Manual Multi-QI (3 QIs)\n")
 cfg <- list(
-    a = c(2, 3, 5),
-    b = c(5, 7, 11),
-    c = c(-1, -2, -3),
-    buffer_size = 1000,
-    mpfr_precision = 53
+  a = c(2, 3, 5),
+  b = c(5, 7, 11),
+  c = c(-1, -2, -3),
+  buffer_size = 1000,
+  mpfr_precision = 53
 )
 
 createPRNG(cfg)
@@ -34,11 +34,11 @@ cat("  Result:", ifelse(ks_test$p.value > 0.01, "✓ PASSED", "✗ FAILED"), "\n
 # Test 2: Single QI for comparison
 cat("Test 2: Single QI\n")
 cfg2 <- list(
-    a = 2,
-    b = 5,
-    c = -1,
-    buffer_size = 1000,
-    mpfr_precision = 53
+  a = 2,
+  b = 5,
+  c = -1,
+  buffer_size = 1000,
+  mpfr_precision = 53
 )
 
 createPRNG(cfg2)
@@ -58,25 +58,25 @@ cat("Test 3: Multi-QI with different mixing strategies\n")
 strategies <- c("round_robin", "xor_mix", "averaging", "modular_add", "cascade_mix")
 
 for (i in seq_along(strategies)) {
-    cat("\n  Strategy:", strategies[i], "\n")
-    
-    cfg3 <- list(
-        a = c(2, 3, 5),
-        b = c(5, 7, 11),
-        c = c(-1, -2, -3),
-        buffer_size = 1000,
-        mpfr_precision = 53,
-        mixing_strategy = strategies[i]  # Use string name
-    )
-    
-    createPRNG(cfg3)
-    vals3 <- generatePRNG(10000)
-    cleanup_prng()
-    
-    cat("    Mean:", format(mean(vals3), digits = 4), "\n")
-    ks_test3 <- ks.test(vals3, "punif")
-    cat("    KS p-value:", format(ks_test3$p.value, digits = 4), "\n")
-    cat("    Result:", ifelse(ks_test3$p.value > 0.01, "✓ PASSED", "✗ FAILED"), "\n")
+  cat("\n  Strategy:", strategies[i], "\n")
+
+  cfg3 <- list(
+    a = c(2, 3, 5),
+    b = c(5, 7, 11),
+    c = c(-1, -2, -3),
+    buffer_size = 1000,
+    mpfr_precision = 53,
+    mixing_strategy = strategies[i] # Use string name
+  )
+
+  createPRNG(cfg3)
+  vals3 <- generatePRNG(10000)
+  cleanup_prng()
+
+  cat("    Mean:", format(mean(vals3), digits = 4), "\n")
+  ks_test3 <- ks.test(vals3, "punif")
+  cat("    KS p-value:", format(ks_test3$p.value, digits = 4), "\n")
+  cat("    Result:", ifelse(ks_test3$p.value > 0.01, "✓ PASSED", "✗ FAILED"), "\n")
 }
 
 cat("\n===========================================\n")

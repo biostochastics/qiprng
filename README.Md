@@ -2,7 +2,7 @@
 
 <img src="images/qiprng_logo.png" alt="QIPRNG Logo" width="300"/>
 
-[![Version](https://img.shields.io/badge/Version-0.5.4-blue)](https://github.com/biostochastics/qiprng)
+[![Version](https://img.shields.io/badge/Version-0.5.5-blue)](https://github.com/biostochastics/qiprng)
 [![ThreadSafe](https://img.shields.io/badge/Thread%20Safe-Yes-brightgreen)](https://github.com/biostochastics/qiprng)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen)](https://github.com/biostochastics/qiprng)
@@ -22,9 +22,9 @@ x <- generatePRNG(10000)
 hist(x, breaks = 50, main = "qiprng uniform distribution", col = "skyblue")
 ```
 
-## What's New in v0.5.4
+## What's New in v0.5.5
 
-The latest release delivers critical thread safety fixes that eliminate race conditions through proper use of `std::call_once` and atomic operations with acquire/release semantics. Thread-local storage cleanup now prevents double-cleanup scenarios and thread termination crashes. Performance improvements include cache-line aligned atomics that eliminate false sharing, achieving 2-3x concurrency gains, along with thread-local MPFR context pooling that reduces memory usage by 90%. The release also includes enhanced precision management with gradual reduction paths (256→80→53 bits) and safe bit operations that avoid strict aliasing violations.
+This release enhances security by replacing the weak `std::random_device` with libsodium's cryptographically secure `randombytes_buf()` for seed generation, ensuring unpredictable seeds on all platforms including Windows. Comprehensive input validation with bounds checking and overflow protection has been added to prevent potential exploits. The codebase now follows consistent formatting standards with Google C++ Style Guide for C++ code and tidyverse style for R code, enforced through clang-format and styler respectively. Several syntax errors in test files have been fixed, and the package has been thoroughly tested with all security enhancements verified working.
 
 For complete version history and migration guides, see [CHANGELOG.md](CHANGELOG.md).
 

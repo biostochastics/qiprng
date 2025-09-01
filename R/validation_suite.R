@@ -13,7 +13,7 @@
 source_test_files <- function() {
   test_files <- c(
     "statisticaltests/basic_tests.R",
-    "statisticaltests/runs_tests.R", 
+    "statisticaltests/runs_tests.R",
     "statisticaltests/correlation_tests.R",
     "statisticaltests/binary_tests.R",
     "statisticaltests/classical_tests.R",
@@ -23,7 +23,7 @@ source_test_files <- function() {
     "statisticaltests/multidim_tests.R",
     "statisticaltests/edge_case_tests.R"
   )
-  
+
   for (file in test_files) {
     if (file.exists(file)) {
       source(file)
@@ -42,10 +42,9 @@ source_test_files <- function() {
 #' @param verbose Logical indicating whether to print progress
 #' @return Validation report object
 #' @export
-validate_qiprng_framework <- function(level = "standard", 
-                                      config = NULL, 
+validate_qiprng_framework <- function(level = "standard",
+                                      config = NULL,
                                       verbose = TRUE) {
-  
   # Initialize validation report
   validation_report <- list(
     timestamp = Sys.time(),
@@ -66,47 +65,54 @@ validate_qiprng_framework <- function(level = "standard",
     ),
     recommendations = character()
   )
-  
+
   # Set up configuration based on level
   if (is.null(config)) {
     config <- get_validation_config(level)
   }
-  
+
   # Source test files
-  tryCatch({
-    source_test_files()
-  }, error = function(e) {
-    validation_report$errors <- append(validation_report$errors, 
-                                       paste("Failed to source test files:", e$message))
-  })
-  
+  tryCatch(
+    {
+      source_test_files()
+    },
+    error = function(e) {
+      validation_report$errors <- append(
+        validation_report$errors,
+        paste("Failed to source test files:", e$message)
+      )
+    }
+  )
+
   # Run category validators
-  categories <- c("basic", "classical", "external", "runs", 
-                  "correlation", "binary", "compression", "multidim")
-  
+  categories <- c(
+    "basic", "classical", "external", "runs",
+    "correlation", "binary", "compression", "multidim"
+  )
+
   for (category in categories) {
     if (verbose) {
       cat(sprintf("\nValidating %s tests...\n", category))
     }
-    
+
     validator_func <- get(paste0("validate_", category, "_tests"))
     category_result <- validator_func(config, verbose)
-    
+
     validation_report$categories[[category]] <- category_result
-    validation_report$summary$total_tests <- validation_report$summary$total_tests + 
-                                             category_result$total_tests
-    validation_report$summary$passed <- validation_report$summary$passed + 
-                                        category_result$passed
-    validation_report$summary$failed <- validation_report$summary$failed + 
-                                        category_result$failed
-    validation_report$summary$warnings <- validation_report$summary$warnings + 
-                                          category_result$warnings
+    validation_report$summary$total_tests <- validation_report$summary$total_tests +
+      category_result$total_tests
+    validation_report$summary$passed <- validation_report$summary$passed +
+      category_result$passed
+    validation_report$summary$failed <- validation_report$summary$failed +
+      category_result$failed
+    validation_report$summary$warnings <- validation_report$summary$warnings +
+      category_result$warnings
   }
-  
+
   # Add edge case testing
   if (level %in% c("standard", "comprehensive")) {
     if (verbose) cat("\nRunning edge case tests...\n")
-    
+
     # Use comprehensive edge case testing if available
     if (exists("run_comprehensive_edge_tests")) {
       edge_results <- run_comprehensive_edge_tests(config, verbose)
@@ -117,26 +123,26 @@ validate_qiprng_framework <- function(level = "standard",
       validation_report$edge_cases <- edge_results
     }
   }
-  
+
   # Add performance benchmarks
   if (level == "comprehensive") {
     if (verbose) cat("\nRunning performance benchmarks...\n")
-    
+
     # Use comprehensive performance benchmarking if available
     if (file.exists("R/statisticaltests/performance_benchmarking.R")) {
       source("R/statisticaltests/performance_benchmarking.R")
     } else if (file.exists("statisticaltests/performance_benchmarking.R")) {
       source("statisticaltests/performance_benchmarking.R")
     }
-    
+
     if (exists("run_performance_benchmarks")) {
       perf_results <- run_performance_benchmarks(config, verbose)
       validation_report$performance_tests <- perf_results
-      
+
       # Generate performance visualizations if requested
       if (config$save_visualizations && exists("visualize_performance_results")) {
         perf_plots <- visualize_performance_results(
-          perf_results, 
+          perf_results,
           file.path(config$output_dir, "performance_plots")
         )
         validation_report$performance_visualizations <- perf_plots
@@ -147,41 +153,43 @@ validate_qiprng_framework <- function(level = "standard",
       validation_report$performance_tests <- perf_results
     }
   }
-  
+
   # Finalize report
   validation_report$performance$end_time <- Sys.time()
-  validation_report$performance$execution_time <- 
+  validation_report$performance$execution_time <-
     difftime(validation_report$performance$end_time,
-             validation_report$performance$start_time, units = "secs")
-  
+      validation_report$performance$start_time,
+      units = "secs"
+    )
+
   # Generate recommendations
   validation_report$recommendations <- generate_recommendations(validation_report)
-  
+
   # Print summary if verbose
   if (verbose) {
     print_validation_summary(validation_report)
   }
-  
+
   class(validation_report) <- "qiprng_validation_report"
-  
+
   # Generate reports if requested
   if (!is.null(config$generate_reports) && config$generate_reports) {
     if (verbose) cat("\nGenerating validation reports...\n")
-    
+
     # Source reporting module if available
     if (file.exists("R/statisticaltests/validation_reporting.R")) {
       source("R/statisticaltests/validation_reporting.R")
     } else if (file.exists("statisticaltests/validation_reporting.R")) {
       source("statisticaltests/validation_reporting.R")
     }
-    
+
     if (exists("generate_validation_report")) {
       report_formats <- if (!is.null(config$report_formats)) {
         config$report_formats
       } else {
         c("html", "json")
       }
-      
+
       validation_report$generated_files <- generate_validation_report(
         validation_report,
         output_dir = file.path(config$output_dir, "validation_reports"),
@@ -191,7 +199,7 @@ validate_qiprng_framework <- function(level = "standard",
       )
     }
   }
-  
+
   return(validation_report)
 }
 
@@ -207,28 +215,28 @@ get_validation_config <- function(level) {
     generate_reports = TRUE,
     report_formats = c("html", "json")
   )
-  
+
   if (level == "quick") {
     config <- modifyList(base_config, list(
       sample_sizes = c(100, 1000),
       num_iterations = 10,
-      test_timeout = 60  # 1 minute timeout
+      test_timeout = 60 # 1 minute timeout
     ))
   } else if (level == "standard") {
     config <- modifyList(base_config, list(
       sample_sizes = c(100, 1000, 10000),
       num_iterations = 100,
-      test_timeout = 300  # 5 minute timeout
+      test_timeout = 300 # 5 minute timeout
     ))
   } else if (level == "comprehensive") {
     config <- modifyList(base_config, list(
       sample_sizes = c(10, 100, 1000, 10000, 100000),
       num_iterations = 1000,
-      test_timeout = 1800,  # 30 minute timeout
+      test_timeout = 1800, # 30 minute timeout
       save_visualizations = TRUE
     ))
   }
-  
+
   return(config)
 }
 
@@ -245,11 +253,11 @@ validate_basic_tests <- function(config, verbose = TRUE) {
     warnings = 0,
     details = list()
   )
-  
+
   # Test with different sample sizes
   for (n in config$sample_sizes) {
     if (verbose) cat(sprintf("  Testing with n=%d...", n))
-    
+
     # Create test suite
     suite <- list(
       prng_func = function(n) runif(n),
@@ -261,30 +269,36 @@ validate_basic_tests <- function(config, verbose = TRUE) {
       ),
       results = list()
     )
-    
+
     # Run tests with timeout
-    test_result <- tryCatch({
-      withTimeout({
-        suite <- run_basic_tests(suite)
-        list(success = TRUE, suite = suite)
-      }, timeout = config$test_timeout)
-    }, error = function(e) {
-      list(success = FALSE, error = e$message)
-    })
-    
+    test_result <- tryCatch(
+      {
+        withTimeout(
+          {
+            suite <- run_basic_tests(suite)
+            list(success = TRUE, suite = suite)
+          },
+          timeout = config$test_timeout
+        )
+      },
+      error = function(e) {
+        list(success = FALSE, error = e$message)
+      }
+    )
+
     # Analyze results
     if (test_result$success) {
       # Check result structure
       basic_results <- test_result$suite$results$basic
       for (test_name in names(basic_results)) {
         results$total_tests <- results$total_tests + 1
-        
+
         # Validate structure
         if (validate_test_structure(basic_results[[test_name]])) {
           results$passed <- results$passed + 1
         } else {
           results$failed <- results$failed + 1
-          results$details[[paste0("structure_", test_name, "_n", n)]] <- 
+          results$details[[paste0("structure_", test_name, "_n", n)]] <-
             "Invalid test result structure"
         }
       }
@@ -295,7 +309,7 @@ validate_basic_tests <- function(config, verbose = TRUE) {
       if (verbose) cat(" ERROR\n")
     }
   }
-  
+
   return(results)
 }
 
@@ -312,10 +326,10 @@ validate_classical_tests <- function(config, verbose = TRUE) {
     warnings = 0,
     details = list()
   )
-  
+
   for (n in config$sample_sizes) {
     if (verbose) cat(sprintf("  Testing with n=%d...", n))
-    
+
     suite <- list(
       prng_func = function(n) runif(n),
       config = list(
@@ -326,24 +340,30 @@ validate_classical_tests <- function(config, verbose = TRUE) {
       ),
       results = list()
     )
-    
-    test_result <- tryCatch({
-      withTimeout({
-        suite <- run_classical_tests(suite)
-        list(success = TRUE, suite = suite)
-      }, timeout = config$test_timeout)
-    }, error = function(e) {
-      list(success = FALSE, error = e$message)
-    })
-    
+
+    test_result <- tryCatch(
+      {
+        withTimeout(
+          {
+            suite <- run_classical_tests(suite)
+            list(success = TRUE, suite = suite)
+          },
+          timeout = config$test_timeout
+        )
+      },
+      error = function(e) {
+        list(success = FALSE, error = e$message)
+      }
+    )
+
     if (test_result$success) {
       classical_results <- test_result$suite$results$classical
       expected_tests <- c("coupon_collector", "poker_hand", "birthday_spacing")
-      
+
       for (test_name in expected_tests) {
         results$total_tests <- results$total_tests + 1
-        if (test_name %in% names(classical_results) && 
-            validate_test_structure(classical_results[[test_name]])) {
+        if (test_name %in% names(classical_results) &&
+          validate_test_structure(classical_results[[test_name]])) {
           results$passed <- results$passed + 1
         } else {
           results$failed <- results$failed + 1
@@ -357,7 +377,7 @@ validate_classical_tests <- function(config, verbose = TRUE) {
       if (verbose) cat(" ERROR\n")
     }
   }
-  
+
   return(results)
 }
 
@@ -374,41 +394,47 @@ validate_external_tests <- function(config, verbose = TRUE) {
     warnings = 0,
     details = list()
   )
-  
+
   # Only test with smaller sample sizes for external tests
   test_sizes <- config$sample_sizes[config$sample_sizes <= 10000]
-  
+
   for (n in test_sizes) {
     if (verbose) cat(sprintf("  Testing with n=%d...", n))
-    
+
     suite <- list(
       prng_func = function(n) runif(n),
       config = list(
         external_sample_size = n,
         significance_level = config$significance_level,
-        save_visualizations = FALSE  # Skip visualizations for external
+        save_visualizations = FALSE # Skip visualizations for external
       ),
       results = list()
     )
-    
-    test_result <- tryCatch({
-      withTimeout({
-        suite <- run_external_tests(suite)
-        list(success = TRUE, suite = suite)
-      }, timeout = config$test_timeout)
-    }, error = function(e) {
-      list(success = FALSE, error = e$message)
-    })
-    
+
+    test_result <- tryCatch(
+      {
+        withTimeout(
+          {
+            suite <- run_external_tests(suite)
+            list(success = TRUE, suite = suite)
+          },
+          timeout = config$test_timeout
+        )
+      },
+      error = function(e) {
+        list(success = FALSE, error = e$message)
+      }
+    )
+
     if (test_result$success) {
       external_results <- test_result$suite$results$external
-      
+
       # Check base R tests are present
       base_tests <- c("kolmogorov_smirnov", "chi_square", "shapiro_wilk")
       for (test_name in base_tests) {
         results$total_tests <- results$total_tests + 1
-        if (test_name %in% names(external_results) && 
-            validate_test_structure(external_results[[test_name]])) {
+        if (test_name %in% names(external_results) &&
+          validate_test_structure(external_results[[test_name]])) {
           results$passed <- results$passed + 1
         } else {
           results$failed <- results$failed + 1
@@ -421,7 +447,7 @@ validate_external_tests <- function(config, verbose = TRUE) {
       if (verbose) cat(" WARNING\n")
     }
   }
-  
+
   return(results)
 }
 
@@ -438,17 +464,17 @@ validate_runs_tests <- function(config, verbose = TRUE) {
     warnings = 0,
     details = list()
   )
-  
+
   # Check if runs tests exist
   if (!exists("run_runs_tests")) {
     results$warnings <- 1
     results$details$missing <- "Runs tests not found"
     return(results)
   }
-  
+
   for (n in config$sample_sizes) {
     if (verbose) cat(sprintf("  Testing with n=%d...", n))
-    
+
     suite <- list(
       prng_func = function(n) runif(n),
       config = list(
@@ -457,14 +483,17 @@ validate_runs_tests <- function(config, verbose = TRUE) {
       ),
       results = list()
     )
-    
-    test_result <- tryCatch({
-      suite <- run_runs_tests(suite)
-      list(success = TRUE, suite = suite)
-    }, error = function(e) {
-      list(success = FALSE, error = e$message)
-    })
-    
+
+    test_result <- tryCatch(
+      {
+        suite <- run_runs_tests(suite)
+        list(success = TRUE, suite = suite)
+      },
+      error = function(e) {
+        list(success = FALSE, error = e$message)
+      }
+    )
+
     if (test_result$success && !is.null(test_result$suite$results$runs)) {
       for (test_name in names(test_result$suite$results$runs)) {
         results$total_tests <- results$total_tests + 1
@@ -480,7 +509,7 @@ validate_runs_tests <- function(config, verbose = TRUE) {
       if (verbose) cat(" WARNING\n")
     }
   }
-  
+
   return(results)
 }
 
@@ -497,19 +526,19 @@ validate_correlation_tests <- function(config, verbose = TRUE) {
     warnings = 0,
     details = list()
   )
-  
+
   if (!exists("run_correlation_tests")) {
     results$warnings <- 1
     results$details$missing <- "Correlation tests not found"
     return(results)
   }
-  
+
   # Test only with reasonable sample sizes for correlation
   test_sizes <- config$sample_sizes[config$sample_sizes >= 100]
-  
+
   for (n in test_sizes) {
     if (verbose) cat(sprintf("  Testing with n=%d...", n))
-    
+
     suite <- list(
       prng_func = function(n) runif(n),
       config = list(
@@ -519,14 +548,17 @@ validate_correlation_tests <- function(config, verbose = TRUE) {
       ),
       results = list()
     )
-    
-    test_result <- tryCatch({
-      suite <- run_correlation_tests(suite)
-      list(success = TRUE, suite = suite)
-    }, error = function(e) {
-      list(success = FALSE, error = e$message)
-    })
-    
+
+    test_result <- tryCatch(
+      {
+        suite <- run_correlation_tests(suite)
+        list(success = TRUE, suite = suite)
+      },
+      error = function(e) {
+        list(success = FALSE, error = e$message)
+      }
+    )
+
     if (test_result$success && !is.null(test_result$suite$results$correlation)) {
       for (test_name in names(test_result$suite$results$correlation)) {
         results$total_tests <- results$total_tests + 1
@@ -542,7 +574,7 @@ validate_correlation_tests <- function(config, verbose = TRUE) {
       if (verbose) cat(" WARNING\n")
     }
   }
-  
+
   return(results)
 }
 
@@ -559,16 +591,16 @@ validate_binary_tests <- function(config, verbose = TRUE) {
     warnings = 0,
     details = list()
   )
-  
+
   if (!exists("run_binary_tests")) {
     results$warnings <- 1
     results$details$missing <- "Binary tests not found"
     return(results)
   }
-  
+
   for (n in config$sample_sizes) {
     if (verbose) cat(sprintf("  Testing with n=%d...", n))
-    
+
     suite <- list(
       prng_func = function(n) runif(n),
       config = list(
@@ -577,14 +609,17 @@ validate_binary_tests <- function(config, verbose = TRUE) {
       ),
       results = list()
     )
-    
-    test_result <- tryCatch({
-      suite <- run_binary_tests(suite)
-      list(success = TRUE, suite = suite)
-    }, error = function(e) {
-      list(success = FALSE, error = e$message)
-    })
-    
+
+    test_result <- tryCatch(
+      {
+        suite <- run_binary_tests(suite)
+        list(success = TRUE, suite = suite)
+      },
+      error = function(e) {
+        list(success = FALSE, error = e$message)
+      }
+    )
+
     if (test_result$success && !is.null(test_result$suite$results$binary)) {
       for (test_name in names(test_result$suite$results$binary)) {
         results$total_tests <- results$total_tests + 1
@@ -600,7 +635,7 @@ validate_binary_tests <- function(config, verbose = TRUE) {
       if (verbose) cat(" WARNING\n")
     }
   }
-  
+
   return(results)
 }
 
@@ -617,19 +652,19 @@ validate_compression_tests <- function(config, verbose = TRUE) {
     warnings = 0,
     details = list()
   )
-  
+
   if (!exists("run_compression_tests")) {
     results$warnings <- 1
     results$details$missing <- "Compression tests not found"
     return(results)
   }
-  
+
   # Compression tests need larger samples
   test_sizes <- config$sample_sizes[config$sample_sizes >= 1000]
-  
+
   for (n in test_sizes) {
     if (verbose) cat(sprintf("  Testing with n=%d...", n))
-    
+
     suite <- list(
       prng_func = function(n) runif(n),
       config = list(
@@ -638,14 +673,17 @@ validate_compression_tests <- function(config, verbose = TRUE) {
       ),
       results = list()
     )
-    
-    test_result <- tryCatch({
-      suite <- run_compression_tests(suite)
-      list(success = TRUE, suite = suite)
-    }, error = function(e) {
-      list(success = FALSE, error = e$message)
-    })
-    
+
+    test_result <- tryCatch(
+      {
+        suite <- run_compression_tests(suite)
+        list(success = TRUE, suite = suite)
+      },
+      error = function(e) {
+        list(success = FALSE, error = e$message)
+      }
+    )
+
     if (test_result$success && !is.null(test_result$suite$results$compression)) {
       for (test_name in names(test_result$suite$results$compression)) {
         results$total_tests <- results$total_tests + 1
@@ -661,7 +699,7 @@ validate_compression_tests <- function(config, verbose = TRUE) {
       if (verbose) cat(" WARNING\n")
     }
   }
-  
+
   return(results)
 }
 
@@ -678,18 +716,18 @@ validate_multidim_tests <- function(config, verbose = TRUE) {
     warnings = 0,
     details = list()
   )
-  
+
   if (!exists("run_multidim_tests") && !exists("run_multidimensional_tests")) {
     results$warnings <- 1
     results$details$missing <- "Multidimensional tests not found"
     return(results)
   }
-  
+
   # Test 2D and 3D
   for (dims in c(2, 3)) {
     for (n in config$sample_sizes[config$sample_sizes <= 10000]) {
       if (verbose) cat(sprintf("  Testing %dD with n=%d...", dims, n))
-      
+
       suite <- list(
         prng_func = function(n) runif(n),
         config = list(
@@ -699,18 +737,21 @@ validate_multidim_tests <- function(config, verbose = TRUE) {
         ),
         results = list()
       )
-      
-      test_result <- tryCatch({
-        if (exists("run_multidimensional_tests")) {
-          suite <- run_multidimensional_tests(suite, dimensions = dims)
-        } else {
-          suite <- run_multidim_tests(suite, config = list(dimensions = dims))
+
+      test_result <- tryCatch(
+        {
+          if (exists("run_multidimensional_tests")) {
+            suite <- run_multidimensional_tests(suite, dimensions = dims)
+          } else {
+            suite <- run_multidim_tests(suite, config = list(dimensions = dims))
+          }
+          list(success = TRUE, suite = suite)
+        },
+        error = function(e) {
+          list(success = FALSE, error = e$message)
         }
-        list(success = TRUE, suite = suite)
-      }, error = function(e) {
-        list(success = FALSE, error = e$message)
-      })
-      
+      )
+
       if (test_result$success && !is.null(test_result$suite$results$multidim)) {
         results$total_tests <- results$total_tests + 1
         # Multidim tests have different structure, just check they exist
@@ -726,7 +767,7 @@ validate_multidim_tests <- function(config, verbose = TRUE) {
       }
     }
   }
-  
+
   return(results)
 }
 
@@ -736,25 +777,41 @@ validate_multidim_tests <- function(config, verbose = TRUE) {
 #' @return TRUE if valid structure, FALSE otherwise
 validate_test_structure <- function(test_result) {
   required_fields <- c("description", "result", "p_value", "statistic", "details")
-  
-  if (!is.list(test_result)) return(FALSE)
-  
+
+  if (!is.list(test_result)) {
+    return(FALSE)
+  }
+
   # Check all required fields exist
-  if (!all(required_fields %in% names(test_result))) return(FALSE)
-  
+  if (!all(required_fields %in% names(test_result))) {
+    return(FALSE)
+  }
+
   # Check field types
-  if (!is.character(test_result$description)) return(FALSE)
-  if (!test_result$result %in% c("PASS", "FAIL", "INCONCLUSIVE", "ERROR", "SKIPPED")) return(FALSE)
-  if (!is.character(test_result$details)) return(FALSE)
-  
+  if (!is.character(test_result$description)) {
+    return(FALSE)
+  }
+  if (!test_result$result %in% c("PASS", "FAIL", "INCONCLUSIVE", "ERROR", "SKIPPED")) {
+    return(FALSE)
+  }
+  if (!is.character(test_result$details)) {
+    return(FALSE)
+  }
+
   # p_value and statistic can be NA but should be numeric type when not NA
-  if (!is.na(test_result$p_value) && !is.numeric(test_result$p_value)) return(FALSE)
-  if (!is.na(test_result$statistic) && !is.numeric(test_result$statistic)) return(FALSE)
-  
+  if (!is.na(test_result$p_value) && !is.numeric(test_result$p_value)) {
+    return(FALSE)
+  }
+  if (!is.na(test_result$statistic) && !is.numeric(test_result$statistic)) {
+    return(FALSE)
+  }
+
   # Check p_value range when not NA
-  if (!is.na(test_result$p_value) && 
-      (test_result$p_value < 0 || test_result$p_value > 1)) return(FALSE)
-  
+  if (!is.na(test_result$p_value) &&
+    (test_result$p_value < 0 || test_result$p_value > 1)) {
+    return(FALSE)
+  }
+
   return(TRUE)
 }
 
@@ -770,7 +827,7 @@ validate_edge_cases <- function(config, verbose = TRUE) {
     failed = 0,
     details = list()
   )
-  
+
   # Test with very small sample size
   if (verbose) cat("  Testing with n=10...")
   small_suite <- list(
@@ -783,26 +840,29 @@ validate_edge_cases <- function(config, verbose = TRUE) {
     ),
     results = list()
   )
-  
+
   # Should handle gracefully
-  tryCatch({
-    small_suite <- run_classical_tests(small_suite)
-    # Check for INCONCLUSIVE results
-    for (test in small_suite$results$classical) {
-      results$total_tests <- results$total_tests + 1
-      if (test$result == "INCONCLUSIVE" && !is.na(test$details)) {
-        results$passed <- results$passed + 1
-      } else {
-        results$failed <- results$failed + 1
+  tryCatch(
+    {
+      small_suite <- run_classical_tests(small_suite)
+      # Check for INCONCLUSIVE results
+      for (test in small_suite$results$classical) {
+        results$total_tests <- results$total_tests + 1
+        if (test$result == "INCONCLUSIVE" && !is.na(test$details)) {
+          results$passed <- results$passed + 1
+        } else {
+          results$failed <- results$failed + 1
+        }
       }
+      if (verbose) cat(" OK\n")
+    },
+    error = function(e) {
+      results$failed <- results$failed + 1
+      results$details$small_sample <- e$message
+      if (verbose) cat(" ERROR\n")
     }
-    if (verbose) cat(" OK\n")
-  }, error = function(e) {
-    results$failed <- results$failed + 1
-    results$details$small_sample <- e$message
-    if (verbose) cat(" ERROR\n")
-  })
-  
+  )
+
   # Test with invalid inputs
   if (verbose) cat("  Testing with invalid inputs...")
   invalid_tests <- list(
@@ -810,7 +870,7 @@ validate_edge_cases <- function(config, verbose = TRUE) {
     out_of_range = function(n) runif(n) * 2,
     na_values = function(n) rep(NA, n)
   )
-  
+
   for (test_name in names(invalid_tests)) {
     results$total_tests <- results$total_tests + 1
     suite <- list(
@@ -818,30 +878,33 @@ validate_edge_cases <- function(config, verbose = TRUE) {
       config = list(basic_sample_size = 100, significance_level = 0.05),
       results = list()
     )
-    
+
     # Should handle errors gracefully
-    tryCatch({
-      suite <- run_basic_tests(suite)
-      # Check for appropriate error handling
-      if (any(sapply(suite$results$basic, function(x) x$result %in% c("ERROR", "FAIL")))) {
+    tryCatch(
+      {
+        suite <- run_basic_tests(suite)
+        # Check for appropriate error handling
+        if (any(sapply(suite$results$basic, function(x) x$result %in% c("ERROR", "FAIL")))) {
+          results$passed <- results$passed + 1
+        } else {
+          results$failed <- results$failed + 1
+        }
+      },
+      error = function(e) {
+        # Error is acceptable for invalid input
         results$passed <- results$passed + 1
-      } else {
-        results$failed <- results$failed + 1
       }
-    }, error = function(e) {
-      # Error is acceptable for invalid input
-      results$passed <- results$passed + 1
-    })
+    )
   }
-  
+
   if (verbose) cat(" OK\n")
-  
+
   return(results)
 }
 
 #' Validate performance
 #'
-#' @param config Validation configuration  
+#' @param config Validation configuration
 #' @param verbose Print progress
 #' @return Performance validation results
 validate_performance <- function(config, verbose = TRUE) {
@@ -852,11 +915,11 @@ validate_performance <- function(config, verbose = TRUE) {
     timings = list(),
     memory = list()
   )
-  
+
   # Test execution time for different sample sizes
   for (n in c(1000, 10000, 100000)) {
     if (verbose) cat(sprintf("  Benchmarking with n=%d...", n))
-    
+
     suite <- list(
       prng_func = function(n) runif(n),
       config = list(
@@ -867,32 +930,35 @@ validate_performance <- function(config, verbose = TRUE) {
       ),
       results = list()
     )
-    
+
     # Time basic tests
     start_time <- Sys.time()
-    tryCatch({
-      suite <- run_basic_tests(suite)
-      end_time <- Sys.time()
-      exec_time <- as.numeric(difftime(end_time, start_time, units = "secs"))
-      
-      results$timings[[paste0("basic_n", n)]] <- exec_time
-      results$total_tests <- results$total_tests + 1
-      
-      # Check if execution time is reasonable (< 1 second per 10k samples)
-      expected_time <- n / 10000
-      if (exec_time < expected_time * 10) {  # Allow 10x margin
-        results$passed <- results$passed + 1
-      } else {
+    tryCatch(
+      {
+        suite <- run_basic_tests(suite)
+        end_time <- Sys.time()
+        exec_time <- as.numeric(difftime(end_time, start_time, units = "secs"))
+
+        results$timings[[paste0("basic_n", n)]] <- exec_time
+        results$total_tests <- results$total_tests + 1
+
+        # Check if execution time is reasonable (< 1 second per 10k samples)
+        expected_time <- n / 10000
+        if (exec_time < expected_time * 10) { # Allow 10x margin
+          results$passed <- results$passed + 1
+        } else {
+          results$failed <- results$failed + 1
+        }
+
+        if (verbose) cat(sprintf(" %.2fs\n", exec_time))
+      },
+      error = function(e) {
         results$failed <- results$failed + 1
+        if (verbose) cat(" ERROR\n")
       }
-      
-      if (verbose) cat(sprintf(" %.2fs\n", exec_time))
-    }, error = function(e) {
-      results$failed <- results$failed + 1
-      if (verbose) cat(" ERROR\n")
-    })
+    )
   }
-  
+
   return(results)
 }
 
@@ -902,47 +968,61 @@ validate_performance <- function(config, verbose = TRUE) {
 #' @return Character vector of recommendations
 generate_recommendations <- function(report) {
   recommendations <- character()
-  
+
   # Check overall pass rate
   pass_rate <- report$summary$passed / report$summary$total_tests
   if (pass_rate < 0.9) {
-    recommendations <- c(recommendations, 
-      sprintf("Overall pass rate is %.1f%%. Consider investigating failed tests.", 
-              pass_rate * 100))
+    recommendations <- c(
+      recommendations,
+      sprintf(
+        "Overall pass rate is %.1f%%. Consider investigating failed tests.",
+        pass_rate * 100
+      )
+    )
   }
-  
+
   # Check for category-specific issues
   for (category in names(report$categories)) {
     cat_result <- report$categories[[category]]
     if (cat_result$failed > 0) {
-      recommendations <- c(recommendations,
-        sprintf("%s tests have %d failures. Review implementation.", 
-                category, cat_result$failed))
+      recommendations <- c(
+        recommendations,
+        sprintf(
+          "%s tests have %d failures. Review implementation.",
+          category, cat_result$failed
+        )
+      )
     }
   }
-  
+
   # Check edge cases
   if (!is.null(report$edge_cases) && report$edge_cases$failed > 0) {
-    recommendations <- c(recommendations,
-      "Edge case handling needs improvement. Review error handling code.")
+    recommendations <- c(
+      recommendations,
+      "Edge case handling needs improvement. Review error handling code."
+    )
   }
-  
+
   # Check performance
   if (!is.null(report$performance_tests)) {
     slow_tests <- names(report$performance_tests$timings)[
       report$performance_tests$timings > 5
     ]
     if (length(slow_tests) > 0) {
-      recommendations <- c(recommendations,
-        sprintf("Performance optimization needed for: %s", 
-                paste(slow_tests, collapse = ", ")))
+      recommendations <- c(
+        recommendations,
+        sprintf(
+          "Performance optimization needed for: %s",
+          paste(slow_tests, collapse = ", ")
+        )
+      )
     }
   }
-  
+
   if (length(recommendations) == 0) {
     recommendations <- "All validations passed successfully. No issues found."
   }
-  
+
   return(recommendations)
 }
 
@@ -957,12 +1037,14 @@ print_validation_summary <- function(report) {
   cat("Execution time:", format(report$performance$execution_time), "\n")
   cat("\nTest Results:\n")
   cat(sprintf("  Total tests: %d\n", report$summary$total_tests))
-  cat(sprintf("  Passed: %d (%.1f%%)\n", 
-              report$summary$passed, 
-              100 * report$summary$passed / report$summary$total_tests))
+  cat(sprintf(
+    "  Passed: %d (%.1f%%)\n",
+    report$summary$passed,
+    100 * report$summary$passed / report$summary$total_tests
+  ))
   cat(sprintf("  Failed: %d\n", report$summary$failed))
   cat(sprintf("  Warnings: %d\n", report$summary$warnings))
-  
+
   cat("\nRecommendations:\n")
   for (rec in report$recommendations) {
     cat("  -", rec, "\n")
@@ -976,7 +1058,7 @@ print_validation_summary <- function(report) {
 #' @param val List of modifications
 #' @return Modified list
 modifyList <- function(x, val) {
-  modifyList <- function (x, val, keep.null = FALSE) {
+  modifyList <- function(x, val, keep.null = FALSE) {
     stopifnot(is.list(x), is.list(val))
     xnames <- names(x)
     vnames <- names(val)

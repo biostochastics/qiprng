@@ -21,13 +21,13 @@ generate_and_cleanup <- function(i) {
     use_threading = TRUE,
     debug = FALSE
   ))
-  
+
   cat("Thread", i, "generating values\n")
   values <- generatePRNG(10000)
-  
+
   cat("Thread", i, "cleaning up\n")
   cleanupPRNG()
-  
+
   cat("Thread", i, "done\n")
   return(mean(values))
 }
@@ -46,8 +46,8 @@ createPRNG(list(
   normal_method = "ziggurat",
   use_threading = TRUE,
   debug = FALSE,
-  buffer_size = 1024 * 16,  # Large buffer to trigger parallel filling
-  use_parallel_filling = TRUE  # Enable parallel buffer filling
+  buffer_size = 1024 * 16, # Large buffer to trigger parallel filling
+  use_parallel_filling = TRUE # Enable parallel buffer filling
 ))
 
 cat("Generating 1 million values...\n")
@@ -55,7 +55,7 @@ start_time <- Sys.time()
 values <- generatePRNG(1000000)
 end_time <- Sys.time()
 
-cat("Generation completed in", difftime(end_time, start_time, units="secs"), "seconds\n")
+cat("Generation completed in", difftime(end_time, start_time, units = "secs"), "seconds\n")
 cat("Mean:", mean(values), "SD:", sd(values), "\n")
 
 cat("Cleaning up...\n")

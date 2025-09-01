@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## Version 0.5.5 (2025-09-01)
+
+### Security Enhancements
+- **Critical**: Replaced weak `std::random_device` with libsodium's `randombytes_buf()` for cryptographically secure seed generation
+- **Input Validation**: Added comprehensive bounds checking and overflow protection in `rcpp_exports.cpp`
+- **Warning System**: Added clear warnings when using deterministic seeds with crypto mixing
+
+### Code Quality & Formatting
+- **C++ Formatting**: Implemented Google C++ Style Guide via clang-format with Rcpp customizations
+- **R Formatting**: Applied tidyverse style guide using styler package
+- **Build System**: Added `Makefile.format` for unified formatting workflow
+- **Configuration Files**: Created `.clang-format`, `.clang-format-ignore`, and `.Rprofile` for consistent code style
+
+### Bug Fixes
+- Fixed syntax errors in R test files (`basic_verify.R`, `final_verify.R`, `verify_thread_safety.R`)
+- Removed macOS resource fork files from test directory
+
+### Testing
+- Verified package builds and installs correctly with all security fixes
+- Confirmed libsodium initialization and secure random generation working
+- All formatted code passes compilation and runtime tests
+
 ## Version 0.5.4 (2025-08-29)
 
 ### 🔒 Critical Thread Safety Fixes

@@ -8,11 +8,11 @@ cat("\n===== Testing thread safety of discriminant selection =====\n\n")
 # Configure PRNG for normal distribution with threading enabled
 cfg <- list(
   distribution = "normal",
-  normal_method = "ziggurat",  # Test the ziggurat method
-  use_csv_discriminants = TRUE,  # Test discriminant selection
-  use_threading = TRUE,          # Enable thread-local PRNG
-  use_parallel_filling = TRUE,   # Test parallel filling
-  debug = TRUE                   # Enable debug output
+  normal_method = "ziggurat", # Test the ziggurat method
+  use_csv_discriminants = TRUE, # Test discriminant selection
+  use_threading = TRUE, # Enable thread-local PRNG
+  use_parallel_filling = TRUE, # Test parallel filling
+  debug = TRUE # Enable debug output
 )
 
 cat("Creating PRNG with threading and parallel filling enabled...\n")

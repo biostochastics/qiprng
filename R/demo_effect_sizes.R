@@ -13,17 +13,15 @@ generators <- list(
     func = function(n) runif(n),
     description = "R's built-in uniform RNG"
   ),
-  
   biased_rng = list(
     name = "Biased RNG",
     func = function(n) {
       # Slightly biased towards higher values
       x <- runif(n)
-      x^0.9  # Subtle bias
+      x^0.9 # Subtle bias
     },
     description = "RNG with subtle bias towards higher values"
   ),
-  
   poor_rng = list(
     name = "Poor RNG",
     func = function(n) {
@@ -40,11 +38,11 @@ cat("=== Testing RNGs with Effect Size Calculations ===\n\n")
 
 for (gen_name in names(generators)) {
   gen <- generators[[gen_name]]
-  
+
   cat(sprintf("\nTesting: %s\n", gen$name))
   cat(sprintf("Description: %s\n", gen$description))
   cat(rep("-", 60), "\n", sep = "")
-  
+
   # Create minimal test suite
   suite <- list(
     prng_func = gen$func,
@@ -56,28 +54,30 @@ for (gen_name in names(generators)) {
     ),
     results = list()
   )
-  
+
   # Run basic tests
   suite <- run_basic_tests(suite)
-  
+
   # Display results with effect sizes
   tests <- c("ks_test", "chi_squared", "mean_test", "variance_test", "min_test", "max_test")
-  
+
   for (test_name in tests) {
     test_result <- suite$results$basic[[test_name]]
     if (!is.null(test_result)) {
       cat(sprintf("\n%s:\n", test_result$description))
       cat(sprintf("  Result: %s\n", test_result$result))
       cat(sprintf("  p-value: %.4f\n", test_result$p_value))
-      
+
       if (!is.null(test_result$effect_size) && !is.na(test_result$effect_size)) {
-        cat(sprintf("  Effect size: %.4f (%s)\n", 
-                   test_result$effect_size,
-                   test_result$effect_size_interpretation))
+        cat(sprintf(
+          "  Effect size: %.4f (%s)\n",
+          test_result$effect_size,
+          test_result$effect_size_interpretation
+        ))
       }
     }
   }
-  
+
   cat("\n")
 }
 
@@ -95,7 +95,7 @@ for (d in d_values) {
 cat("\nCramér's V (chi-squared tests):\n")
 v_values <- c(0.05, 0.15, 0.35, 0.6)
 for (v in v_values) {
-  interp <- interpret_effect_size(v, type = "v", df = 19)  # 20 bins - 1
+  interp <- interpret_effect_size(v, type = "v", df = 19) # 20 bins - 1
   cat(sprintf("  V = %.2f: %s (df=19)\n", v, interp))
 }
 

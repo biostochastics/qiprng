@@ -36,5 +36,4 @@ for (i in 1:iterations) {
 }
 
 cat("\n===== All iterations completed successfully =====\n")
-cat("Thread safety in Ziggurat is confirmed\!\n")
-EOL < /dev/null
+cat("Thread safety in Ziggurat is confirmed!\n")

@@ -20,24 +20,24 @@
 NULL
 
 #' Result aggregator class
-#' 
+#'
 #' @export
 ResultAggregator <- R6::R6Class("ResultAggregator",
   public = list(
     #' @field results Aggregated results
     results = NULL,
-    
+
     #' @field config Aggregator configuration
     config = NULL,
-    
+
     #' @field statistics Summary statistics
     statistics = NULL,
-    
+
     #' @field errors Collection of errors
     errors = NULL,
-    
+
     #' Initialize result aggregator
-    #' 
+    #'
     #' @param config Configuration options
     initialize = function(config = list()) {
       self$config <- merge_aggregator_config(config)
@@ -50,9 +50,9 @@ ResultAggregator <- R6::R6Class("ResultAggregator",
       self$statistics <- list()
       self$errors <- list()
     },
-    
+
     #' Add test result
-    #' 
+    #'
     #' @param category Test category
     #' @param test_name Test name
     #' @param result Test result object
@@ -63,25 +63,25 @@ ResultAggregator <- R6::R6Class("ResultAggregator",
         self$results$raw[[category]] <- list()
       }
       self$results$raw[[category]][[test_name]] <- result
-      
+
       # Process and aggregate
       processed <- private$process_result(result, test_name, category)
-      
+
       # Add to category aggregation
       if (!category %in% names(self$results$by_category)) {
         self$results$by_category[[category]] <- private$init_category_stats()
       }
       private$update_category_stats(category, processed)
-      
+
       # Add to test aggregation
       if (!test_name %in% names(self$results$by_test)) {
         self$results$by_test[[test_name]] <- list()
       }
       self$results$by_test[[test_name]][[category]] <- processed
-      
+
       # Update overall statistics
       private$update_overall_stats(processed)
-      
+
       # Store metadata if provided
       if (!is.null(metadata)) {
         if (is.null(self$results$metadata)) {
@@ -90,9 +90,9 @@ ResultAggregator <- R6::R6Class("ResultAggregator",
         self$results$metadata[[paste(category, test_name, sep = "_")]] <- metadata
       }
     },
-    
+
     #' Add error
-    #' 
+    #'
     #' @param category Test category
     #' @param test_name Test name
     #' @param error Error message or condition
@@ -105,19 +105,19 @@ ResultAggregator <- R6::R6Class("ResultAggregator",
         error = as.character(error),
         severity = severity
       )
-      
+
       self$errors[[length(self$errors) + 1]] <- error_entry
-      
+
       # Update statistics
       if (!category %in% names(self$results$by_category)) {
         self$results$by_category[[category]] <- private$init_category_stats()
       }
-      self$results$by_category[[category]]$error_count <- 
+      self$results$by_category[[category]]$error_count <-
         self$results$by_category[[category]]$error_count + 1
     },
-    
+
     #' Aggregate results from multiple sources
-    #' 
+    #'
     #' @param result_list List of results to aggregate
     #' @param parallel Whether results come from parallel execution
     aggregate_batch = function(result_list, parallel = FALSE) {
@@ -131,7 +131,7 @@ ResultAggregator <- R6::R6Class("ResultAggregator",
               }
             }
           }
-          
+
           # Handle errors from workers
           if (!is.null(worker_results$errors)) {
             for (error in worker_results$errors) {
@@ -147,25 +147,25 @@ ResultAggregator <- R6::R6Class("ResultAggregator",
           }
         }
       }
-      
+
       # Recompute statistics
       self$compute_statistics()
     },
-    
+
     #' Compute summary statistics
     compute_statistics = function() {
       # Overall pass rate
       total_tests <- 0
       passed_tests <- 0
       failed_tests <- 0
-      
+
       for (cat in names(self$results$by_category)) {
         cat_stats <- self$results$by_category[[cat]]
         total_tests <- total_tests + cat_stats$total_tests
         passed_tests <- passed_tests + cat_stats$passed_tests
         failed_tests <- failed_tests + cat_stats$failed_tests
       }
-      
+
       self$statistics$overall <- list(
         total_tests = total_tests,
         passed_tests = passed_tests,
@@ -175,26 +175,38 @@ ResultAggregator <- R6::R6Class("ResultAggregator",
         categories_tested = length(self$results$by_category),
         unique_tests = length(self$results$by_test)
       )
-      
+
       # Category-level statistics
       self$statistics$by_category <- lapply(self$results$by_category, function(cat_stats) {
         list(
-          pass_rate = if (cat_stats$total_tests > 0) 
-            cat_stats$passed_tests / cat_stats$total_tests else NA,
-          avg_p_value = if (length(cat_stats$p_values) > 0)
-            mean(cat_stats$p_values, na.rm = TRUE) else NA,
-          min_p_value = if (length(cat_stats$p_values) > 0)
-            min(cat_stats$p_values, na.rm = TRUE) else NA,
-          error_rate = if (cat_stats$total_tests > 0)
-            cat_stats$error_count / cat_stats$total_tests else NA
+          pass_rate = if (cat_stats$total_tests > 0) {
+            cat_stats$passed_tests / cat_stats$total_tests
+          } else {
+            NA
+          },
+          avg_p_value = if (length(cat_stats$p_values) > 0) {
+            mean(cat_stats$p_values, na.rm = TRUE)
+          } else {
+            NA
+          },
+          min_p_value = if (length(cat_stats$p_values) > 0) {
+            min(cat_stats$p_values, na.rm = TRUE)
+          } else {
+            NA
+          },
+          error_rate = if (cat_stats$total_tests > 0) {
+            cat_stats$error_count / cat_stats$total_tests
+          } else {
+            NA
+          }
         )
       })
-      
+
       # Test-level statistics
       self$statistics$by_test <- lapply(self$results$by_test, function(test_results) {
         p_values <- sapply(test_results, function(r) r$p_value)
         p_values <- p_values[!is.na(p_values)]
-        
+
         list(
           categories_run = length(test_results),
           avg_p_value = if (length(p_values) > 0) mean(p_values) else NA,
@@ -203,11 +215,11 @@ ResultAggregator <- R6::R6Class("ResultAggregator",
           consistency = if (length(p_values) > 1) 1 - sd(p_values) else NA
         )
       })
-      
+
       # Distribution of p-values
       all_p_values <- unlist(lapply(self$results$by_category, function(cat) cat$p_values))
       all_p_values <- all_p_values[!is.na(all_p_values)]
-      
+
       if (length(all_p_values) > 0) {
         self$statistics$p_value_distribution <- list(
           mean = mean(all_p_values),
@@ -218,16 +230,16 @@ ResultAggregator <- R6::R6Class("ResultAggregator",
         )
       }
     },
-    
+
     #' Get summary report
-    #' 
+    #'
     #' @param format Output format: "text", "data.frame", "list"
     #' @return Summary report in requested format
     get_summary = function(format = "list") {
       if (is.null(self$statistics$overall)) {
         self$compute_statistics()
       }
-      
+
       if (format == "text") {
         return(private$format_text_summary())
       } else if (format == "data.frame") {
@@ -236,9 +248,9 @@ ResultAggregator <- R6::R6Class("ResultAggregator",
         return(self$statistics)
       }
     },
-    
+
     #' Get results by category
-    #' 
+    #'
     #' @param category Category name (NULL for all)
     #' @return Results for specified category
     get_category_results = function(category = NULL) {
@@ -248,9 +260,9 @@ ResultAggregator <- R6::R6Class("ResultAggregator",
         return(self$results$by_category[[category]])
       }
     },
-    
+
     #' Get results by test
-    #' 
+    #'
     #' @param test_name Test name (NULL for all)
     #' @return Results for specified test
     get_test_results = function(test_name = NULL) {
@@ -260,13 +272,13 @@ ResultAggregator <- R6::R6Class("ResultAggregator",
         return(self$results$by_test[[test_name]])
       }
     },
-    
+
     #' Get failed tests
-    #' 
+    #'
     #' @return List of failed tests with details
     get_failed_tests = function() {
       failed <- list()
-      
+
       for (cat in names(self$results$raw)) {
         for (test in names(self$results$raw[[cat]])) {
           result <- self$results$raw[[cat]][[test]]
@@ -280,12 +292,12 @@ ResultAggregator <- R6::R6Class("ResultAggregator",
           }
         }
       }
-      
+
       return(failed)
     },
-    
+
     #' Export results
-    #' 
+    #'
     #' @param file Path to export file
     #' @param format Export format: "json", "csv", "rds"
     export_results = function(file, format = "json") {
@@ -310,7 +322,6 @@ ResultAggregator <- R6::R6Class("ResultAggregator",
       }
     }
   ),
-  
   private = list(
     # Initialize category statistics
     init_category_stats = function() {
@@ -324,7 +335,7 @@ ResultAggregator <- R6::R6Class("ResultAggregator",
         execution_times = numeric()
       )
     },
-    
+
     # Process individual result
     process_result = function(result, test_name, category) {
       processed <- list(
@@ -335,25 +346,25 @@ ResultAggregator <- R6::R6Class("ResultAggregator",
         statistic = result$statistic,
         timestamp = Sys.time()
       )
-      
+
       # Extract additional fields if present
       if (!is.null(result$details)) {
         processed$details <- result$details
       }
-      
+
       if (!is.null(result$execution_time)) {
         processed$execution_time <- result$execution_time
       }
-      
+
       return(processed)
     },
-    
+
     # Update category statistics
     update_category_stats = function(category, processed_result) {
       cat_stats <- self$results$by_category[[category]]
-      
+
       cat_stats$total_tests <- cat_stats$total_tests + 1
-      
+
       if (!is.null(processed_result$result)) {
         if (processed_result$result == "PASS") {
           cat_stats$passed_tests <- cat_stats$passed_tests + 1
@@ -361,22 +372,22 @@ ResultAggregator <- R6::R6Class("ResultAggregator",
           cat_stats$failed_tests <- cat_stats$failed_tests + 1
         }
       }
-      
+
       if (!is.null(processed_result$p_value) && !is.na(processed_result$p_value)) {
         cat_stats$p_values <- c(cat_stats$p_values, processed_result$p_value)
       }
-      
+
       if (!is.null(processed_result$statistic) && !is.na(processed_result$statistic)) {
         cat_stats$statistics <- c(cat_stats$statistics, processed_result$statistic)
       }
-      
+
       if (!is.null(processed_result$execution_time)) {
         cat_stats$execution_times <- c(cat_stats$execution_times, processed_result$execution_time)
       }
-      
+
       self$results$by_category[[category]] <- cat_stats
     },
-    
+
     # Update overall statistics
     update_overall_stats = function(processed_result) {
       if (is.null(self$results$overall$total_tests)) {
@@ -387,9 +398,9 @@ ResultAggregator <- R6::R6Class("ResultAggregator",
           all_p_values = numeric()
         )
       }
-      
+
       self$results$overall$total_tests <- self$results$overall$total_tests + 1
-      
+
       if (!is.null(processed_result$result)) {
         if (processed_result$result == "PASS") {
           self$results$overall$passed_tests <- self$results$overall$passed_tests + 1
@@ -397,51 +408,57 @@ ResultAggregator <- R6::R6Class("ResultAggregator",
           self$results$overall$failed_tests <- self$results$overall$failed_tests + 1
         }
       }
-      
+
       if (!is.null(processed_result$p_value) && !is.na(processed_result$p_value)) {
         self$results$overall$all_p_values <- c(self$results$overall$all_p_values, processed_result$p_value)
       }
     },
-    
+
     # Format text summary
     format_text_summary = function() {
       lines <- character()
-      
+
       lines <- c(lines, "PRNG Test Suite Summary")
       lines <- c(lines, paste(rep("=", 50), collapse = ""))
-      
+
       # Overall statistics
       lines <- c(lines, sprintf("Total Tests: %d", self$statistics$overall$total_tests))
-      lines <- c(lines, sprintf("Passed: %d (%.1f%%)", 
-                               self$statistics$overall$passed_tests,
-                               self$statistics$overall$pass_rate * 100))
+      lines <- c(lines, sprintf(
+        "Passed: %d (%.1f%%)",
+        self$statistics$overall$passed_tests,
+        self$statistics$overall$pass_rate * 100
+      ))
       lines <- c(lines, sprintf("Failed: %d", self$statistics$overall$failed_tests))
       lines <- c(lines, sprintf("Errors: %d", self$statistics$overall$error_count))
       lines <- c(lines, "")
-      
+
       # Category breakdown
       lines <- c(lines, "Results by Category:")
       for (cat in names(self$statistics$by_category)) {
         cat_stats <- self$statistics$by_category[[cat]]
-        lines <- c(lines, sprintf("  %s: %.1f%% pass rate (avg p-value: %.3f)",
-                                 cat, 
-                                 cat_stats$pass_rate * 100,
-                                 cat_stats$avg_p_value))
+        lines <- c(lines, sprintf(
+          "  %s: %.1f%% pass rate (avg p-value: %.3f)",
+          cat,
+          cat_stats$pass_rate * 100,
+          cat_stats$avg_p_value
+        ))
       }
-      
+
       # P-value distribution
       if (!is.null(self$statistics$p_value_distribution)) {
         lines <- c(lines, "")
         lines <- c(lines, "P-value Distribution:")
         lines <- c(lines, sprintf("  Mean: %.3f", self$statistics$p_value_distribution$mean))
         lines <- c(lines, sprintf("  Median: %.3f", self$statistics$p_value_distribution$median))
-        lines <- c(lines, sprintf("  Uniformity test p-value: %.3f", 
-                                 self$statistics$p_value_distribution$uniformity_test))
+        lines <- c(lines, sprintf(
+          "  Uniformity test p-value: %.3f",
+          self$statistics$p_value_distribution$uniformity_test
+        ))
       }
-      
+
       return(paste(lines, collapse = "\n"))
     },
-    
+
     # Format data frame summary
     format_df_summary = function() {
       # Create category summary
@@ -449,13 +466,13 @@ ResultAggregator <- R6::R6Class("ResultAggregator",
         category = names(self$results$by_category),
         stringsAsFactors = FALSE
       )
-      
+
       cat_data$total_tests <- sapply(self$results$by_category, function(x) x$total_tests)
       cat_data$passed_tests <- sapply(self$results$by_category, function(x) x$passed_tests)
       cat_data$failed_tests <- sapply(self$results$by_category, function(x) x$failed_tests)
       cat_data$pass_rate <- sapply(self$statistics$by_category, function(x) x$pass_rate)
       cat_data$avg_p_value <- sapply(self$statistics$by_category, function(x) x$avg_p_value)
-      
+
       return(cat_data)
     }
   )
@@ -474,18 +491,18 @@ default_aggregator_config <- list(
 #' @keywords internal
 merge_aggregator_config <- function(config) {
   merged <- default_aggregator_config
-  
+
   for (name in names(config)) {
     if (name %in% names(merged)) {
       merged[[name]] <- config[[name]]
     }
   }
-  
+
   return(merged)
 }
 
 #' Create result aggregator for test suite
-#' 
+#'
 #' @param suite Test suite object
 #' @param config Configuration options
 #' @export
@@ -495,26 +512,26 @@ create_test_result_aggregator <- function(suite, config = NULL) {
   if (is.null(aggregator_config)) {
     aggregator_config <- list()
   }
-  
+
   # Add suite-specific configuration
   if (!is.null(suite$config$track_execution_time)) {
     aggregator_config$track_execution_time <- suite$config$track_execution_time
   }
-  
+
   # Create aggregator
   aggregator <- ResultAggregator$new(aggregator_config)
-  
+
   return(aggregator)
 }
 
 #' Aggregate results from parallel execution
-#' 
+#'
 #' @param results List of results from parallel workers
 #' @param suite Test suite object
 #' @export
 aggregate_parallel_results <- function(results, suite = NULL) {
   aggregator <- ResultAggregator$new()
-  
+
   # Process each worker's results
   for (worker_result in results) {
     if (is.list(worker_result) && !is.null(worker_result$category)) {
@@ -536,9 +553,9 @@ aggregate_parallel_results <- function(results, suite = NULL) {
       }
     }
   }
-  
+
   # Compute final statistics
   aggregator$compute_statistics()
-  
+
   return(aggregator)
 }

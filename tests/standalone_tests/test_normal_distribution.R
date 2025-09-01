@@ -42,8 +42,10 @@ cat("Range: [", min_val, ",", max_val, "]\n")
 # Generate histogram to visualize distribution
 if (!all_identical) {
   cat("\nGenerating histogram of values...\n")
-  hist(normal_values, breaks=50, main="Normal Distribution Test", 
-       xlab="Value", col="lightblue", border="white")
+  hist(normal_values,
+    breaks = 50, main = "Normal Distribution Test",
+    xlab = "Value", col = "lightblue", border = "white"
+  )
 }
 
 # Test with threading enabled

@@ -27,32 +27,32 @@ if (config_manager_path == "") {
 run_external_tests_enhanced <- function(suite, config_file = NULL, tools = NULL) {
   # Load configuration
   config <- load_config(config_file)
-  
+
   # Generate random numbers
   n <- suite$config$external_sample_size
   x <- suite$prng_func(n)
-  
+
   # Initialize results
   suite$results$external <- list()
   suite$results$external_enhanced <- list()
-  
+
   # Determine which tools to run
   if (is.null(tools)) {
     tools <- names(config)[sapply(config, function(tc) isTRUE(tc$enabled))]
   }
-  
+
   # Create temporary directory for test files
   temp_dir <- tempfile("qiprng_external_")
   dir.create(temp_dir)
   on.exit(unlink(temp_dir, recursive = TRUE), add = TRUE)
-  
+
   # Run each enabled tool
   for (tool in tools) {
     if (!tool %in% names(config)) {
       warning(paste("Tool", tool, "not found in configuration"))
       next
     }
-    
+
     if (!validate_tool_config(tool, config)) {
       suite$results$external_enhanced[[tool]] <- list(
         description = paste(toupper(tool), "Test Suite"),
@@ -61,7 +61,7 @@ run_external_tests_enhanced <- function(suite, config_file = NULL, tools = NULL)
       )
       next
     }
-    
+
     # Run tool-specific tests
     suite <- switch(tool,
       dieharder = run_dieharder_enhanced(suite, x, config, temp_dir),
@@ -75,22 +75,23 @@ run_external_tests_enhanced <- function(suite, config_file = NULL, tools = NULL)
       }
     )
   }
-  
+
   # Run wrapper-based tests (backward compatibility)
-  suite <- run_external_wrapper_tests(suite, 
-                                      include_cryptrndtest = TRUE,
-                                      include_randtests = TRUE)
-  
+  suite <- run_external_wrapper_tests(suite,
+    include_cryptrndtest = TRUE,
+    include_randtests = TRUE
+  )
+
   # Merge results
   if (!is.null(suite$results$external_wrappers)) {
     merge_wrapper_results(suite)
   }
-  
+
   # Generate enhanced visualizations if requested
   if (suite$config$save_visualizations) {
     suite <- visualize_external_tests_enhanced(suite, x)
   }
-  
+
   return(suite)
 }
 
@@ -98,42 +99,45 @@ run_external_tests_enhanced <- function(suite, config_file = NULL, tools = NULL)
 #' @keywords internal
 run_dieharder_enhanced <- function(suite, x, config, temp_dir) {
   tool_config <- config$dieharder
-  
+
   # Write data to file
   data_file <- file.path(temp_dir, "dieharder_input.dat")
   write_binary_data(x, data_file)
-  
+
   # Build command
   cmd <- build_tool_command("dieharder", data_file, config = config)
-  
+
   # Run tests
   if (suite$config$verbose) {
     message("Running Dieharder tests...")
   }
-  
-  tryCatch({
-    output <- system(cmd, intern = TRUE)
-    results <- parse_dieharder_output(output)
-    
-    suite$results$external_enhanced$dieharder <- list(
-      description = "Dieharder Test Suite",
-      result = calculate_overall_result(results),
-      total_tests = length(results),
-      passed = sum(sapply(results, function(r) r$result == "PASS")),
-      failed = sum(sapply(results, function(r) r$result == "FAIL")),
-      weak = sum(sapply(results, function(r) r$result == "WEAK")),
-      details = results,
-      command = cmd
-    )
-  }, error = function(e) {
-    suite$results$external_enhanced$dieharder <- list(
-      description = "Dieharder Test Suite",
-      result = "ERROR",
-      details = paste("Error running Dieharder:", e$message),
-      command = cmd
-    )
-  })
-  
+
+  tryCatch(
+    {
+      output <- system(cmd, intern = TRUE)
+      results <- parse_dieharder_output(output)
+
+      suite$results$external_enhanced$dieharder <- list(
+        description = "Dieharder Test Suite",
+        result = calculate_overall_result(results),
+        total_tests = length(results),
+        passed = sum(sapply(results, function(r) r$result == "PASS")),
+        failed = sum(sapply(results, function(r) r$result == "FAIL")),
+        weak = sum(sapply(results, function(r) r$result == "WEAK")),
+        details = results,
+        command = cmd
+      )
+    },
+    error = function(e) {
+      suite$results$external_enhanced$dieharder <- list(
+        description = "Dieharder Test Suite",
+        result = "ERROR",
+        details = paste("Error running Dieharder:", e$message),
+        command = cmd
+      )
+    }
+  )
+
   return(suite)
 }
 
@@ -141,7 +145,7 @@ run_dieharder_enhanced <- function(suite, x, config, temp_dir) {
 #' @keywords internal
 run_ent_enhanced <- function(suite, x, config, temp_dir) {
   tool_config <- config$ent
-  
+
   # Write data to file
   data_file <- file.path(temp_dir, "ent_input.dat")
   if (isTRUE(tool_config$parameters$binary_mode)) {
@@ -149,39 +153,42 @@ run_ent_enhanced <- function(suite, x, config, temp_dir) {
   } else {
     write_text_data(x, data_file)
   }
-  
+
   # Build command
   cmd <- build_tool_command("ent", data_file, config = config)
-  
+
   # Run tests
   if (suite$config$verbose) {
     message("Running ENT tests...")
   }
-  
-  tryCatch({
-    output <- system(cmd, intern = TRUE)
-    results <- parse_ent_output(output)
-    
-    suite$results$external_enhanced$ent <- list(
-      description = "ENT - Entropy Test",
-      result = evaluate_ent_results(results),
-      entropy = results$entropy,
-      chi_square = results$chi_square,
-      arithmetic_mean = results$arithmetic_mean,
-      monte_carlo_pi = results$monte_carlo_pi,
-      serial_correlation = results$serial_correlation,
-      details = results,
-      command = cmd
-    )
-  }, error = function(e) {
-    suite$results$external_enhanced$ent <- list(
-      description = "ENT - Entropy Test",
-      result = "ERROR",
-      details = paste("Error running ENT:", e$message),
-      command = cmd
-    )
-  })
-  
+
+  tryCatch(
+    {
+      output <- system(cmd, intern = TRUE)
+      results <- parse_ent_output(output)
+
+      suite$results$external_enhanced$ent <- list(
+        description = "ENT - Entropy Test",
+        result = evaluate_ent_results(results),
+        entropy = results$entropy,
+        chi_square = results$chi_square,
+        arithmetic_mean = results$arithmetic_mean,
+        monte_carlo_pi = results$monte_carlo_pi,
+        serial_correlation = results$serial_correlation,
+        details = results,
+        command = cmd
+      )
+    },
+    error = function(e) {
+      suite$results$external_enhanced$ent <- list(
+        description = "ENT - Entropy Test",
+        result = "ERROR",
+        details = paste("Error running ENT:", e$message),
+        command = cmd
+      )
+    }
+  )
+
   return(suite)
 }
 
@@ -203,10 +210,10 @@ write_text_data <- function(x, file_path) {
 #' @keywords internal
 parse_dieharder_output <- function(output) {
   results <- list()
-  
+
   # Look for test result lines
   result_pattern <- "^\\s*([^|]+)\\|\\s*(\\d+)\\|\\s*([\\d.]+)\\|\\s*([\\d.]+)\\|\\s*(PASSED|WEAK|FAILED)"
-  
+
   for (line in output) {
     if (grepl(result_pattern, line)) {
       matches <- regmatches(line, regexec(result_pattern, line))[[1]]
@@ -222,7 +229,7 @@ parse_dieharder_output <- function(output) {
       }
     }
   }
-  
+
   return(results)
 }
 
@@ -230,7 +237,7 @@ parse_dieharder_output <- function(output) {
 #' @keywords internal
 parse_ent_output <- function(output) {
   results <- list()
-  
+
   for (line in output) {
     if (grepl("Entropy =", line)) {
       results$entropy <- as.numeric(gsub(".*Entropy = ([\\d.]+).*", "\\1", line))
@@ -250,20 +257,26 @@ parse_ent_output <- function(output) {
       results$serial_correlation <- as.numeric(gsub(".*coefficient is ([\\d.-]+).*", "\\1", line))
     }
   }
-  
+
   return(results)
 }
 
 #' Calculate overall result from individual test results
 #' @keywords internal
 calculate_overall_result <- function(results) {
-  if (length(results) == 0) return("ERROR")
-  
+  if (length(results) == 0) {
+    return("ERROR")
+  }
+
   failed <- sum(sapply(results, function(r) r$result == "FAIL"))
   weak <- sum(sapply(results, function(r) r$result == "WEAK"))
-  
-  if (failed > 0) return("FAIL")
-  if (weak > 2) return("WEAK")  # Allow up to 2 weak results
+
+  if (failed > 0) {
+    return("FAIL")
+  }
+  if (weak > 2) {
+    return("WEAK")
+  } # Allow up to 2 weak results
   return("PASS")
 }
 
@@ -275,17 +288,17 @@ evaluate_ent_results <- function(results) {
   ideal_mean <- 127.5
   ideal_chi_square_percent <- 50.0
   ideal_serial_correlation <- 0.0
-  
+
   # Calculate deviations
   entropy_ok <- !is.null(results$entropy) && results$entropy > 7.9
-  mean_ok <- !is.null(results$arithmetic_mean) && 
-             abs(results$arithmetic_mean - ideal_mean) < 10
-  chi_square_ok <- !is.null(results$chi_square) && 
-                   results$chi_square$percent > 10 && 
-                   results$chi_square$percent < 90
-  correlation_ok <- !is.null(results$serial_correlation) && 
-                    abs(results$serial_correlation) < 0.1
-  
+  mean_ok <- !is.null(results$arithmetic_mean) &&
+    abs(results$arithmetic_mean - ideal_mean) < 10
+  chi_square_ok <- !is.null(results$chi_square) &&
+    results$chi_square$percent > 10 &&
+    results$chi_square$percent < 90
+  correlation_ok <- !is.null(results$serial_correlation) &&
+    abs(results$serial_correlation) < 0.1
+
   if (all(c(entropy_ok, mean_ok, chi_square_ok, correlation_ok))) {
     return("PASS")
   } else if (sum(c(entropy_ok, mean_ok, chi_square_ok, correlation_ok)) >= 3) {
@@ -299,14 +312,14 @@ evaluate_ent_results <- function(results) {
 #' @keywords internal
 merge_wrapper_results <- function(suite) {
   wrapper_results <- suite$results$external_wrappers
-  
+
   # Add CryptRndTest results
   if (!is.null(wrapper_results$cryptrndtest)) {
     for (test_name in names(wrapper_results$cryptrndtest)) {
       suite$results$external[[test_name]] <- wrapper_results$cryptrndtest[[test_name]]
     }
   }
-  
+
   # Add randtests results
   if (!is.null(wrapper_results$randtests)) {
     for (test_name in names(wrapper_results$randtests)) {
@@ -321,21 +334,21 @@ visualize_external_tests_enhanced <- function(suite, x) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     return(suite)
   }
-  
+
   # Set up output directory
   output_dir <- file.path(suite$config$output_dir, "visualizations", "external_enhanced")
   if (!dir.exists(output_dir)) {
     dir.create(output_dir, recursive = TRUE)
   }
-  
+
   # Create summary dashboard
   create_external_test_dashboard(suite, output_dir)
-  
+
   # Store visualization paths
   suite$visualizations$external_enhanced <- list(
     dashboard = file.path(output_dir, "external_test_dashboard.png")
   )
-  
+
   return(suite)
 }
 
@@ -349,7 +362,7 @@ create_external_test_dashboard <- function(suite, output_dir) {
     Result = character(),
     stringsAsFactors = FALSE
   )
-  
+
   # Enhanced results
   for (tool in names(suite$results$external_enhanced)) {
     tool_results <- suite$results$external_enhanced[[tool]]
@@ -360,7 +373,7 @@ create_external_test_dashboard <- function(suite, output_dir) {
       stringsAsFactors = FALSE
     ))
   }
-  
+
   # Regular external results
   for (test_name in names(suite$results$external)) {
     test <- suite$results$external[[test_name]]
@@ -371,14 +384,16 @@ create_external_test_dashboard <- function(suite, output_dir) {
       stringsAsFactors = FALSE
     ))
   }
-  
+
   if (nrow(test_summary) > 0) {
     # Create summary plot
     p <- ggplot2::ggplot(test_summary, ggplot2::aes(x = Test, y = Tool, fill = Result)) +
       ggplot2::geom_tile(color = "white", size = 1) +
       ggplot2::scale_fill_manual(
-        values = c("PASS" = "green", "FAIL" = "red", "WEAK" = "yellow", 
-                   "ERROR" = "gray", "SKIPPED" = "lightgray")
+        values = c(
+          "PASS" = "green", "FAIL" = "red", "WEAK" = "yellow",
+          "ERROR" = "gray", "SKIPPED" = "lightgray"
+        )
       ) +
       ggplot2::theme_minimal() +
       ggplot2::theme(
@@ -391,11 +406,12 @@ create_external_test_dashboard <- function(suite, output_dir) {
         y = "Tool",
         fill = "Result"
       )
-    
+
     # Save plot
     ggplot2::ggsave(
       file.path(output_dir, "external_test_dashboard.png"),
-      p, width = 12, height = 8
+      p,
+      width = 12, height = 8
     )
   }
 }

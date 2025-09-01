@@ -83,17 +83,17 @@ run_chi_square_test_with_config <- function(data, config = NULL) {
   if (is.null(config)) {
     config <- load_config()
   }
-  
+
   # Get test parameters from config
   bins <- get_test_param("classical_tests.chi_square.bins", config, default = 10)
   sig_level <- get_test_param("classical_tests.chi_square.significance_level", config, default = 0.01)
   min_count <- get_test_param("classical_tests.chi_square.min_expected_count", config, default = 5)
-  
+
   cat(sprintf("Running chi-square test with:\n"))
   cat(sprintf("  Bins: %d\n", bins))
   cat(sprintf("  Significance level: %.3f\n", sig_level))
   cat(sprintf("  Min expected count: %d\n", min_count))
-  
+
   # Test implementation would go here...
 }
 

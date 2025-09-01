@@ -8,12 +8,15 @@ cat("\n===== Test Reliability Improvement =====\n\n")
 # Helper function to ensure clean PRNG state for each test
 reset_prng_state <- function() {
   # Attempt to clean up any existing PRNG
-  tryCatch({
-    cleanup_prng()
-  }, error = function(e) {
-    # Ignore errors if no PRNG exists
-  })
-  
+  tryCatch(
+    {
+      cleanup_prng()
+    },
+    error = function(e) {
+      # Ignore errors if no PRNG exists
+    }
+  )
+
   # Force garbage collection to clean up resources
   gc()
 }
@@ -21,42 +24,45 @@ reset_prng_state <- function() {
 # Run a series of tests with isolated PRNG state
 run_isolated_test <- function(test_name, config) {
   cat(paste0("Running test: ", test_name, "...\n"))
-  
+
   # Reset PRNG state to ensure clean state
   reset_prng_state()
-  
+
   # Run the test with error handling
-  result <- tryCatch({
-    # Create PRNG with specified configuration
-    createPRNG(config)
-    
-    # Generate values
-    values <- generatePRNG(1000)
-    
-    # Calculate basic statistics
-    stats <- list(
-      mean = mean(values),
-      variance = var(values),
-      min = min(values),
-      max = max(values)
-    )
-    
-    # Clean up
-    cleanup_prng()
-    
-    # Return success with statistics
-    list(
-      success = TRUE,
-      stats = stats
-    )
-  }, error = function(e) {
-    # Return failure with error message
-    list(
-      success = FALSE,
-      error = e$message
-    )
-  })
-  
+  result <- tryCatch(
+    {
+      # Create PRNG with specified configuration
+      createPRNG(config)
+
+      # Generate values
+      values <- generatePRNG(1000)
+
+      # Calculate basic statistics
+      stats <- list(
+        mean = mean(values),
+        variance = var(values),
+        min = min(values),
+        max = max(values)
+      )
+
+      # Clean up
+      cleanup_prng()
+
+      # Return success with statistics
+      list(
+        success = TRUE,
+        stats = stats
+      )
+    },
+    error = function(e) {
+      # Return failure with error message
+      list(
+        success = FALSE,
+        error = e$message
+      )
+    }
+  )
+
   # Print results
   if (result$success) {
     cat(paste0("  Test completed successfully\n"))
@@ -66,10 +72,10 @@ run_isolated_test <- function(test_name, config) {
   } else {
     cat(paste0("  TEST FAILED: ", result$error, "\n"))
   }
-  
+
   # Ensure clean state before returning
   reset_prng_state()
-  
+
   cat("\n")
   return(result$success)
 }

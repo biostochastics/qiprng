@@ -8,24 +8,24 @@
 
 #' S3 class for test results
 #' @export
-test_result <- function(test_name, description, result, p_value = NULL, 
-                       statistic = NULL, details = NULL, data = NULL,
-                       category = "general", subcategory = NULL,
-                       p_adjusted = NULL, adjustment_method = NULL,
-                       effect_size = NULL, effect_size_interpretation = NULL) {
+test_result <- function(test_name, description, result, p_value = NULL,
+                        statistic = NULL, details = NULL, data = NULL,
+                        category = "general", subcategory = NULL,
+                        p_adjusted = NULL, adjustment_method = NULL,
+                        effect_size = NULL, effect_size_interpretation = NULL) {
   structure(
     list(
       test_name = test_name,
       description = description,
-      result = result,  # "PASS", "FAIL", "ERROR", "SKIP"
+      result = result, # "PASS", "FAIL", "ERROR", "SKIP"
       p_value = p_value,
-      p_adjusted = p_adjusted,  # Adjusted p-value after multiple testing correction
-      adjustment_method = adjustment_method,  # Method used for p-value adjustment
+      p_adjusted = p_adjusted, # Adjusted p-value after multiple testing correction
+      adjustment_method = adjustment_method, # Method used for p-value adjustment
       statistic = statistic,
-      effect_size = effect_size,  # Effect size measure (e.g., Cohen's d, Cramér's V)
-      effect_size_interpretation = effect_size_interpretation,  # e.g., "small", "medium", "large"
+      effect_size = effect_size, # Effect size measure (e.g., Cohen's d, Cramér's V)
+      effect_size_interpretation = effect_size_interpretation, # e.g., "small", "medium", "large"
       details = details,
-      data = data,  # Additional data (e.g., plots, tables)
+      data = data, # Additional data (e.g., plots, tables)
       category = category,
       subcategory = subcategory,
       timestamp = Sys.time()
@@ -44,8 +44,10 @@ print.test_result <- function(x, ...) {
     cat(sprintf("P-value: %.4f\n", x$p_value))
   }
   if (!is.null(x$p_adjusted)) {
-    cat(sprintf("Adjusted P-value: %.4f (%s)\n", x$p_adjusted, 
-                x$adjustment_method %||% "unknown"))
+    cat(sprintf(
+      "Adjusted P-value: %.4f (%s)\n", x$p_adjusted,
+      x$adjustment_method %||% "unknown"
+    ))
   }
   if (!is.null(x$statistic)) {
     cat(sprintf("Statistic: %.4f\n", x$statistic))
@@ -102,13 +104,13 @@ add_test_result.test_suite_results <- function(suite, result) {
   if (!inherits(result, "test_result")) {
     stop("Result must be a test_result object")
   }
-  
+
   # Add to results
   suite$results[[length(suite$results) + 1]] <- result
-  
+
   # Update metadata
   suite$metadata$total_tests <- suite$metadata$total_tests + 1
-  
+
   if (result$result == "PASS") {
     suite$metadata$passed <- suite$metadata$passed + 1
   } else if (result$result == "FAIL") {
@@ -118,17 +120,17 @@ add_test_result.test_suite_results <- function(suite, result) {
   } else if (result$result == "SKIP") {
     suite$metadata$skipped <- suite$metadata$skipped + 1
   }
-  
+
   # Track categories
   if (!result$category %in% names(suite$metadata$categories)) {
     suite$metadata$categories[[result$category]] <- list(
       total = 0, passed = 0, failed = 0, errors = 0, skipped = 0
     )
   }
-  
+
   cat_meta <- suite$metadata$categories[[result$category]]
   cat_meta$total <- cat_meta$total + 1
-  
+
   if (result$result == "PASS") {
     cat_meta$passed <- cat_meta$passed + 1
   } else if (result$result == "FAIL") {
@@ -138,9 +140,9 @@ add_test_result.test_suite_results <- function(suite, result) {
   } else if (result$result == "SKIP") {
     cat_meta$skipped <- cat_meta$skipped + 1
   }
-  
+
   suite$metadata$categories[[result$category]] <- cat_meta
-  
+
   return(suite)
 }
 
@@ -149,8 +151,8 @@ add_test_result.test_suite_results <- function(suite, result) {
 finalize_suite <- function(suite) {
   suite$metadata$end_time <- Sys.time()
   suite$metadata$duration <- difftime(
-    suite$metadata$end_time, 
-    suite$metadata$start_time, 
+    suite$metadata$end_time,
+    suite$metadata$start_time,
     units = "secs"
   )
   suite$metadata$pass_rate <- if (suite$metadata$total_tests > 0) {
@@ -162,12 +164,12 @@ finalize_suite <- function(suite) {
 }
 
 #' Adjust p-values for multiple testing correction
-#' 
+#'
 #' This function applies p-value adjustment to control for multiple testing
 #' when running many statistical tests simultaneously. It extracts all p-values
 #' from test results, applies the specified adjustment method, and adds the
 #' adjusted p-values back to the results.
-#' 
+#'
 #' @param suite Test suite object containing results
 #' @param method P-value adjustment method. Options: "BH" (Benjamini-Hochberg, default),
 #'   "bonferroni", "holm", "hochberg", "hommel", "BY", "fdr", "none"
@@ -178,20 +180,22 @@ adjust_p_values <- function(suite, method = "BH", alpha = 0.05) {
   # Validate method
   valid_methods <- c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none")
   if (!method %in% valid_methods) {
-    stop(sprintf("Invalid p-value adjustment method '%s'. Choose from: %s", 
-                 method, paste(valid_methods, collapse = ", ")))
+    stop(sprintf(
+      "Invalid p-value adjustment method '%s'. Choose from: %s",
+      method, paste(valid_methods, collapse = ", ")
+    ))
   }
-  
+
   # If method is "none", return suite unchanged
   if (method == "none") {
     message("No p-value adjustment applied (method = 'none')")
     return(suite)
   }
-  
+
   # Extract all p-values with their indices
   p_values <- numeric()
   p_indices <- list()
-  
+
   for (i in seq_along(suite$results)) {
     result <- suite$results[[i]]
     if (!is.null(result$p_value) && !is.na(result$p_value)) {
@@ -199,28 +203,28 @@ adjust_p_values <- function(suite, method = "BH", alpha = 0.05) {
       p_indices[[length(p_values)]] <- i
     }
   }
-  
+
   # Check if we have p-values to adjust
   if (length(p_values) == 0) {
     warning("No p-values found in test results. No adjustment performed.")
     return(suite)
   }
-  
+
   # Apply p-value adjustment
   adjusted_p_values <- p.adjust(p_values, method = method)
-  
+
   # Add adjusted p-values back to results
   for (j in seq_along(p_values)) {
     idx <- p_indices[[j]]
     suite$results[[idx]]$p_adjusted <- adjusted_p_values[j]
     suite$results[[idx]]$adjustment_method <- method
-    
+
     # Update pass/fail status based on adjusted p-value
     if (!is.na(adjusted_p_values[j])) {
       if (adjusted_p_values[j] >= alpha) {
         # Test passes with adjusted p-value
-        if (suite$results[[idx]]$result == "FAIL" && 
-            suite$results[[idx]]$p_value >= alpha) {
+        if (suite$results[[idx]]$result == "FAIL" &&
+          suite$results[[idx]]$p_value >= alpha) {
           # Was already passing with raw p-value, keep as PASS
           suite$results[[idx]]$result <- "PASS"
         } else if (suite$results[[idx]]$result == "FAIL") {
@@ -238,13 +242,13 @@ adjust_p_values <- function(suite, method = "BH", alpha = 0.05) {
       }
     }
   }
-  
+
   # Add adjustment metadata to suite
   suite$config$p_adjustment_method <- method
   suite$config$p_adjustment_alpha <- alpha
   suite$metadata$p_values_adjusted <- TRUE
   suite$metadata$total_tests_adjusted <- length(p_values)
-  
+
   # Recalculate summary statistics
   suite$metadata$passed <- sum(sapply(suite$results, function(r) r$result == "PASS"))
   suite$metadata$failed <- sum(sapply(suite$results, function(r) r$result == "FAIL"))
@@ -253,9 +257,9 @@ adjust_p_values <- function(suite, method = "BH", alpha = 0.05) {
   } else {
     0
   }
-  
+
   message(sprintf("Applied %s p-value adjustment to %d tests", method, length(p_values)))
-  
+
   return(suite)
 }
 
@@ -289,22 +293,23 @@ test_passes <- function(result, alpha = 0.05) {
 
 #' Generate unified report
 #' @export
-generate_unified_report <- function(suite, format = "html", 
-                                   output_file = NULL,
-                                   include_plots = TRUE,
-                                   theme = "default") {
-  
+generate_unified_report <- function(suite, format = "html",
+                                    output_file = NULL,
+                                    include_plots = TRUE,
+                                    theme = "default") {
   if (is.null(output_file)) {
     timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
-    output_file <- sprintf("qiprng_test_report_%s.%s", timestamp, 
-                          if (format == "pdf") "pdf" else format)
+    output_file <- sprintf(
+      "qiprng_test_report_%s.%s", timestamp,
+      if (format == "pdf") "pdf" else format
+    )
   }
-  
+
   # Finalize suite if not already done
   if (is.null(suite$metadata$end_time)) {
     suite <- finalize_suite(suite)
   }
-  
+
   # Generate report based on format
   if (format == "html") {
     generate_html_report(suite, output_file, include_plots, theme)
@@ -322,14 +327,13 @@ generate_unified_report <- function(suite, format = "html",
   } else {
     stop("Unsupported format. Choose from: html, markdown, json, pdf")
   }
-  
+
   invisible(output_file)
 }
 
 #' Generate HTML report
-generate_html_report <- function(suite, output_file, include_plots = TRUE, 
-                                theme = "default") {
-  
+generate_html_report <- function(suite, output_file, include_plots = TRUE,
+                                 theme = "default") {
   # CSS themes
   themes <- list(
     default = list(
@@ -351,19 +355,20 @@ generate_html_report <- function(suite, output_file, include_plots = TRUE,
       text = "#ffffff"
     )
   )
-  
+
   theme_colors <- themes[[theme]] %||% themes$default
-  
+
   # Start HTML
   html <- c(
-    '<!DOCTYPE html>',
+    "<!DOCTYPE html>",
     '<html lang="en">',
-    '<head>',
+    "<head>",
     '  <meta charset="UTF-8">',
     '  <meta name="viewport" content="width=device-width, initial-scale=1.0">',
-    '  <title>qiprng Test Report</title>',
-    '  <style>',
-    sprintf('    :root {
+    "  <title>qiprng Test Report</title>",
+    "  <style>",
+    sprintf(
+      "    :root {
       --primary: %s;
       --success: %s;
       --danger: %s;
@@ -371,10 +376,11 @@ generate_html_report <- function(suite, output_file, include_plots = TRUE,
       --info: %s;
       --background: %s;
       --text: %s;
-    }', theme_colors$primary, theme_colors$success, theme_colors$danger,
-        theme_colors$warning, theme_colors$info, theme_colors$background,
-        theme_colors$text),
-    '    body { 
+    }", theme_colors$primary, theme_colors$success, theme_colors$danger,
+      theme_colors$warning, theme_colors$info, theme_colors$background,
+      theme_colors$text
+    ),
+    '    body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       line-height: 1.6;
       color: var(--text);
@@ -382,71 +388,71 @@ generate_html_report <- function(suite, output_file, include_plots = TRUE,
       margin: 0;
       padding: 0;
     }',
-    '    .container {
+    "    .container {
       max-width: 1200px;
       margin: 0 auto;
       padding: 20px;
       background-color: white;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }',
-    '    h1, h2, h3 { color: var(--primary); }',
-    '    .header {
+    }",
+    "    h1, h2, h3 { color: var(--primary); }",
+    "    .header {
       background-color: var(--primary);
       color: white;
       padding: 30px;
       text-align: center;
       margin: -20px -20px 20px -20px;
-    }',
-    '    .summary-grid {
+    }",
+    "    .summary-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 20px;
       margin: 20px 0;
-    }',
-    '    .summary-card {
+    }",
+    "    .summary-card {
       background-color: #f8f9fa;
       padding: 20px;
       border-radius: 8px;
       text-align: center;
       border: 1px solid #dee2e6;
-    }',
-    '    .summary-card h3 { margin: 0 0 10px 0; font-size: 1.1rem; }',
-    '    .summary-card .value { font-size: 2rem; font-weight: bold; }',
-    '    .pass { color: var(--success); }',
-    '    .fail { color: var(--danger); }',
-    '    .error { color: var(--warning); }',
-    '    .skip { color: var(--info); }',
-    '    table {
+    }",
+    "    .summary-card h3 { margin: 0 0 10px 0; font-size: 1.1rem; }",
+    "    .summary-card .value { font-size: 2rem; font-weight: bold; }",
+    "    .pass { color: var(--success); }",
+    "    .fail { color: var(--danger); }",
+    "    .error { color: var(--warning); }",
+    "    .skip { color: var(--info); }",
+    "    table {
       width: 100%;
       border-collapse: collapse;
       margin: 20px 0;
-    }',
-    '    th, td {
+    }",
+    "    th, td {
       padding: 12px;
       text-align: left;
       border-bottom: 1px solid #dee2e6;
-    }',
-    '    th {
+    }",
+    "    th {
       background-color: #f8f9fa;
       font-weight: 600;
       color: var(--primary);
-    }',
-    '    tr:hover { background-color: #f8f9fa; }',
-    '    .category-section {
+    }",
+    "    tr:hover { background-color: #f8f9fa; }",
+    "    .category-section {
       margin: 30px 0;
       padding: 20px;
       border: 1px solid #dee2e6;
       border-radius: 8px;
-    }',
-    '    .progress-bar {
+    }",
+    "    .progress-bar {
       width: 100%;
       height: 30px;
       background-color: #e9ecef;
       border-radius: 15px;
       overflow: hidden;
       margin: 10px 0;
-    }',
-    '    .progress-fill {
+    }",
+    "    .progress-fill {
       height: 100%;
       background-color: var(--success);
       text-align: center;
@@ -454,105 +460,118 @@ generate_html_report <- function(suite, output_file, include_plots = TRUE,
       color: white;
       font-weight: bold;
       transition: width 0.3s ease;
-    }',
-    '    .test-details {
+    }",
+    "    .test-details {
       font-size: 0.9rem;
       color: #6c757d;
-    }',
-    '    .footer {
+    }",
+    "    .footer {
       text-align: center;
       margin-top: 40px;
       padding-top: 20px;
       border-top: 1px solid #dee2e6;
       color: #6c757d;
-    }',
-    '  </style>',
-    '</head>',
-    '<body>',
+    }",
+    "  </style>",
+    "</head>",
+    "<body>",
     '  <div class="container">'
   )
-  
+
   # Header
-  html <- c(html,
+  html <- c(
+    html,
     '    <div class="header">',
-    sprintf('      <h1>%s</h1>', suite$suite_name),
-    '      <p>qiprng Statistical Test Report</p>',
-    '    </div>'
+    sprintf("      <h1>%s</h1>", suite$suite_name),
+    "      <p>qiprng Statistical Test Report</p>",
+    "    </div>"
   )
-  
+
   # Summary section
-  html <- c(html,
-    '    <h2>Summary</h2>',
+  html <- c(
+    html,
+    "    <h2>Summary</h2>",
     '    <div class="summary-grid">',
     '      <div class="summary-card">',
-    '        <h3>Total Tests</h3>',
+    "        <h3>Total Tests</h3>",
     sprintf('        <div class="value">%d</div>', suite$metadata$total_tests),
-    '      </div>',
+    "      </div>",
     '      <div class="summary-card">',
-    '        <h3>Passed</h3>',
+    "        <h3>Passed</h3>",
     sprintf('        <div class="value pass">%d</div>', suite$metadata$passed),
-    '      </div>',
+    "      </div>",
     '      <div class="summary-card">',
-    '        <h3>Failed</h3>',
+    "        <h3>Failed</h3>",
     sprintf('        <div class="value fail">%d</div>', suite$metadata$failed),
-    '      </div>',
+    "      </div>",
     '      <div class="summary-card">',
-    '        <h3>Errors</h3>',
+    "        <h3>Errors</h3>",
     sprintf('        <div class="value error">%d</div>', suite$metadata$errors),
-    '      </div>',
+    "      </div>",
     '      <div class="summary-card">',
-    '        <h3>Pass Rate</h3>',
-    sprintf('        <div class="value">%.1f%%</div>', 
-            suite$metadata$pass_rate * 100),
-    '      </div>',
+    "        <h3>Pass Rate</h3>",
+    sprintf(
+      '        <div class="value">%.1f%%</div>',
+      suite$metadata$pass_rate * 100
+    ),
+    "      </div>",
     '      <div class="summary-card">',
-    '        <h3>Duration</h3>',
-    sprintf('        <div class="value">%.1fs</div>', 
-            as.numeric(suite$metadata$duration)),
-    '      </div>',
-    '    </div>'
+    "        <h3>Duration</h3>",
+    sprintf(
+      '        <div class="value">%.1fs</div>',
+      as.numeric(suite$metadata$duration)
+    ),
+    "      </div>",
+    "    </div>"
   )
-  
+
   # Overall progress bar
-  html <- c(html,
+  html <- c(
+    html,
     '    <div class="progress-bar">',
-    sprintf('      <div class="progress-fill" style="width: %.1f%%">%.1f%% Passed</div>',
-            suite$metadata$pass_rate * 100, suite$metadata$pass_rate * 100),
-    '    </div>'
+    sprintf(
+      '      <div class="progress-fill" style="width: %.1f%%">%.1f%% Passed</div>',
+      suite$metadata$pass_rate * 100, suite$metadata$pass_rate * 100
+    ),
+    "    </div>"
   )
-  
+
   # Test details
-  html <- c(html,
-    '    <h2>Test Details</h2>'
+  html <- c(
+    html,
+    "    <h2>Test Details</h2>"
   )
-  
+
   # Group by category
   for (category in names(suite$metadata$categories)) {
     cat_results <- Filter(function(r) r$category == category, suite$results)
     if (length(cat_results) == 0) next
-    
+
     cat_meta <- suite$metadata$categories[[category]]
     cat_pass_rate <- if (cat_meta$total > 0) {
       cat_meta$passed / cat_meta$total * 100
     } else {
       0
     }
-    
-    html <- c(html,
+
+    html <- c(
+      html,
       sprintf('    <div class="category-section">'),
-      sprintf('      <h3>%s</h3>', category),
-      sprintf('      <p>%d tests, %.1f%% passed</p>', 
-              cat_meta$total, cat_pass_rate),
-      '      <table>',
-      '        <tr>',
-      '          <th>Test</th>',
-      '          <th>Description</th>',
-      '          <th>Result</th>',
-      '          <th>P-value</th>',
-      '          <th>Details</th>',
-      '        </tr>'
+      sprintf("      <h3>%s</h3>", category),
+      sprintf(
+        "      <p>%d tests, %.1f%% passed</p>",
+        cat_meta$total, cat_pass_rate
+      ),
+      "      <table>",
+      "        <tr>",
+      "          <th>Test</th>",
+      "          <th>Description</th>",
+      "          <th>Result</th>",
+      "          <th>P-value</th>",
+      "          <th>Details</th>",
+      "        </tr>"
     )
-    
+
     # Add each test result
     for (result in cat_results) {
       p_value_str <- if (!is.null(result$p_value) && !is.na(result$p_value)) {
@@ -560,62 +579,72 @@ generate_html_report <- function(suite, output_file, include_plots = TRUE,
       } else {
         "N/A"
       }
-      
+
       details_str <- result$details %||% ""
-      
-      html <- c(html,
-        '        <tr>',
-        sprintf('          <td>%s</td>', result$test_name),
-        sprintf('          <td>%s</td>', result$description),
-        sprintf('          <td class="%s">%s</td>', 
-                tolower(result$result), result$result),
-        sprintf('          <td>%s</td>', p_value_str),
+
+      html <- c(
+        html,
+        "        <tr>",
+        sprintf("          <td>%s</td>", result$test_name),
+        sprintf("          <td>%s</td>", result$description),
+        sprintf(
+          '          <td class="%s">%s</td>',
+          tolower(result$result), result$result
+        ),
+        sprintf("          <td>%s</td>", p_value_str),
         sprintf('          <td class="test-details">%s</td>', details_str),
-        '        </tr>'
+        "        </tr>"
       )
     }
-    
-    html <- c(html,
-      '      </table>',
-      '    </div>'
+
+    html <- c(
+      html,
+      "      </table>",
+      "    </div>"
     )
   }
-  
+
   # PRNG info if available
   if (!is.null(suite$prng_info)) {
-    html <- c(html,
-      '    <h2>PRNG Information</h2>',
+    html <- c(
+      html,
+      "    <h2>PRNG Information</h2>",
       '    <div class="category-section">',
-      '      <table>'
+      "      <table>"
     )
-    
+
     for (name in names(suite$prng_info)) {
-      html <- c(html,
-        '        <tr>',
-        sprintf('          <td><strong>%s</strong></td>', name),
-        sprintf('          <td>%s</td>', suite$prng_info[[name]]),
-        '        </tr>'
+      html <- c(
+        html,
+        "        <tr>",
+        sprintf("          <td><strong>%s</strong></td>", name),
+        sprintf("          <td>%s</td>", suite$prng_info[[name]]),
+        "        </tr>"
       )
     }
-    
-    html <- c(html,
-      '      </table>',
-      '    </div>'
+
+    html <- c(
+      html,
+      "      </table>",
+      "    </div>"
     )
   }
-  
+
   # Footer
-  html <- c(html,
+  html <- c(
+    html,
     '    <div class="footer">',
-    sprintf('      <p>Generated on %s by qiprng v%s</p>',
-            format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-            as.character(packageVersion("qiprng"))),
-    '    </div>',
-    '  </div>',
-    '</body>',
-    '</html>'
+    sprintf(
+      "      <p>Generated on %s by qiprng v%s</p>",
+      format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+      as.character(packageVersion("qiprng"))
+    ),
+    "    </div>",
+    "  </div>",
+    "</body>",
+    "</html>"
   )
-  
+
   writeLines(html, output_file)
   cat("HTML report saved to:", output_file, "\n")
   invisible(output_file)
@@ -629,8 +658,10 @@ generate_markdown_report <- function(suite, output_file, include_plots = TRUE) {
     "## Summary",
     "",
     sprintf("- **Total Tests**: %d", suite$metadata$total_tests),
-    sprintf("- **Passed**: %d (%.1f%%)", suite$metadata$passed, 
-            suite$metadata$pass_rate * 100),
+    sprintf(
+      "- **Passed**: %d (%.1f%%)", suite$metadata$passed,
+      suite$metadata$pass_rate * 100
+    ),
     sprintf("- **Failed**: %d", suite$metadata$failed),
     sprintf("- **Errors**: %d", suite$metadata$errors),
     sprintf("- **Skipped**: %d", suite$metadata$skipped),
@@ -639,43 +670,49 @@ generate_markdown_report <- function(suite, output_file, include_plots = TRUE) {
     "## Test Results by Category",
     ""
   )
-  
+
   # Group by category
   for (category in names(suite$metadata$categories)) {
     cat_results <- Filter(function(r) r$category == category, suite$results)
     if (length(cat_results) == 0) next
-    
+
     cat_meta <- suite$metadata$categories[[category]]
-    
-    md <- c(md,
+
+    md <- c(
+      md,
       sprintf("### %s", category),
       "",
-      sprintf("%d tests, %d passed, %d failed", 
-              cat_meta$total, cat_meta$passed, cat_meta$failed),
+      sprintf(
+        "%d tests, %d passed, %d failed",
+        cat_meta$total, cat_meta$passed, cat_meta$failed
+      ),
       "",
       "| Test | Result | P-value | Details |",
       "|------|--------|---------|---------|"
     )
-    
+
     for (result in cat_results) {
       p_value_str <- if (!is.null(result$p_value) && !is.na(result$p_value)) {
         sprintf("%.4f", result$p_value)
       } else {
         "N/A"
       }
-      
-      md <- c(md,
-        sprintf("| %s | %s | %s | %s |",
-                result$test_name,
-                result$result,
-                p_value_str,
-                result$details %||% "")
+
+      md <- c(
+        md,
+        sprintf(
+          "| %s | %s | %s | %s |",
+          result$test_name,
+          result$result,
+          p_value_str,
+          result$details %||% ""
+        )
       )
     }
-    
+
     md <- c(md, "")
   }
-  
+
   writeLines(md, output_file)
   cat("Markdown report saved to:", output_file, "\n")
   invisible(output_file)
@@ -714,7 +751,7 @@ generate_json_report <- function(suite, output_file) {
       )
     })
   )
-  
+
   json_text <- jsonlite::toJSON(json_data, pretty = TRUE, auto_unbox = TRUE)
   writeLines(json_text, output_file)
   cat("JSON report saved to:", output_file, "\n")
@@ -725,7 +762,7 @@ generate_json_report <- function(suite, output_file) {
 #' @export
 convert_legacy_results <- function(legacy_suite) {
   unified_suite <- test_suite_results("Legacy Test Suite")
-  
+
   # Extract PRNG info if available
   if (!is.null(legacy_suite$prng_func)) {
     unified_suite$prng_info <- list(
@@ -733,17 +770,17 @@ convert_legacy_results <- function(legacy_suite) {
       config = legacy_suite$config
     )
   }
-  
+
   # Convert each category of results
   for (category in names(legacy_suite$results)) {
     cat_results <- legacy_suite$results[[category]]
-    
+
     for (test_name in names(cat_results)) {
       test <- cat_results[[test_name]]
-      
+
       # Skip if not a proper test result
       if (!is.list(test) || is.null(test$result)) next
-      
+
       # Create unified test result
       unified_result <- test_result(
         test_name = test_name,
@@ -754,11 +791,11 @@ convert_legacy_results <- function(legacy_suite) {
         details = test$details,
         category = category
       )
-      
+
       unified_suite <- add_test_result(unified_suite, unified_result)
     }
   }
-  
+
   return(finalize_suite(unified_suite))
 }
 

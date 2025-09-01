@@ -1,10 +1,10 @@
 #' Generate Levy Stable Distribution
 #'
-#' Generates random numbers from a Levy stable distribution using the 
+#' Generates random numbers from a Levy stable distribution using the
 #' Chambers-Mallows-Stuck method.
 #'
 #' @param n Number of random values to generate
-#' @param alpha Stability parameter (0,2]. Alpha=2 gives normal distribution, 
+#' @param alpha Stability parameter (0,2]. Alpha=2 gives normal distribution,
 #'              alpha=1 gives Cauchy distribution
 #' @param beta Skewness parameter [-1,1]. Beta=0 gives symmetric distribution
 #' @param mu Location parameter
@@ -20,10 +20,10 @@
 #' @examples
 #' \dontrun{
 #' # Generate from symmetric stable distribution
-#' x <- generate_levy_stable(1000, alpha=1.5, beta=0)
-#' 
+#' x <- generate_levy_stable(1000, alpha = 1.5, beta = 0)
+#'
 #' # Generate from skewed stable distribution
-#' y <- generate_levy_stable(1000, alpha=1.8, beta=0.5, mu=2, sigma=1)
+#' y <- generate_levy_stable(1000, alpha = 1.8, beta = 0.5, mu = 2, sigma = 1)
 #' }
 #'
 #' @export
@@ -31,19 +31,19 @@ generate_levy_stable <- function(n, alpha, beta = 0, mu = 0, sigma = 1) {
   if (!is.numeric(n) || length(n) != 1 || n <= 0 || n != as.integer(n)) {
     stop("n must be a positive integer")
   }
-  
+
   if (alpha <= 0 || alpha > 2) {
     stop("alpha must be in (0,2]")
   }
-  
+
   if (beta < -1 || beta > 1) {
     stop("beta must be in [-1,1]")
   }
-  
+
   if (sigma <= 0) {
     stop("sigma must be positive")
   }
-  
+
   cpp_levy_stable(as.integer(n), alpha, beta, mu, sigma)
 }
 
@@ -64,10 +64,10 @@ generate_levy_stable <- function(n, alpha, beta = 0, mu = 0, sigma = 1) {
 #' @examples
 #' \dontrun{
 #' # Generate from Pareto distribution
-#' x <- generate_pareto(1000, xm=1, alpha=2)
-#' 
+#' x <- generate_pareto(1000, xm = 1, alpha = 2)
+#'
 #' # Heavy-tailed distribution (smaller alpha = heavier tail)
-#' y <- generate_pareto(1000, xm=10, alpha=1.5)
+#' y <- generate_pareto(1000, xm = 10, alpha = 1.5)
 #' }
 #'
 #' @export
@@ -75,15 +75,15 @@ generate_pareto <- function(n, xm, alpha) {
   if (!is.numeric(n) || length(n) != 1 || n <= 0 || n != as.integer(n)) {
     stop("n must be a positive integer")
   }
-  
+
   if (xm <= 0) {
     stop("xm (scale parameter) must be positive")
   }
-  
+
   if (alpha <= 0) {
     stop("alpha (shape parameter) must be positive")
   }
-  
+
   cpp_pareto(as.integer(n), xm, alpha)
 }
 
@@ -105,9 +105,9 @@ generate_pareto <- function(n, xm, alpha) {
 #' \dontrun{
 #' # Standard Cauchy distribution
 #' x <- generate_cauchy(1000)
-#' 
+#'
 #' # Cauchy with different location and scale
-#' y <- generate_cauchy(1000, location=5, scale=2)
+#' y <- generate_cauchy(1000, location = 5, scale = 2)
 #' }
 #'
 #' @export
@@ -115,11 +115,11 @@ generate_cauchy <- function(n, location = 0, scale = 1) {
   if (!is.numeric(n) || length(n) != 1 || n <= 0 || n != as.integer(n)) {
     stop("n must be a positive integer")
   }
-  
+
   if (scale <= 0) {
     stop("scale must be positive")
   }
-  
+
   cpp_cauchy(as.integer(n), location, scale)
 }
 
@@ -144,12 +144,14 @@ generate_cauchy <- function(n, location = 0, scale = 1) {
 #' mean <- c(0, 0)
 #' cov <- matrix(c(1, 0.5, 0.5, 1), 2, 2)
 #' x <- generate_multivariate_normal(1000, mean, cov)
-#' 
+#'
 #' # 3D multivariate normal with correlation
 #' mean3 <- c(1, 2, 3)
-#' cov3 <- matrix(c(1, 0.3, 0.2,
-#'                  0.3, 1, 0.4,
-#'                  0.2, 0.4, 1), 3, 3)
+#' cov3 <- matrix(c(
+#'   1, 0.3, 0.2,
+#'   0.3, 1, 0.4,
+#'   0.2, 0.4, 1
+#' ), 3, 3)
 #' y <- generate_multivariate_normal(1000, mean3, cov3)
 #' }
 #'
@@ -158,31 +160,31 @@ generate_multivariate_normal <- function(n, mean, covariance) {
   if (!is.numeric(n) || length(n) != 1 || n <= 0 || n != as.integer(n)) {
     stop("n must be a positive integer")
   }
-  
+
   if (!is.numeric(mean) || !is.vector(mean)) {
     stop("mean must be a numeric vector")
   }
-  
+
   if (!is.matrix(covariance) || !is.numeric(covariance)) {
     stop("covariance must be a numeric matrix")
   }
-  
+
   d <- length(mean)
   if (nrow(covariance) != d || ncol(covariance) != d) {
     stop("covariance matrix dimensions must match mean vector length")
   }
-  
+
   # Check symmetry
   if (!isSymmetric(covariance)) {
     stop("covariance matrix must be symmetric")
   }
-  
+
   # Check positive definiteness (all eigenvalues > 0)
   eigenvals <- eigen(covariance, only.values = TRUE)$values
   if (any(eigenvals <= 0)) {
     stop("covariance matrix must be positive definite")
   }
-  
+
   cpp_multivariate_normal(as.integer(n), as.numeric(mean), as.matrix(covariance))
 }
 
@@ -211,11 +213,13 @@ generate_multivariate_normal <- function(n, mean, covariance) {
 #'   list(type = "pareto", xm = 1, alpha = 2)
 #' )
 #' x <- generate_with_copula(1000, correlation, marginals)
-#' 
+#'
 #' # Three different marginals with correlation
-#' corr3 <- matrix(c(1, 0.3, 0.2,
-#'                   0.3, 1, 0.4,
-#'                   0.2, 0.4, 1), 3, 3)
+#' corr3 <- matrix(c(
+#'   1, 0.3, 0.2,
+#'   0.3, 1, 0.4,
+#'   0.2, 0.4, 1
+#' ), 3, 3)
 #' marg3 <- list(
 #'   list(type = "levy", alpha = 1.5, beta = 0, mu = 0, sigma = 1),
 #'   list(type = "cauchy", location = 2, scale = 1),
@@ -229,49 +233,51 @@ generate_with_copula <- function(n, correlation, marginals) {
   if (!is.numeric(n) || length(n) != 1 || n <= 0 || n != as.integer(n)) {
     stop("n must be a positive integer")
   }
-  
+
   if (!is.matrix(correlation) || !is.numeric(correlation)) {
     stop("correlation must be a numeric matrix")
   }
-  
+
   d <- nrow(correlation)
   if (ncol(correlation) != d) {
     stop("correlation matrix must be square")
   }
-  
+
   if (!is.list(marginals) || length(marginals) != d) {
     stop("marginals must be a list with length equal to correlation matrix dimension")
   }
-  
+
   # Check correlation matrix properties
   if (!isSymmetric(correlation)) {
     stop("correlation matrix must be symmetric")
   }
-  
+
   # Check diagonal is all 1s
   if (any(abs(diag(correlation) - 1) > 1e-10)) {
     stop("correlation matrix diagonal must be all 1s")
   }
-  
+
   # Check positive definiteness
   eigenvals <- eigen(correlation, only.values = TRUE)$values
   if (any(eigenvals <= 0)) {
     stop("correlation matrix must be positive definite")
   }
-  
+
   # Validate marginal specifications
   for (i in seq_along(marginals)) {
     marg <- marginals[[i]]
     if (!is.list(marg) || is.null(marg$type)) {
       stop(paste("Marginal", i, "must be a list with 'type' field"))
     }
-    
+
     type <- marg$type
     if (!(type %in% c("cauchy", "pareto", "levy"))) {
-      stop(paste("Unknown marginal type:", type, 
-                 "- supported types are 'cauchy', 'pareto', 'levy'"))
+      stop(paste(
+        "Unknown marginal type:", type,
+        "- supported types are 'cauchy', 'pareto', 'levy'"
+      ))
     }
-    
+
     # Validate parameters for each type
     if (type == "cauchy") {
       if (is.null(marg$location)) marg$location <- 0
@@ -295,6 +301,6 @@ generate_with_copula <- function(n, correlation, marginals) {
       marginals[[i]] <- marg
     }
   }
-  
+
   cpp_gaussian_copula(as.integer(n), as.matrix(correlation), marginals)
 }
