@@ -7,7 +7,7 @@
 # Load styler if available
 if (requireNamespace("styler", quietly = TRUE)) {
   message("styler package loaded for code formatting")
-  
+
   # Set default style options
   options(
     styler.cache_name = ".styler_cache",
@@ -23,7 +23,7 @@ format_r_code <- function(path = "R", ...) {
   if (!requireNamespace("styler", quietly = TRUE)) {
     stop("Please install the styler package: install.packages('styler')")
   }
-  
+
   # Use tidyverse style guide with project-specific settings
   styler::style_dir(
     path = path,
@@ -51,14 +51,14 @@ check_r_style <- function(path = "R") {
   if (!requireNamespace("styler", quietly = TRUE)) {
     stop("Please install the styler package: install.packages('styler')")
   }
-  
+
   styled <- styler::style_dir(
     path = path,
     transformers = styler::tidyverse_style(),
     dry = "on",
     filetype = c("R", "Rmd", "Rmarkdown", "Rnw")
   )
-  
+
   if (any(styled$changed)) {
     message("The following files need formatting:")
     print(styled[styled$changed, "file"])

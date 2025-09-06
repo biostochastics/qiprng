@@ -7,4 +7,4 @@ cat << EOF > src/Makevars.win
 PKG_CPPFLAGS = -I\$(MPFR_PATH)/include -I\$(OPENSSL_PATH)/include
 PKG_LIBS = -L\$(MPFR_PATH)/lib -L\$(OPENSSL_PATH)/lib -lmpfr -lgmp -lssl -lcrypto
 CXX_STD = CXX11
-EOF 
+EOF

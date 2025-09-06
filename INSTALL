@@ -7,11 +7,14 @@ The qiprng package requires the following system libraries:
 1. OpenSSL (>= 1.0)
 2. libsodium (>= 1.0.11)
 3. GNU MPFR (for high-precision arithmetic)
+4. GMP (GNU Multiple Precision Arithmetic Library)
+5. Eigen3 (>= 3.3, optional for multivariate distributions)
 
 ## Prerequisites
 
-- R >= 3.5.0
-- C++11 compiler
+- R >= 4.0.0
+- C++17 compiler
+- pkg-config (for library detection)
 
 ## Installation by Operating System
 
@@ -24,27 +27,39 @@ sudo apt-get install -y \
     libmpfr-dev \
     libgmp-dev \
     libssl-dev \
-    libsodium-dev
+    libsodium-dev \
+    libeigen3-dev \
+    pkg-config
 ```
 
-### Fedora/CentOS
+### Fedora/CentOS/RHEL
 
 ```bash
-sudo dnf install -y openssl-devel libsodium-devel mpfr-devel
+sudo dnf install -y \
+    openssl-devel \
+    libsodium-devel \
+    mpfr-devel \
+    gmp-devel \
+    eigen3-devel \
+    pkgconfig
 ```
 
 ### macOS (using Homebrew)
 
 ```bash
+# Install Xcode Command Line Tools
+xcode-select --install
+
 # Install Homebrew if needed
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 # Install required libraries
-brew install r
+brew install pkg-config
 brew install mpfr
 brew install gmp
 brew install openssl
 brew install libsodium
+brew install eigen
 ```
 
 ### Windows
@@ -58,7 +73,21 @@ brew install libsodium
 Install required R packages:
 
 ```r
-install.packages(c("Rcpp", "testthat", "parallel"))
+install.packages(c(
+    "Rcpp",
+    "parallel",
+    "moments",
+    "stats",
+    "utils",
+    "ggplot2",
+    "gridExtra",
+    "nortest",
+    "randtests",
+    "R.cache",
+    "digest",
+    "entropy",
+    "testthat"
+))
 ```
 
 ## Building the Package
@@ -73,10 +102,10 @@ cd qiprng
 R CMD build .
 
 # Check the package
-R CMD check qiprng_0.2.0.tar.gz
+R CMD check qiprng_0.6.0.tar.gz
 
 # Install the package
-R CMD INSTALL qiprng_0.2.0.tar.gz
+R CMD INSTALL qiprng_0.6.0.tar.gz
 ```
 
 ## Testing
@@ -160,9 +189,12 @@ lapply(configs, function(cfg) {
 
 ## Security Notes
 
-1. This package is for educational and demonstration purposes
-2. For production use I strongly recommend:
-   - Not using this package
+1. **BREAKING CHANGE in v0.6.0**: Deterministic seeds with cryptographic mixing now throw exceptions
+2. The package enforces security best practices:
+   - Cryptographically secure seed generation via libsodium
+   - Mandatory exception for deterministic seeds with crypto mixing
+   - Comprehensive input validation and overflow protection
+3. For production use:
    - Conduct thorough security audits
    - Consider hardware RNG sources
    - Follow cryptographic best practices
@@ -177,5 +209,5 @@ For issues and questions:
 
 ## Version Information
 
-This guide is for qiprng version 0.2.5  
-Last updated: 2025-03-20
+This guide is for qiprng version 0.6.0
+Last updated: 2025-09-06

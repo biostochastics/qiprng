@@ -68,7 +68,7 @@ jumpAheadPRNG(1000)
 after_jump_values <- generatePRNG(5)
 
 # Large jumps are handled efficiently
-jumpAheadPRNG(1e6)  # Jump ahead 1 million steps
+jumpAheadPRNG(1e6) # Jump ahead 1 million steps
 
 # Use for parallel simulations
 \dontrun{

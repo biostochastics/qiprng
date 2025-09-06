@@ -1,11 +1,11 @@
 # CodeConCat Output
 
-
 # AI-Friendly Code Summary
 
 This document contains a structured representation of a codebase, organized for AI analysis.
 
 ## Repository Structure
+
 ```
 Total code files: 10
 Documentation files: 0
@@ -17,10 +17,13 @@ File types:
 ```
 
 ## Potential Entry Points
+
 No common entry point files detected.
 
 ## Key Files
+
 Key files based on available annotations:
+
 - `/Users/biostochastics/Development/GitHub/qiprng/src/enhanced_prng.cpp`: No declarations found
 - `/Users/biostochastics/Development/GitHub/qiprng/src/RcppExports.cpp`: No declarations found
 - `/Users/biostochastics/Development/GitHub/qiprng/src/prng_utils.cpp`: No declarations found
@@ -33,22 +36,22 @@ Key files based on available annotations:
 - `/Users/biostochastics/Development/GitHub/qiprng/src/multi_qi.cpp`: No declarations found
 
 ## Code Organization
+
 The code is organized into sections, each prefixed with clear markers:
+
 - Directory markers show file organization
 - File headers contain metadata and imports
 - Annotations provide context about code purpose
 - Documentation sections contain project documentation
 
 ## Navigation
+
 - Each file begins with '---FILE:' followed by its path
 - Each section is clearly delimited with markdown headers
 - Code blocks are formatted with appropriate language tags
 
-
 ---
 Begin code content below:
-
-
 
 ## Directory Structure
 
@@ -57,11 +60,10 @@ Begin code content below:
 
 ```
 
-
 ---
 
-
 ## File Index
+
 ```
 /Users/biostochastics/Development/GitHub/qiprng/src/enhanced_prng.cpp
 /Users/biostochastics/Development/GitHub/qiprng/src/RcppExports.cpp
@@ -75,13 +77,12 @@ Begin code content below:
 /Users/biostochastics/Development/GitHub/qiprng/src/multi_qi.cpp
 ```
 
-
 ## Files
-
 
 ## File: /Users/biostochastics/Development/GitHub/qiprng/src/enhanced_prng.cpp
 
 ### Summary
+
 No declarations found
 
 **Tags**: `cpp`
@@ -106,13 +107,13 @@ double EnhancedPRNG::next_raw_uniform() {
     // Thread-local fallback generator for when main generator is unavailable
     static thread_local std::mt19937_64 fallback_rng(std::random_device{}());
     static thread_local std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
-    
+
     // Check if object is being destroyed
     if (is_being_destroyed_.load()) {
         // Return a random value from fallback generator if we're in the process of cleanup
         return fallback_dist(fallback_rng);
     }
-    
+
     // If buffer needs refilling, do so
     if (buffer_pos_ >= buffer_.size()) {
         try {
@@ -122,18 +123,18 @@ double EnhancedPRNG::next_raw_uniform() {
             return fallback_dist(fallback_rng);
         }
     }
-    
+
     // Ensure buffer position is valid even after fill_buffer might have changed it
     if (buffer_pos_ >= buffer_.size()) {
         return fallback_dist(fallback_rng); // Use fallback if buffer is still invalid
     }
-    
+
     // Get raw uniform value with bounds checking
     double u;
     try {
         u = buffer_[buffer_pos_++];
         sample_count_++;
-        
+
         // Validate the value
         if (u <= 0.0 || u >= 1.0 || std::isnan(u) || std::isinf(u)) {
             u = fallback_dist(fallback_rng); // Use fallback if we got an invalid uniform
@@ -142,10 +143,10 @@ double EnhancedPRNG::next_raw_uniform() {
         // Return a random value from fallback if array access throws
         return fallback_dist(fallback_rng);
     }
-    
+
     // Reseed crypto periodically if enabled
-    if (config_.use_crypto_mixing && crypto_ && 
-        config_.reseed_interval > 0 && 
+    if (config_.use_crypto_mixing && crypto_ &&
+        config_.reseed_interval > 0 &&
         sample_count_ % config_.reseed_interval == 0) {
         try {
             crypto_->reseed();
@@ -153,14 +154,14 @@ double EnhancedPRNG::next_raw_uniform() {
             // Ignore errors during reseeding
         }
     }
-    
+
     return u;
 }
 
 #include "thread_manager.hpp"
 
 // EnhancedPRNG implementation
-EnhancedPRNG::EnhancedPRNG(const PRNGConfig& cfg, 
+EnhancedPRNG::EnhancedPRNG(const PRNGConfig& cfg,
                            const std::vector<std::tuple<long, long, long>>& abc_list)
     : config_(cfg),
       buffer_(cfg.buffer_size),
@@ -169,12 +170,12 @@ EnhancedPRNG::EnhancedPRNG(const PRNGConfig& cfg,
       has_spare_normal_(false),
       spare_normal_(0.0),
       is_being_destroyed_(false) {
-    
+
     // Validate important parameters
     if (abc_list.empty()) {
         throw std::runtime_error("EnhancedPRNG: abc_list cannot be empty");
     }
-    
+
     // Create ziggurat for normal generation if needed
     if (config_.normal_method == PRNGConfig::ZIGGURAT) {
         ziggurat_ = std::make_unique<ZigguratNormal>(
@@ -184,7 +185,7 @@ EnhancedPRNG::EnhancedPRNG(const PRNGConfig& cfg,
             config_.use_threading // Enable thread-safe mode if threading is enabled
         );
     }
-    
+
     // Create crypto mixer if enabled
     if (config_.use_crypto_mixing) {
         initialize_libsodium_if_needed();
@@ -195,7 +196,7 @@ EnhancedPRNG::EnhancedPRNG(const PRNGConfig& cfg,
             config_.has_seed
         );
     }
-    
+
     // Create MultiQI instance with provided parameters
     if (config_.has_seed) {
         // Pass seed to MultiQI for deterministic initialization
@@ -204,9 +205,9 @@ EnhancedPRNG::EnhancedPRNG(const PRNGConfig& cfg,
     } else {
         multi_ = std::make_unique<MultiQI>(abc_list, config_.mpfr_precision);
     }
-    
+
     reset_state();
-    
+
     // Register thread for cleanup if threading is enabled
     if (config_.use_threading) {
         registerThreadForCleanup();
@@ -217,10 +218,10 @@ EnhancedPRNG::EnhancedPRNG(const PRNGConfig& cfg,
 EnhancedPRNG::~EnhancedPRNG() {
     // Mark as being destroyed to prevent new operations
     is_being_destroyed_.store(true);
-    
+
     // Acquire cleanup mutex to prevent concurrent access
     std::lock_guard<std::mutex> lock(cleanup_mutex_);
-    
+
     try {
         // Disable thread-safe mode on ziggurat first
         if (ziggurat_) {
@@ -230,16 +231,16 @@ EnhancedPRNG::~EnhancedPRNG() {
                 // Ignore errors during cleanup
             }
         }
-        
+
         // Clean up resources in an orderly fashion
         // Order matters for safe destruction
         crypto_.reset();
         ziggurat_.reset();
         multi_.reset();
-        
+
         // Clear buffer
         buffer_ = SecureBuffer<double>(0);
-        
+
     } catch (const std::exception& e) {
         // Log error but continue - this is a destructor
         if (config_.debug) {
@@ -260,54 +261,54 @@ size_t EnhancedPRNG::getQICount() const {
 
 void EnhancedPRNG::updateConfig(const PRNGConfig& new_config) {
     // Determine if we need to reset certain components
-    bool reset_buffer = 
-        (new_config.buffer_size != config_.buffer_size) || 
+    bool reset_buffer =
+        (new_config.buffer_size != config_.buffer_size) ||
         (new_config.distribution != config_.distribution) ||
         (new_config.normal_method != config_.normal_method);
-    
+
     // Always reset buffer when changing distribution parameters
     if (new_config.distribution == PRNGConfig::NORMAL &&
-        (new_config.normal_mean != config_.normal_mean || 
+        (new_config.normal_mean != config_.normal_mean ||
          new_config.normal_sd != config_.normal_sd)) {
         reset_buffer = true;
     } else if (new_config.distribution == PRNGConfig::UNIFORM_RANGE &&
-              (new_config.range_min != config_.range_min || 
+              (new_config.range_min != config_.range_min ||
                new_config.range_max != config_.range_max)) {
         reset_buffer = true;
     } else if (new_config.distribution == PRNGConfig::EXPONENTIAL &&
               new_config.exponential_lambda != config_.exponential_lambda) {
         reset_buffer = true;
     }
-    
-    bool reset_ziggurat = 
+
+    bool reset_ziggurat =
         (new_config.normal_method != config_.normal_method) ||
         (new_config.normal_mean != config_.normal_mean) ||
         (new_config.normal_sd != config_.normal_sd);
-    
+
     bool reset_crypto =
         (new_config.use_crypto_mixing != config_.use_crypto_mixing) ||
         (new_config.adhoc_corrections != config_.adhoc_corrections) ||
         (new_config.use_tie_breaking != config_.use_tie_breaking);
-    
+
     // Store old distribution for transition checks
     PRNGConfig::Distribution old_distribution = config_.distribution;
-    
+
     // Update configuration
     config_ = new_config;
-    
+
     // Reset components as needed
     if (reset_buffer) {
         buffer_ = SecureBuffer<double>(config_.buffer_size);
         buffer_pos_ = config_.buffer_size; // Force refill on next use
         has_spare_normal_ = false;
-        
+
         // Ensure we always reseed when changing distribution types
         if (old_distribution != config_.distribution) {
             // Force a reseed to ensure clean state for the new distribution
             reseed();
         }
     }
-    
+
     if (reset_ziggurat) {
         if (config_.normal_method == PRNGConfig::ZIGGURAT) {
             if (ziggurat_) {
@@ -330,7 +331,7 @@ void EnhancedPRNG::updateConfig(const PRNGConfig& new_config) {
         // Update thread-safe mode even if parameters didn't change
         ziggurat_->set_thread_safe_mode(config_.use_threading);
     }
-    
+
     if (reset_crypto) {
         if (config_.use_crypto_mixing) {
             crypto_ = std::make_unique<CryptoMixer>(
@@ -351,16 +352,16 @@ void EnhancedPRNG::reset_state() {
 
 void EnhancedPRNG::fill_buffer_sequential() {
     if (buffer_.size() == 0) return;
-    
+
     // Fill buffer with raw samples from MultiQI using thread-safe method
     multi_->fill_thread_safe(buffer_.data(), buffer_.size());
-    
+
     // Apply crypto mixing if enabled
     if (config_.use_crypto_mixing && crypto_ && crypto_->is_initialized()) {
-        crypto_->mix(reinterpret_cast<unsigned char*>(buffer_.data()), 
+        crypto_->mix(reinterpret_cast<unsigned char*>(buffer_.data()),
                      buffer_.size() * sizeof(double));
     }
-    
+
     // Reset buffer position
     buffer_pos_ = 0;
 }
@@ -373,30 +374,30 @@ void EnhancedPRNG::copy_thread_buffers_to_main(size_t thread_count,
         // For large buffers, use parallel copying
         std::vector<std::future<void>> copy_futures;
         size_t buffer_pos = 0;
-        
+
         for (size_t t = 0; t < thread_count && t < thread_buffers.size(); t++) {
             const SecureBuffer<double>& thread_buffer = thread_buffers[t];
             const size_t copy_size = thread_buffer.size();
-            
+
             if (copy_size > 1000) {
                 // For larger chunks, copy in parallel
                 const size_t start_pos = buffer_pos;
                 copy_futures.push_back(pool.enqueue([this, &thread_buffer, start_pos, copy_size]() {
                     std::memcpy(
-                        buffer_.data() + start_pos, 
-                        thread_buffer.data(), 
+                        buffer_.data() + start_pos,
+                        thread_buffer.data(),
                         copy_size * sizeof(double));
                 }));
             } else {
                 // For smaller buffers, copy directly
                 std::memcpy(
-                    buffer_.data() + buffer_pos, 
-                    thread_buffer.data(), 
+                    buffer_.data() + buffer_pos,
+                    thread_buffer.data(),
                     copy_size * sizeof(double));
             }
             buffer_pos += copy_size;
         }
-        
+
         // Wait for all copy operations to complete
         for (auto& future : copy_futures) {
             future.get();
@@ -407,12 +408,12 @@ void EnhancedPRNG::copy_thread_buffers_to_main(size_t thread_count,
         for (size_t t = 0; t < thread_count && t < thread_buffers.size(); t++) {
             const SecureBuffer<double>& thread_buffer = thread_buffers[t];
             const size_t copy_size = std::min(thread_buffer.size(), buffer_.size() - buffer_pos);
-            
+
             // Safely copy the data
             if (copy_size > 0 && buffer_pos + copy_size <= buffer_.size()) {
                 std::memcpy(
-                    buffer_.data() + buffer_pos, 
-                    thread_buffer.data(), 
+                    buffer_.data() + buffer_pos,
+                    thread_buffer.data(),
                     copy_size * sizeof(double));
                 buffer_pos += copy_size;
             }
@@ -431,14 +432,14 @@ void EnhancedPRNG::submit_parallel_tasks(ThreadPool& pool,
         // Capture thread index by value and other objects by reference
         futures.push_back(pool.enqueue([t, &thread_buffers, &thread_qis, &any_thread_failed, this]() {
             try {
-                if (t < thread_qis.size() && t < thread_buffers.size() && 
+                if (t < thread_qis.size() && t < thread_buffers.size() &&
                     thread_qis[t] && thread_buffers[t].size() > 0) {
-                    
+
                     // Fill the thread's buffer with its dedicated MultiQI
                     thread_qis[t]->fill_thread_safe(
-                        thread_buffers[t].data(), 
+                        thread_buffers[t].data(),
                         thread_buffers[t].size());
-                        
+
                 } else {
                     // Resource not properly initialized
                     any_thread_failed.store(true);
@@ -453,7 +454,7 @@ void EnhancedPRNG::submit_parallel_tasks(ThreadPool& pool,
                     }
                 }
                 any_thread_failed.store(true);
-                    
+
                 // Fill with proper random fallback values
                 if (t < thread_buffers.size()) {
                     // Use a simple thread-safe approach for fallback
@@ -467,7 +468,7 @@ void EnhancedPRNG::submit_parallel_tasks(ThreadPool& pool,
             } catch (...) {
                 // Handle unknown errors
                 any_thread_failed.store(true);
-                    
+
                 // Fill with proper random fallback values
                 if (t < thread_buffers.size()) {
                     // Use a simple thread-safe approach for fallback
@@ -489,15 +490,15 @@ bool EnhancedPRNG::create_thread_resources(size_t thread_count,
                                           std::vector<SecureBuffer<double>>& thread_buffers,
                                           std::vector<size_t>& chunk_sizes) {
     const PRNGConfig& cfg = config_;
-    
+
     if (config_.debug) {
         Rcpp::Rcout << "Creating thread resources for " << thread_count << " threads\n";
     }
-    
+
     // Generate unique parameters for each thread to avoid identical sequences
     for (size_t t = 0; t < thread_count; t++) {
         std::vector<std::tuple<long, long, long>> abc_list;
-        
+
         // Get current parameters from primary QI or use default
         if (multi_ && multi_->size() > 0) {
             // Use pickMultiQiSet with thread-specific seed to ensure unique sequences
@@ -505,7 +506,7 @@ bool EnhancedPRNG::create_thread_resources(size_t thread_count,
                 // Add thread index to seed to ensure each thread gets different parameters
                 // Use a simpler offset to avoid potential overflow issues
                 uint64_t thread_seed = cfg.has_seed ? (cfg.seed + t * 1237ULL) : 0;
-                abc_list = pickMultiQiSet(cfg.mpfr_precision, 3, 
+                abc_list = pickMultiQiSet(cfg.mpfr_precision, 3,
                                         thread_seed, cfg.has_seed);
             } catch (...) {
                 // In case of exception, use a safe default with thread variation
@@ -515,20 +516,20 @@ bool EnhancedPRNG::create_thread_resources(size_t thread_count,
             // Fallback parameters with thread variation
             abc_list.push_back(std::make_tuple(cfg.a + t, cfg.b + t * 2, cfg.c - t));
         }
-        
+
         thread_abc_lists.push_back(abc_list);
     }
-    
+
     // Calculate chunk sizes
     const size_t base_chunk_size = buffer_.size() / thread_count;
     const size_t remainder = buffer_.size() % thread_count;
     chunk_sizes.resize(thread_count, base_chunk_size);
-    
+
     // Distribute remainder among first few threads
     for (size_t i = 0; i < remainder; i++) {
         chunk_sizes[i]++;
     }
-    
+
     // Create thread resources
     for (size_t t = 0; t < thread_count; t++) {
         try {
@@ -539,7 +540,7 @@ bool EnhancedPRNG::create_thread_resources(size_t thread_count,
                 }
                 return false;
             }
-            
+
             // Create a MultiQI instance for each thread with thread-specific parameters
             thread_qis.push_back(std::make_unique<MultiQI>(thread_abc_lists[t], cfg.mpfr_precision));
             // Create a buffer for each thread
@@ -552,50 +553,50 @@ bool EnhancedPRNG::create_thread_resources(size_t thread_count,
             return false;
         }
     }
-    
+
     return true;
 }
 
 void EnhancedPRNG::fill_buffer_parallel(size_t thread_count) {
     if (buffer_.size() == 0) return;
-    
+
     // Ensure thread count is reasonable
     thread_count = std::min(thread_count, static_cast<size_t>(std::thread::hardware_concurrency()));
     if (thread_count == 0) thread_count = 1;
-    
+
     // Limit thread count for very small buffers
     if (buffer_.size() < thread_count * 64) {
         // For small buffers, use sequential filling
         fill_buffer_sequential();
         return;
     }
-    
+
     try {
         // Use the global thread pool for more efficient threading
         ThreadPool& pool = global_thread_pool();
-        
+
         // Create containers for thread resources
         std::vector<std::vector<std::tuple<long, long, long>>> thread_abc_lists;
         std::vector<std::unique_ptr<MultiQI>> thread_qis;
         std::vector<SecureBuffer<double>> thread_buffers;
         std::vector<size_t> chunk_sizes;
-        
+
         // Create thread resources using helper function
-        if (!create_thread_resources(thread_count, thread_abc_lists, thread_qis, 
+        if (!create_thread_resources(thread_count, thread_abc_lists, thread_qis,
                                     thread_buffers, chunk_sizes)) {
             // Fall back to sequential filling if resource creation fails
             fill_buffer_sequential();
             return;
         }
-        
+
         // Thread synchronization objects
         std::atomic<bool> any_thread_failed(false);
         std::vector<std::future<void>> futures;
-        
+
         // Submit parallel tasks using helper function
-        submit_parallel_tasks(pool, thread_count, thread_buffers, thread_qis, 
+        submit_parallel_tasks(pool, thread_count, thread_buffers, thread_qis,
                             any_thread_failed, futures);
-        
+
         // Wait for all futures to complete
         for (auto& future : futures) {
             try {
@@ -612,30 +613,30 @@ void EnhancedPRNG::fill_buffer_parallel(size_t thread_count) {
                 any_thread_failed.store(true);
             }
         }
-        
+
         // If any thread failed, log a warning but continue with the values we have
         if (any_thread_failed.load() && config_.debug) {
             Rcpp::warning("Some threads failed during parallel buffer filling. Results may be affected.");
         }
-        
+
         // Copy thread buffers back to main buffer using helper function
         copy_thread_buffers_to_main(thread_count, thread_buffers, pool);
-        
+
         // Apply crypto mixing if enabled (can be potentially parallelized for large buffers)
         if (config_.use_crypto_mixing && crypto_ && crypto_->is_initialized()) {
             // For large buffers, consider dividing crypto mixing into chunks
             if (buffer_.size() >= 10000 && thread_count > 1) {
                 // Parallel crypto mixing for large buffers can be implemented here
                 // For now, we'll use the regular mixing
-                crypto_->mix(reinterpret_cast<unsigned char*>(buffer_.data()), 
+                crypto_->mix(reinterpret_cast<unsigned char*>(buffer_.data()),
                             buffer_.size() * sizeof(double));
             } else {
                 // Standard crypto mixing
-                crypto_->mix(reinterpret_cast<unsigned char*>(buffer_.data()), 
+                crypto_->mix(reinterpret_cast<unsigned char*>(buffer_.data()),
                             buffer_.size() * sizeof(double));
             }
         }
-        
+
     } catch (const std::exception& e) {
         if (config_.debug) {
             Rcpp::warning("Exception in parallel buffer filling: %s. Falling back to sequential filling.", e.what());
@@ -651,7 +652,7 @@ void EnhancedPRNG::fill_buffer_parallel(size_t thread_count) {
         fill_buffer_sequential();
         return;
     }
-    
+
     // Reset buffer position
     buffer_pos_ = 0;
 }
@@ -659,7 +660,7 @@ void EnhancedPRNG::fill_buffer_parallel(size_t thread_count) {
 void EnhancedPRNG::fill_buffer() {
     const size_t cpu_cores = std::thread::hardware_concurrency();
     const size_t max_threads = std::min(cpu_cores, size_t(8)); // Cap at 8 threads
-    
+
     // Use parallel filling only if enabled and buffer is large enough
     if (config_.use_parallel_filling && buffer_.size() >= 1024 && max_threads > 1) {
         size_t num_threads = std::min(max_threads, buffer_.size() / 128);
@@ -673,18 +674,18 @@ void EnhancedPRNG::reseed() {
     // Force a buffer refill on next use
     buffer_pos_ = config_.buffer_size;
     has_spare_normal_ = false;
-    
+
     // Reseed the crypto mixer if used
     if (crypto_) {
         crypto_->reseed();
     }
-    
+
     // Skip ahead in the sequence to get "new" starting point
     // Use smaller range for reseed skips since this happens during runtime
     // and we've already done a large warm-up during initialization
     const uint64_t MIN_RESEED_SKIP = 1000;   // Minimum to ensure state change
     const uint64_t MAX_RESEED_SKIP = 10000;  // Maximum to keep reseed fast
-    
+
     std::random_device rd;
     std::mt19937_64 rng(rd());
     std::uniform_int_distribution<uint64_t> skip_dist(MIN_RESEED_SKIP, MAX_RESEED_SKIP);
@@ -696,18 +697,18 @@ double EnhancedPRNG::next() {
     if (buffer_pos_ >= buffer_.size()) {
         fill_buffer();
     }
-    
+
     // Get raw uniform value
     double u = buffer_[buffer_pos_++];
     sample_count_++;
-    
+
     // Reseed crypto periodically if enabled
-    if (config_.use_crypto_mixing && crypto_ && 
-        config_.reseed_interval > 0 && 
+    if (config_.use_crypto_mixing && crypto_ &&
+        config_.reseed_interval > 0 &&
         sample_count_ % config_.reseed_interval == 0) {
         crypto_->reseed();
     }
-    
+
     // Transform according to requested distribution
     switch (config_.distribution) {
         case PRNGConfig::UNIFORM_01:
@@ -764,7 +765,7 @@ void EnhancedPRNG::skip(uint64_t n) {
 
         // Calculate the position in the new buffer
         uint64_t remaining_in_new_buffer = n % buffer_.size();
-        
+
         if (remaining_in_new_buffer > 0) {
             fill_buffer(); // Refill to get the target buffer
             buffer_pos_ = static_cast<size_t>(remaining_in_new_buffer);
@@ -779,25 +780,25 @@ void EnhancedPRNG::skip(uint64_t n) {
 
 void EnhancedPRNG::generate_n(Rcpp::NumericVector& output_vec) {
     const size_t n = output_vec.size();
-    
+
     // Direct buffer filling if we need a lot of values
     if (n >= 1024) {
         // Create a temporary buffer of the exact size needed
         SecureBuffer<double> temp_buffer(n);
-        
+
         // Fill it directly with MultiQI
         multi_->fill(temp_buffer.data(), n);
-        
+
         // Apply crypto mixing if enabled
         if (config_.use_crypto_mixing && crypto_ && crypto_->is_initialized()) {
-            crypto_->mix(reinterpret_cast<unsigned char*>(temp_buffer.data()), 
+            crypto_->mix(reinterpret_cast<unsigned char*>(temp_buffer.data()),
                          n * sizeof(double));
         }
-        
+
         // Transform according to requested distribution
         for (size_t i = 0; i < n; i++) {
             double u = temp_buffer[i];
-            
+
             switch (config_.distribution) {
                 case PRNGConfig::UNIFORM_01:
                     output_vec[i] = generate_uniform_01(u);
@@ -845,16 +846,16 @@ void EnhancedPRNG::generate_n(Rcpp::NumericVector& output_vec) {
                     output_vec[i] = u; // Default to uniform(0,1)
             }
         }
-        
+
         // Update sample count
         sample_count_ += n;
-        
+
         // Reset standard buffer to force refill on next use
         buffer_pos_ = buffer_.size();
-        
+
         return;
     }
-    
+
     // For smaller requests, use the standard next() method
     for (size_t i = 0; i < n; i++) {
         output_vec[i] = next();
@@ -868,28 +869,28 @@ std::pair<double, double> EnhancedPRNG::box_muller_pair(double u1, double u2) {
     if (u1 >= 1.0) u1 = 1.0 - std::numeric_limits<double>::epsilon();
     if (u2 <= 0.0) u2 = std::numeric_limits<double>::min();
     if (u2 >= 1.0) u2 = 1.0 - std::numeric_limits<double>::epsilon();
-    
+
     // Compute radius using log of first uniform
     double r = std::sqrt(-2.0 * std::log(u1));
-    
+
     // Compute angle in radians
     double theta = 2.0 * M_PI * u2;
-    
+
     // Generate two standard normal variates
     double z1 = r * std::cos(theta);
     double z2 = r * std::sin(theta);
-    
+
     // Apply mean and standard deviation from configuration
     double x1 = config_.normal_mean + config_.normal_sd * z1;
     double x2 = config_.normal_mean + config_.normal_sd * z2;
-    
+
     return {x1, x2};
 }
 
 double EnhancedPRNG::uniform_to_exponential(double u) {
     if (u <= 0.0) u = std::numeric_limits<double>::min();
     if (u >= 1.0) u = 1.0 - std::numeric_limits<double>::epsilon();
-    
+
     return -std::log(1.0 - u) / config_.exponential_lambda;
 }
 
@@ -898,7 +899,7 @@ double EnhancedPRNG::generate_poisson_knuth(double lambda) {
     double L = std::exp(-lambda);
     double p = 1.0;
     int k = 0;
-    
+
     do {
         k++;
         // Get next uniform from buffer
@@ -907,7 +908,7 @@ double EnhancedPRNG::generate_poisson_knuth(double lambda) {
         }
         p *= buffer_[buffer_pos_++];
     } while (p > L);
-    
+
     return static_cast<double>(k - 1);
 }
 
@@ -915,16 +916,16 @@ double EnhancedPRNG::generate_poisson_normal_approx(double lambda) {
     // Normal approximation for large lambda
     double mu = lambda;
     double sigma = std::sqrt(lambda);
-    
+
     // Use Box-Muller directly for a standard normal
     double u1 = next_raw_uniform();
     double u2 = next_raw_uniform();
-    
+
     // Generate a standard normal using Box-Muller
     double r = std::sqrt(-2.0 * std::log(u1));
     double theta = 2.0 * M_PI * u2;
     double z = r * std::cos(theta);
-    
+
     // Apply normal approximation and round to nearest integer
     double result = std::round(mu + sigma * z);
     return std::max(0.0, result); // Ensure result is non-negative
@@ -933,13 +934,13 @@ double EnhancedPRNG::generate_poisson_normal_approx(double lambda) {
 double EnhancedPRNG::generate_gamma_small_alpha(double alpha, double theta) {
     // Ahrens-Dieter acceptance-rejection method for alpha < 1
     double b = (alpha + M_E) / M_E;
-    
+
     while (true) {
         // Get two uniform variates
         double u1 = next_raw_uniform();
         double u2 = next_raw_uniform();
         double p = b * u1;
-        
+
         if (p <= 1.0) {
             double x = std::pow(p, 1.0 / alpha);
             if (u2 <= std::exp(-x)) {
@@ -958,7 +959,7 @@ double EnhancedPRNG::generate_gamma_large_alpha(double alpha, double theta) {
     // Marsaglia-Tsang method for alpha >= 1
     double d = alpha - 1.0/3.0;
     double c = 1.0 / std::sqrt(9.0 * d);
-    
+
     while (true) {
         double z, v;
         do {
@@ -968,17 +969,17 @@ double EnhancedPRNG::generate_gamma_large_alpha(double alpha, double theta) {
             double r = std::sqrt(-2.0 * std::log(u1));
             double theta = 2.0 * M_PI * u2;
             z = r * std::cos(theta);
-            
+
             v = 1.0 + c * z;
         } while (v <= 0.0);
-        
+
         v = v * v * v;
         double u = next_raw_uniform();
-        
+
         if (u < 1.0 - 0.0331 * (z * z) * (z * z)) {
             return theta * d * v;
         }
-        
+
         if (std::log(u) < 0.5 * z * z + d * (1.0 - v + std::log(v))) {
             return theta * d * v;
         }
@@ -988,18 +989,18 @@ double EnhancedPRNG::generate_gamma_large_alpha(double alpha, double theta) {
 double EnhancedPRNG::generate_beta_johnk(double alpha, double beta) {
     // Johnk's algorithm for Beta distribution
     double x_pow_alpha, y_pow_beta;
-    
+
     do {
         double u = next_raw_uniform();
         double v = next_raw_uniform();
-        
+
         if (u <= 0.0) u = std::numeric_limits<double>::min();
         if (v <= 0.0) v = std::numeric_limits<double>::min();
-        
+
         x_pow_alpha = std::pow(u, 1.0 / alpha);
         y_pow_beta = std::pow(v, 1.0 / beta);
     } while (x_pow_alpha + y_pow_beta > 1.0);
-    
+
     return x_pow_alpha / (x_pow_alpha + y_pow_beta);
 }
 
@@ -1021,7 +1022,7 @@ double EnhancedPRNG::generate_normal(double u) {
         std::normal_distribution<double> fallback_dist(config_.normal_mean, 0.01);
         return fallback_dist(fallback_rng);
     }
-    
+
     // This is a critical path for thread safety issues
     try {
         // Disable Ziggurat when parallel filling is enabled for stability
@@ -1037,7 +1038,7 @@ double EnhancedPRNG::generate_normal(double u) {
             // Always use Box-Muller in this case
             return generate_normal_box_muller(u);
         }
-        
+
         // In all other cases, use the configured method
         if (config_.normal_method == PRNGConfig::ZIGGURAT && ziggurat_) {
             // Use the Ziggurat method
@@ -1049,7 +1050,7 @@ double EnhancedPRNG::generate_normal(double u) {
                     std::uniform_real_distribution<double> dist_u(0.000001, 0.999999);
                     u = dist_u(rng_u);
                 }
-                
+
                 // Check again for object destruction - critical for thread safety
                 if (is_being_destroyed_.load()) {
                     // Use fallback RNG instead of fixed value
@@ -1057,10 +1058,10 @@ double EnhancedPRNG::generate_normal(double u) {
                     std::normal_distribution<double> fallback_dist(config_.normal_mean, 0.01);
                     return fallback_dist(fallback_rng);
                 }
-                
+
                 // Get the normal value using Ziggurat
                 double result = ziggurat_->generate();
-                
+
                 // Validate the result
                 if (std::isnan(result) || std::isinf(result)) {
                     if (config_.debug) {
@@ -1069,7 +1070,7 @@ double EnhancedPRNG::generate_normal(double u) {
                     // Fall back to Box-Muller if Ziggurat fails
                     return generate_normal_box_muller(u);
                 }
-                
+
                 // Apply mean and SD from config to the N(0,1) value from Ziggurat
                 return config_.normal_mean + config_.normal_sd * result;
             } catch (const std::exception& e) {
@@ -1080,14 +1081,14 @@ double EnhancedPRNG::generate_normal(double u) {
                         warning_count++;
                     }
                 }
-                
+
                 // If the Ziggurat is being destroyed, use fallback RNG
                 if (is_being_destroyed_.load()) {
                     static thread_local std::mt19937 fallback_rng(std::random_device{}());
                     std::normal_distribution<double> fallback_dist(config_.normal_mean, config_.normal_sd);
                     return fallback_dist(fallback_rng);
                 }
-                
+
                 // Fall back to Box-Muller if Ziggurat throws
                 try {
                     return generate_normal_box_muller(u);
@@ -1105,14 +1106,14 @@ double EnhancedPRNG::generate_normal(double u) {
                         warning_count++;
                     }
                 }
-                
+
                 // If the object is being destroyed, use fallback RNG
                 if (is_being_destroyed_.load()) {
                     static thread_local std::mt19937 fallback_rng(std::random_device{}());
                     std::normal_distribution<double> fallback_dist(config_.normal_mean, config_.normal_sd);
                     return fallback_dist(fallback_rng);
                 }
-                
+
                 // Fall back to Box-Muller for any other error
                 try {
                     return generate_normal_box_muller(u);
@@ -1161,7 +1162,7 @@ double EnhancedPRNG::generate_normal(double u) {
 
 // Box-Muller implementation for normal distribution
 double EnhancedPRNG::generate_normal_box_muller(double u) {
-    try {        
+    try {
         // Thread-safe handling of spare normal value
         // In threading mode, we don't use the spare normal to avoid thread safety issues
         if (!config_.use_threading && has_spare_normal_) {
@@ -1170,10 +1171,10 @@ double EnhancedPRNG::generate_normal_box_muller(double u) {
             spare_normal_ = 0.0;  // Clear for safety
             return result;
         }
-        
+
         // Get second uniform for Box-Muller (first uniform is passed in)
         double u2;
-        
+
         // Make sure we have values in the buffer
         if (buffer_pos_ >= buffer_.size()) {
             try {
@@ -1188,7 +1189,7 @@ double EnhancedPRNG::generate_normal_box_muller(double u) {
                 u2 = fallback_dist(fallback_rng);
             }
         }
-        
+
         // Safely get the second uniform value
         if (buffer_pos_ >= buffer_.size()) {
             // Buffer is still invalid after filling attempt
@@ -1198,14 +1199,14 @@ double EnhancedPRNG::generate_normal_box_muller(double u) {
         } else {
             u2 = buffer_[buffer_pos_++];  // Thread-safe increment of buffer_pos_
         }
-        
+
         // Ensure uniforms are in (0,1) range for numerical stability
         // These checks are required to prevent NaN/infinity in the Box-Muller transform
         if (u <= 0.0) u = std::numeric_limits<double>::min();
         if (u >= 1.0) u = 1.0 - std::numeric_limits<double>::epsilon();
         if (u2 <= 0.0) u2 = std::numeric_limits<double>::min();
         if (u2 >= 1.0) u2 = 1.0 - std::numeric_limits<double>::epsilon();
-        
+
         // Generate pair of normal values with proper error handling
         std::pair<double, double> norm_pair;
         try {
@@ -1219,11 +1220,11 @@ double EnhancedPRNG::generate_normal_box_muller(double u) {
             std::normal_distribution<double> fallback_dist(config_.normal_mean, config_.normal_sd);
             return fallback_dist(fallback_rng);
         }
-        
+
         // Extract the normal values
         double x1 = norm_pair.first;
         double x2 = norm_pair.second;
-        
+
         // Check for NaN/infinity
         if (std::isnan(x1) || std::isinf(x1)) {
             // Use fallback RNG instead of fixed mean value
@@ -1231,7 +1232,7 @@ double EnhancedPRNG::generate_normal_box_muller(double u) {
             std::normal_distribution<double> fallback_dist(config_.normal_mean, config_.normal_sd);
             x1 = fallback_dist(fallback_rng);
         }
-        
+
         if (std::isnan(x2) || std::isinf(x2)) {
             // Use fallback RNG instead of fixed mean value
             static thread_local std::mt19937 fallback_rng(std::random_device{}());
@@ -1242,7 +1243,7 @@ double EnhancedPRNG::generate_normal_box_muller(double u) {
             has_spare_normal_ = true;
             spare_normal_ = x2;
         }
-        
+
         return x1;
     } catch (const std::exception& e) {
         // Ultimate fallback - use std RNG instead of fixed mean
@@ -1269,7 +1270,7 @@ double EnhancedPRNG::generate_exponential(double u) {
 
 double EnhancedPRNG::generate_poisson_dispatch(double u) {
     double lambda = config_.poisson_lambda;
-    
+
     // Choose algorithm based on lambda value
     if (lambda < 30.0) {
         return generate_poisson_knuth(lambda);
@@ -1281,7 +1282,7 @@ double EnhancedPRNG::generate_poisson_dispatch(double u) {
 double EnhancedPRNG::generate_gamma_dispatch(double u) {
     double alpha = config_.gamma_shape;
     double theta = config_.gamma_scale;
-    
+
     if (alpha < 1.0) {
         return generate_gamma_small_alpha(alpha, theta);
     } else {
@@ -1307,15 +1308,15 @@ double EnhancedPRNG::generate_weibull_dispatch(double u) {
     if (config_.weibull_shape <= 0.0 || config_.weibull_scale <= 0.0) {
         throw std::invalid_argument("Weibull shape and scale must be positive");
     }
-    
+
     // Use 1-u to avoid log(0) when u approaches 0
     // Since u and 1-u are identically distributed on (0,1), this is mathematically equivalent
     double safe_u = 1.0 - u;
     if (safe_u <= 0.0) safe_u = std::numeric_limits<double>::epsilon();
     if (safe_u >= 1.0) safe_u = 1.0 - std::numeric_limits<double>::epsilon();
-    
+
     double result = config_.weibull_scale * std::pow(-std::log(safe_u), 1.0 / config_.weibull_shape);
-    
+
     if (std::isnan(result) || std::isinf(result)) {
         return config_.weibull_scale; // Fallback to scale parameter
     }
@@ -1326,11 +1327,11 @@ double EnhancedPRNG::generate_lognormal_dispatch(double u) {
     if (config_.lognormal_sigma <= 0.0) {
         throw std::invalid_argument("Log-normal sigma must be positive");
     }
-    
+
     // Pass u to normal generator, which will use it as first uniform
     double normal_val = generate_normal(u) * config_.lognormal_sigma + config_.lognormal_mu;
     double result = std::exp(normal_val);
-    
+
     if (std::isnan(result) || std::isinf(result) || result <= 0.0) {
         return std::exp(config_.lognormal_mu); // Fallback to median
     }
@@ -1341,12 +1342,12 @@ double EnhancedPRNG::generate_chisquared_dispatch(double u) {
     if (config_.chisquared_df <= 0.0) {
         throw std::invalid_argument("Chi-squared df must be positive");
     }
-    
+
     // Chi-squared(df) = Gamma(df/2, 2) for ALL positive df
     // This is more efficient than summing squared normals
     double shape = config_.chisquared_df / 2.0;
     double scale = 2.0;
-    
+
     // For very large df, use normal approximation for efficiency
     if (config_.chisquared_df > 100.0) {
         double mean = config_.chisquared_df;
@@ -1354,21 +1355,21 @@ double EnhancedPRNG::generate_chisquared_dispatch(double u) {
         double result = generate_normal(u) * sd + mean;
         return std::max(0.0, result);
     }
-    
+
     // Use gamma generation (which will use its own uniforms)
     // Save current gamma params, use chi-squared params, then restore
     double saved_shape = config_.gamma_shape;
     double saved_scale = config_.gamma_scale;
-    
+
     const_cast<PRNGConfig&>(config_).gamma_shape = shape;
     const_cast<PRNGConfig&>(config_).gamma_scale = scale;
-    
+
     double result = generate_gamma_dispatch(u);
-    
+
     // Restore original gamma params
     const_cast<PRNGConfig&>(config_).gamma_shape = saved_shape;
     const_cast<PRNGConfig&>(config_).gamma_scale = saved_scale;
-    
+
     return result;
 }
 
@@ -1376,14 +1377,14 @@ double EnhancedPRNG::generate_binomial_dispatch(double u) {
     if (config_.binomial_n < 0 || config_.binomial_p < 0.0 || config_.binomial_p > 1.0) {
         throw std::invalid_argument("Invalid binomial parameters");
     }
-    
+
     // Edge cases
     if (config_.binomial_n == 0 || config_.binomial_p == 0.0) return 0.0;
     if (config_.binomial_p == 1.0) return static_cast<double>(config_.binomial_n);
-    
+
     int n = config_.binomial_n;
     double p = config_.binomial_p;
-    
+
     // Use normal approximation for n >= 50 and moderate p values
     if (n >= 50 && p > 0.1 && p < 0.9) {
         double mu = n * p;
@@ -1391,7 +1392,7 @@ double EnhancedPRNG::generate_binomial_dispatch(double u) {
         double result = std::round(generate_normal(u) * sigma + mu);
         return std::max(0.0, std::min(static_cast<double>(n), result));
     }
-    
+
     // Use normal approximation when both n*p > 5 and n*(1-p) > 5
     if (n * p > 5.0 && n * (1.0 - p) > 5.0) {
         double mu = n * p;
@@ -1401,7 +1402,7 @@ double EnhancedPRNG::generate_binomial_dispatch(double u) {
         if (std::isnan(result) || std::isinf(result)) return mu;
         return std::max(0.0, std::min(static_cast<double>(n), result));
     }
-    
+
     // Exact method: sum of Bernoulli trials
     // Use first u for first trial, then get more uniforms as needed
     double sum = (u < p) ? 1.0 : 0.0;
@@ -1415,27 +1416,27 @@ double EnhancedPRNG::generate_student_t_dispatch(double u) {
     if (config_.student_t_df <= 0.0) {
         throw std::invalid_argument("Student's t df must be positive");
     }
-    
+
     // For large df, converges to normal
     if (config_.student_t_df > 100.0) {
         return generate_normal(u);
     }
-    
+
     // Student's t = Normal / sqrt(ChiSquared/df)
     double norm = generate_normal(u);
-    
+
     // Generate chi-squared (will use its own uniforms)
     double saved_df = config_.chisquared_df;
     const_cast<PRNGConfig&>(config_).chisquared_df = config_.student_t_df;
     double chisq = generate_chisquared_dispatch(next_raw_uniform());
     const_cast<PRNGConfig&>(config_).chisquared_df = saved_df;
-    
+
     if (chisq <= 0.0) {
         chisq = std::numeric_limits<double>::epsilon();
     }
-    
+
     double result = norm / std::sqrt(chisq / config_.student_t_df);
-    
+
     if (std::isnan(result) || std::isinf(result)) {
         return 0.0; // Fallback to median
     }
@@ -1443,44 +1444,44 @@ double EnhancedPRNG::generate_student_t_dispatch(double u) {
 }
 
 double EnhancedPRNG::generate_negative_binomial_dispatch(double u) {
-    if (config_.negative_binomial_r <= 0.0 || config_.negative_binomial_p <= 0.0 || 
+    if (config_.negative_binomial_r <= 0.0 || config_.negative_binomial_p <= 0.0 ||
         config_.negative_binomial_p >= 1.0) {
         throw std::invalid_argument("Invalid negative binomial parameters");
     }
-    
+
     double r = config_.negative_binomial_r;
     double p = config_.negative_binomial_p;
-    
+
     // Use gamma-Poisson mixture method for non-integer r or large r values
     if (r != std::floor(r) || r > 50.0) {
         // Negative binomial can be generated as Poisson(lambda) where lambda ~ Gamma(r, (1-p)/p)
         double gamma_shape = r;
         double gamma_scale = (1.0 - p) / p;
-        
+
         // Save current gamma params
         double saved_shape = config_.gamma_shape;
         double saved_scale = config_.gamma_scale;
-        
+
         const_cast<PRNGConfig&>(config_).gamma_shape = gamma_shape;
         const_cast<PRNGConfig&>(config_).gamma_scale = gamma_scale;
-        
+
         double lambda = generate_gamma_dispatch(u);
-        
+
         // Restore gamma params
         const_cast<PRNGConfig&>(config_).gamma_shape = saved_shape;
         const_cast<PRNGConfig&>(config_).gamma_scale = saved_scale;
-        
+
         // Now generate Poisson with this lambda
         double saved_lambda = config_.poisson_lambda;
         const_cast<PRNGConfig&>(config_).poisson_lambda = lambda;
-        
+
         double result = generate_poisson_dispatch(next_raw_uniform());
-        
+
         const_cast<PRNGConfig&>(config_).poisson_lambda = saved_lambda;
-        
+
         return result;
     }
-    
+
     // Exact method for integer r: sum of geometric distributions
     // Each geometric counts failures until success
     double sum = 0.0;
@@ -1506,7 +1507,7 @@ void EnhancedPRNG::dumpConfig() const {
     Rcpp::Rcout << "  c: " << config_.c << std::endl;
     Rcpp::Rcout << "  mpfr_precision: " << config_.mpfr_precision << std::endl;
     Rcpp::Rcout << "  buffer_size: " << config_.buffer_size << std::endl;
-    
+
     std::string dist_str;
     switch (config_.distribution) {
         case PRNGConfig::UNIFORM_01: dist_str = "uniform_01"; break;
@@ -1526,7 +1527,7 @@ void EnhancedPRNG::dumpConfig() const {
         default: dist_str = "unknown"; break;
     }
     Rcpp::Rcout << "  distribution: " << dist_str << std::endl;
-    
+
     std::string method_str;
     switch (config_.normal_method) {
         case PRNGConfig::BOX_MULLER: method_str = "box_muller"; break;
@@ -1534,7 +1535,7 @@ void EnhancedPRNG::dumpConfig() const {
         default: method_str = "unknown"; break;
     }
     Rcpp::Rcout << "  normal_method: " << method_str << std::endl;
-    
+
     Rcpp::Rcout << "  range_min: " << config_.range_min << std::endl;
     Rcpp::Rcout << "  range_max: " << config_.range_max << std::endl;
     Rcpp::Rcout << "  normal_mean: " << config_.normal_mean << std::endl;
@@ -1545,7 +1546,7 @@ void EnhancedPRNG::dumpConfig() const {
     Rcpp::Rcout << "  gamma_scale: " << config_.gamma_scale << std::endl;
     Rcpp::Rcout << "  beta_alpha: " << config_.beta_alpha << std::endl;
     Rcpp::Rcout << "  beta_beta: " << config_.beta_beta << std::endl;
-    
+
     Rcpp::Rcout << "  use_crypto_mixing: " << (config_.use_crypto_mixing ? "true" : "false") << std::endl;
     Rcpp::Rcout << "  adhoc_corrections: " << (config_.adhoc_corrections ? "true" : "false") << std::endl;
     Rcpp::Rcout << "  use_tie_breaking: " << (config_.use_tie_breaking ? "true" : "false") << std::endl;
@@ -1557,7 +1558,7 @@ void EnhancedPRNG::dumpConfig() const {
     Rcpp::Rcout << "  seed: " << config_.seed << std::endl;
     Rcpp::Rcout << "  has_seed: " << (config_.has_seed ? "true" : "false") << std::endl;
     Rcpp::Rcout << "  deterministic: " << (config_.deterministic ? "true" : "false") << std::endl;
-    
+
     Rcpp::Rcout << std::endl;
 }
 
@@ -1570,14 +1571,14 @@ void EnhancedPRNG::registerThreadForCleanup() {
 void EnhancedPRNG::cleanupThreadResources() {
     // Clean up thread-local resources for Ziggurat
     ZigguratNormal::cleanup_thread_local_resources();
-    
+
     // Any other thread-local cleanup can be added here
 }
 
 void EnhancedPRNG::cleanupAllThreadResources() {
     // Use ZigguratNormal's built-in thread safety mechanisms
     ZigguratNormal::prepare_for_shutdown();
-    
+
     // Directly clean up Ziggurat resources for the current thread
     ZigguratNormal::cleanup_thread_local_resources();
 }
@@ -1586,7 +1587,7 @@ void EnhancedPRNG::cleanupAllThreadResources() {
 void EnhancedPRNG::prepareForCleanup() {
     // Mark as being destroyed to prevent new operations
     is_being_destroyed_.store(true);
-    
+
     // Disable thread-safe mode on ziggurat if it exists
     if (ziggurat_) {
         try {
@@ -1595,7 +1596,7 @@ void EnhancedPRNG::prepareForCleanup() {
             // Ignore errors during cleanup
         }
     }
-    
+
     // Clean up all thread resources
     cleanupAllThreadResources();
 }
@@ -1605,21 +1606,21 @@ void EnhancedPRNG::performCleanup() {
     if (!is_being_destroyed_.load()) {
         prepareForCleanup();
     }
-    
+
     // Acquire cleanup mutex to prevent concurrent access
     std::lock_guard<std::mutex> lock(cleanup_mutex_);
-    
+
     try {
         // Clean up resources in an orderly fashion
         // Order matters for safe destruction
         crypto_.reset();
         ziggurat_.reset();
         multi_.reset();
-        
+
         // Clear buffer
         buffer_ = SecureBuffer<double>(0);
         buffer_pos_ = 0;
-        
+
     } catch (const std::exception& e) {
         // Log error but continue - this is cleanup
         if (config_.debug) {
@@ -1925,7 +1926,7 @@ std::mt19937_64& qiprng::getThreadLocalEngine() {
         std::random_device rd;
         std::array<std::uint32_t, std::mt19937_64::state_size / 2> seeds; // Correct seeding
         for(size_t i = 0; i < seeds.size(); ++i) seeds[i] = rd();
-        
+
         // Incorporate thread ID for better seed diversity across threads
         auto tid_hash = std::hash<std::thread::id>()(std::this_thread::get_id());
         seeds[0] ^= static_cast<uint32_t>(tid_hash & 0xFFFFFFFFULL);
@@ -1959,15 +1960,15 @@ std::mt19937_64& qiprng::getDeterministicThreadLocalEngine(uint64_t seed) {
 }
 
 // Multi-QI parameter set selection
-std::vector<std::tuple<long, long, long>> qiprng::pickMultiQiSet(int precision, int count, 
+std::vector<std::tuple<long, long, long>> qiprng::pickMultiQiSet(int precision, int count,
                                                                  uint64_t seed, bool has_seed) {
     std::vector<std::tuple<long, long, long>> result;
-    
+
     // First, try to load and use excellent discriminants from CSV
     loadCSVDiscriminants();
-    
+
     std::vector<std::tuple<long, long, long>> baseParams;
-    
+
     // If CSV discriminants are loaded, use them; otherwise fallback to hardcoded values
     if (g_csv_discriminants_loaded && !g_csv_discriminants.empty()) {
         // Convert CSV discriminants (a,b,c,discriminant) to baseParams (a,b,c)
@@ -1994,7 +1995,7 @@ std::vector<std::tuple<long, long, long>> qiprng::pickMultiQiSet(int precision, 
         result = baseParams;
         int remaining = count - baseParams.size();
         std::vector<int> primes = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53};
-        
+
         // Get appropriate RNG based on whether we have a seed
         std::mt19937_64& rng = has_seed
             ? getDeterministicThreadLocalEngine(seed)
@@ -2021,12 +2022,12 @@ std::vector<std::tuple<long, long, long>> qiprng::pickMultiQiSet(int precision, 
 
             if (a == 0) a = (rng() % 2 == 0) ? 1 : -1; // Ensure a is not zero
             if (c == 0) c = (rng() % 2 == 0) ? -1 : 1; // Ensure c is not zero
-            
+
             // Ensure discriminant b^2 - 4ac > 0
             if ((a > 0 && c > 0) || (a < 0 && c < 0)) { // a and c have same sign
                 c = -c; // Flip sign of c to make -4ac positive
             }
-            
+
             long long current_disc = static_cast<long long>(b) * b - 4LL * static_cast<long long>(a) * c;
             if (current_disc <= 0) {
                 // Make |b| large relative to |ac|
@@ -2040,7 +2041,7 @@ std::vector<std::tuple<long, long, long>> qiprng::pickMultiQiSet(int precision, 
 
                 current_disc = static_cast<long long>(b) * b - 4LL * static_cast<long long>(a) * c;
                 if (current_disc <= 0) { // Ultimate fallback
-                    a = std::get<0>(baseParams[i % baseParams.size()]); 
+                    a = std::get<0>(baseParams[i % baseParams.size()]);
                     b = std::get<1>(baseParams[i % baseParams.size()]);
                     c = std::get<2>(baseParams[i % baseParams.size()]);
                 }
@@ -2055,12 +2056,12 @@ std::vector<std::tuple<long, long, long>> qiprng::pickMultiQiSet(int precision, 
 void qiprng::loadCSVDiscriminants() {
     // Use a static flag to avoid potential race conditions with the mutex
     static std::atomic<bool> load_attempt_in_progress(false);
-    
+
     // First quick check without lock
     if (g_csv_discriminants_loaded) {
         return;
     }
-    
+
     // Try to set the in-progress flag
     bool expected = false;
     if (!load_attempt_in_progress.compare_exchange_strong(expected, true)) {
@@ -2075,10 +2076,10 @@ void qiprng::loadCSVDiscriminants() {
         // If we get here, the other thread might be stuck
         return; // Give up waiting
     }
-    
+
     // We got the flag, now get the mutex
     std::lock_guard<std::mutex> lock(g_csv_disc_mutex);
-    
+
     // Double-check after acquiring the lock
     if (g_csv_discriminants_loaded) {
         load_attempt_in_progress.store(false);
@@ -2088,7 +2089,7 @@ void qiprng::loadCSVDiscriminants() {
     // Proceed with loading the discriminants
     try {
         std::vector<std::tuple<long, long, long, long long>> temp_discriminants;
-        
+
         // Try different possible paths for the excellent discriminants CSV file
         std::vector<std::string> possible_paths = {
             "inst/extdata/excellent_discriminants.csv",
@@ -2101,10 +2102,10 @@ void qiprng::loadCSVDiscriminants() {
             "../discriminants.csv",
             "../../discriminants.csv"
         };
-        
+
         std::ifstream file;
         std::string used_path;
-        
+
         for (const auto& path : possible_paths) {
             file.open(path);
             if (file.is_open()) {
@@ -2116,7 +2117,7 @@ void qiprng::loadCSVDiscriminants() {
 
         if (!file.is_open()) {
             Rcpp::warning("Could not open excellent_discriminants.csv file in any standard location. Will use generated discriminants.");
-            
+
             // Generate default discriminants instead
             for (int i = 0; i < 100; i++) {
                 long a = 1 + (i % 10);
@@ -2127,7 +2128,7 @@ void qiprng::loadCSVDiscriminants() {
                     temp_discriminants.emplace_back(a, b, c, disc);
                 }
             }
-            
+
             g_csv_discriminants.swap(temp_discriminants);
             Rcpp::Rcout << "Created " << g_csv_discriminants.size() << " default discriminants." << std::endl;
             g_csv_discriminants_loaded = true;
@@ -2195,7 +2196,7 @@ void qiprng::loadCSVDiscriminants() {
             Rcpp::Rcout << "Loaded " << g_csv_discriminants.size() << " discriminants from CSV file." << std::endl;
         } else {
             Rcpp::warning("No valid discriminants found in CSV file or file was empty. Generating default discriminants.");
-            
+
             // Generate default discriminants instead
             for (int i = 0; i < 100; i++) {
                 long a = 1 + (i % 10);
@@ -2206,20 +2207,20 @@ void qiprng::loadCSVDiscriminants() {
                     g_csv_discriminants.emplace_back(a, b, c, disc);
                 }
             }
-            
+
             if (!g_csv_discriminants.empty()) {
                 Rcpp::Rcout << "Generated " << g_csv_discriminants.size() << " default discriminants." << std::endl;
             } else {
                 Rcpp::warning("Failed to generate default discriminants. Thread safety issues may occur.");
             }
         }
-        
+
         // Always mark as loaded, even if we failed, to avoid repeated attempts
         g_csv_discriminants_loaded = true;
-        
+
         // Reset the in-progress flag
         load_attempt_in_progress.store(false);
-        
+
     } catch (const std::exception& e) {
         Rcpp::warning("Exception during CSV discriminants loading: %s", e.what());
         g_csv_discriminants_loaded = true;
@@ -2250,7 +2251,7 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
         }
     }
     use_csv = current_config.use_csv_discriminants;
-    
+
     // Get appropriate RNG based on whether we have a seed
     std::mt19937_64& rng = current_config.has_seed
         ? getDeterministicThreadLocalEngine(current_config.seed)
@@ -2259,8 +2260,8 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
     // First approach: Use CSV discriminants if configured
     if (use_csv) {
         // Make sure CSV discriminants are loaded - this has its own thread safety
-        loadCSVDiscriminants(); 
-        
+        loadCSVDiscriminants();
+
         // Create a local copy of CSV discriminants to work with outside the lock
         std::vector<std::tuple<long,long,long,long long>> local_csv_copy;
         {
@@ -2279,13 +2280,13 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
                 // Original random shuffle
                 std::shuffle(local_csv_copy.begin(), local_csv_copy.end(), rng);
             }
-            
+
             for (const auto& entry : local_csv_copy) {
                 long long disc_candidate = std::get<3>(entry);
                 long csv_a = std::get<0>(entry);
                 long csv_b = std::get<1>(entry);
                 long csv_c = std::get<2>(entry);
-                
+
                 // Critical section: Check and update discriminant usage
                 bool is_new_discriminant = false;
                 {
@@ -2295,7 +2296,7 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
                         is_new_discriminant = true;
                     }
                 }
-                
+
                 // If we found a new discriminant, update config and return it
                 if (is_new_discriminant) {
                     // Update the PRNG's a,b,c with the ones from CSV
@@ -2312,7 +2313,7 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
                     return disc_candidate;
                 }
             }
-            
+
             // If we get here, all CSV discriminants are used
             if (current_config.debug) {
                 Rcpp::warning("All unique discriminants from CSV have been used. Falling back to random generation.");
@@ -2327,8 +2328,8 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
 
     // Second approach: Generate random discriminants
     std::uniform_int_distribution<long long> dist(min_value, max_value);
-    int max_attempts = 1000; 
-    
+    int max_attempts = 1000;
+
     for (int attempt = 0; attempt < max_attempts; ++attempt) {
         long long candidate = dist(rng);
         if (candidate <= 0) continue;
@@ -2337,14 +2338,14 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
         bool is_sf = true;
         long limit = static_cast<long>(std::sqrt(static_cast<double>(candidate)));
         if (limit > 1000) limit = 1000; // Cap for performance
-        
+
         for (long f = 2; f <= limit; ++f) {
             if (candidate % (f * f) == 0) {
                 is_sf = false;
                 break;
             }
         }
-        
+
         if (!is_sf) continue;
 
         // Critical section: Check and update discriminant usage
@@ -2356,7 +2357,7 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
                 is_new_discriminant = true;
             }
         }
-        
+
         if (is_new_discriminant) {
             // Calculate a, b, c values for this discriminant
             try {
@@ -2364,7 +2365,7 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
                 long a = std::get<0>(abc);
                 long b = std::get<1>(abc);
                 long c = std::get<2>(abc);
-                
+
                 // Update the PRNG with these values
                 if (g_use_threading && t_prng) {
                     PRNGConfig cfg = t_prng->getConfig();
@@ -2376,7 +2377,7 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
                     cfg.a = a; cfg.b = b; cfg.c = c;
                     g_prng->updateConfig(cfg);
                 }
-                
+
                 return candidate;
             } catch (const std::exception& e) {
                 // Log error but continue looking
@@ -2387,7 +2388,7 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
             }
         }
     }
-    
+
     // Fallback if we couldn't find a good discriminant
     long long fallback_disc = 41; // Default value (from 2,5,-2)
     try {
@@ -2395,7 +2396,7 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
         long a = std::get<0>(abc);
         long b = std::get<1>(abc);
         long c = std::get<2>(abc);
-        
+
         // Update the PRNG with these values
         if (g_use_threading && t_prng) {
             PRNGConfig cfg = t_prng->getConfig();
@@ -2420,7 +2421,7 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
             g_prng->updateConfig(cfg);
         }
     }
-    
+
     return fallback_disc;
 }
 
@@ -2430,14 +2431,14 @@ std::tuple<long, long, long> qiprng::makeABCfromDelta(long long Delta) {
     if (Delta <= 0) {
         return {1, 5, -1}; // Safe default fallback
     }
-    
+
     const int MAX_TRIES = 50; // Reduced attempts for better performance
     int total_tries = 0;
-    
+
     try {
         // Use a thread-local PRNG for reproducibility within a thread but diversity between threads
         std::mt19937_64& rng = getThreadLocalEngine();
-        
+
         // Choose a random a value with a preference for small absolute values
         std::vector<long> a_choices = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15};
         // Randomize sign 50% of the time
@@ -2446,20 +2447,20 @@ std::tuple<long, long, long> qiprng::makeABCfromDelta(long long Delta) {
                 a_choices[i] = -a_choices[i];
             }
         }
-        
+
         // Prefer small values for performance
         std::shuffle(a_choices.begin(), a_choices.end(), rng);
         std::sort(a_choices.begin(), a_choices.end(), [](long a, long b) {
             return std::abs(a) < std::abs(b);
         });
-        
+
         // Try each a value to find a suitable b and c
         for (long a_val : a_choices) {
             if (total_tries >= MAX_TRIES) {
                 break; // Prevent runaway loops
             }
             if (a_val == 0) continue; // Skip a=0
-            
+
             // More efficient algorithm using mathematical properties
             // Calculate b using quadratic residues approach
             long b_val = static_cast<long>(std::sqrt(static_cast<double>(Delta)));
@@ -2471,14 +2472,14 @@ std::tuple<long, long, long> qiprng::makeABCfromDelta(long long Delta) {
                     b_val = static_cast<long>(std::sqrt(static_cast<double>(nearest_square)));
                 }
             }
-            
+
             // Try a small range around the calculated b value
             for (long b_offset = 0; b_offset < 10 && total_tries < MAX_TRIES; ++b_offset, ++total_tries) {
                 long b_try = (b_offset % 2 == 0) ? b_val + b_offset/2 : b_val - (b_offset+1)/2;
-                
+
                 // Skip b=0 unless appropriate condition is met
                 if (b_try == 0 && Delta % (4LL * a_val) != 0) continue;
-                
+
                 // Use safe computation for b^2 to avoid overflow
                 // Check if b^2 would overflow a long long
                 long long b_ll = static_cast<long long>(b_try);
@@ -2488,41 +2489,41 @@ std::tuple<long, long, long> qiprng::makeABCfromDelta(long long Delta) {
                 if (b_ll < 0 && b_ll < std::numeric_limits<long long>::min() / b_ll) {
                     continue; // Would overflow, skip this value
                 }
-                
+
                 long long b_squared = b_ll * b_ll;
-                
+
                 // Compute numerator and denominator for c
                 long long num = b_squared - Delta;
                 long long den = 4LL * a_val;
-                
+
                 // Skip invalid cases
                 if (den == 0) continue;  // Should not happen with a_choices
-                
+
                 // Check if we can get an integer c
                 if (num % den == 0) {
                     long long c_ll = num / den;
-                    
+
                     // Check if c fits in a long
-                    if (c_ll >= std::numeric_limits<long>::min() && 
+                    if (c_ll >= std::numeric_limits<long>::min() &&
                         c_ll <= std::numeric_limits<long>::max()) {
-                        
+
                         long c_val = static_cast<long>(c_ll);
-                        
+
                         // Skip c=0 unless appropriate condition is met
                         if (c_val == 0 && b_squared != Delta) continue;
-                        
+
                         // Verify the result actually gives the correct discriminant
                         // Check for overflow in 4*a*c calculation
                         long long a_ll = static_cast<long long>(a_val);
                         long long c_ll = static_cast<long long>(c_val);
-                        
+
                         // First check 4*a for overflow
                         if (a_ll > 0 && 4LL > std::numeric_limits<long long>::max() / a_ll) {
                             continue; // Would overflow
                         }
-                        
+
                         long long four_a = 4LL * a_ll;
-                        
+
                         // Then check four_a * c for overflow
                         bool will_overflow = false;
                         if (four_a > 0 && c_ll > 0) {
@@ -2542,14 +2543,14 @@ std::tuple<long, long, long> qiprng::makeABCfromDelta(long long Delta) {
                                 will_overflow = true;
                             }
                         }
-                        
+
                         if (will_overflow) {
                             continue;  // Skip if multiplication would overflow
                         }
-                        
+
                         long long four_ac = four_a * c_ll;
                         long long disc = b_squared - four_ac;
-                        
+
                         if (disc == Delta) {
                             return {a_val, b_val, c_val};
                         }
@@ -2557,10 +2558,10 @@ std::tuple<long, long, long> qiprng::makeABCfromDelta(long long Delta) {
                 }
             }
         }
-        
+
         // Fallback if no suitable a,b,c found
         long fallback_a = 1;
-        
+
         // Calculate a reasonable b value for the fallback
         long fallback_b;
         if (Delta <= 4) {
@@ -2568,19 +2569,19 @@ std::tuple<long, long, long> qiprng::makeABCfromDelta(long long Delta) {
         } else {
             fallback_b = static_cast<long>(std::sqrt(static_cast<double>(Delta)));
         }
-        
+
         // Choose c to satisfy b^2 - 4ac = Delta
         long long b_squared = static_cast<long long>(fallback_b) * fallback_b;
         long fallback_c = static_cast<long>((b_squared - Delta) / (4 * fallback_a));
-        
+
         // Verify result
-        long long test_disc = static_cast<long long>(fallback_b) * fallback_b - 
+        long long test_disc = static_cast<long long>(fallback_b) * fallback_b -
                               4LL * static_cast<long long>(fallback_a) * fallback_c;
-        
+
         if (test_disc == Delta) {
             return {fallback_a, fallback_b, fallback_c};
         }
-        
+
         // Ultimate fallback with nice round numbers
         return {1, 5, -1}; // This gives 41
     } catch (...) {
@@ -2620,58 +2621,58 @@ void initialize_libsodium_() {
     if (already_initialized) {
         return;
     }
-    
+
     int ret = sodium_init();
     if (ret < 0) {
         // sodium_init() returns -1 on error, 0 on success, 1 if already initialized.
         throw std::runtime_error("Failed to initialize libsodium. The library may be unusable or insecure.");
     }
-    
+
     // Set the global flag
     qiprng::sodium_initialized = true;
     already_initialized = true;
     qiprng::sodium_initialized_flag.store(true);
-    
+
     Rcpp::Rcout << "Libsodium initialized successfully. Return code: " << ret << std::endl;
 }
 
 // Helper function to validate PRNGConfig parameters
 void validatePRNGConfig(const PRNGConfig& cfg) {
     // Validate discriminant (b^2 - 4ac > 0)
-    long long disc = static_cast<long long>(cfg.b) * cfg.b - 
+    long long disc = static_cast<long long>(cfg.b) * cfg.b -
                      4LL * static_cast<long long>(cfg.a) * cfg.c;
     if (disc <= 0) {
         throw std::invalid_argument("Invalid config: discriminant must be positive (b^2 - 4ac > 0)");
     }
-    
+
     // Validate a is not zero
     if (cfg.a == 0) {
         throw std::invalid_argument("Invalid config: parameter 'a' cannot be zero");
     }
-    
+
     // Validate buffer size
     if (cfg.buffer_size == 0) {
         throw std::invalid_argument("Invalid config: buffer_size must be greater than 0");
     }
-    
+
     // Validate range parameters
     if (cfg.range_min >= cfg.range_max) {
         throw std::invalid_argument("Invalid config: range_min must be less than range_max");
     }
-    
+
     // Validate distribution-specific parameters
     if (cfg.distribution == PRNGConfig::NORMAL && cfg.normal_sd <= 0) {
         throw std::invalid_argument("Invalid config: normal_sd must be positive");
     }
-    
+
     if (cfg.distribution == PRNGConfig::EXPONENTIAL && cfg.exponential_lambda <= 0) {
         throw std::invalid_argument("Invalid config: exponential_lambda must be positive");
     }
-    
+
     if (cfg.distribution == PRNGConfig::POISSON && cfg.poisson_lambda <= 0) {
         throw std::invalid_argument("Invalid config: poisson_lambda must be positive");
     }
-    
+
     if (cfg.distribution == PRNGConfig::GAMMA) {
         if (cfg.gamma_shape <= 0) {
             throw std::invalid_argument("Invalid config: gamma_shape must be positive");
@@ -2680,7 +2681,7 @@ void validatePRNGConfig(const PRNGConfig& cfg) {
             throw std::invalid_argument("Invalid config: gamma_scale must be positive");
         }
     }
-    
+
     if (cfg.distribution == PRNGConfig::BETA) {
         if (cfg.beta_alpha <= 0) {
             throw std::invalid_argument("Invalid config: beta_alpha must be positive");
@@ -2689,7 +2690,7 @@ void validatePRNGConfig(const PRNGConfig& cfg) {
             throw std::invalid_argument("Invalid config: beta_beta must be positive");
         }
     }
-    
+
     // Validate MPFR precision
     if (cfg.mpfr_precision < MPFR_PREC_MIN || cfg.mpfr_precision > MPFR_PREC_MAX) {
         throw std::invalid_argument("Invalid config: mpfr_precision out of valid range");
@@ -2699,7 +2700,7 @@ void validatePRNGConfig(const PRNGConfig& cfg) {
 // Helper to parse Rcpp::List to PRNGConfig
 PRNGConfig parsePRNGConfig(Rcpp::List rcfg) {
     PRNGConfig cfg;
-    
+
     // Parse configuration from R list with type checking and defaults
     if (rcfg.containsElementNamed("a")) {
         SEXP a_sexp = rcfg["a"];
@@ -2707,35 +2708,35 @@ PRNGConfig parsePRNGConfig(Rcpp::List rcfg) {
             cfg.a = Rcpp::as<long>(a_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("b")) {
         SEXP b_sexp = rcfg["b"];
         if (TYPEOF(b_sexp) == INTSXP || TYPEOF(b_sexp) == REALSXP) {
             cfg.b = Rcpp::as<long>(b_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("c")) {
         SEXP c_sexp = rcfg["c"];
         if (TYPEOF(c_sexp) == INTSXP || TYPEOF(c_sexp) == REALSXP) {
             cfg.c = Rcpp::as<long>(c_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("mpfr_precision")) {
         SEXP prec_sexp = rcfg["mpfr_precision"];
         if (TYPEOF(prec_sexp) == INTSXP || TYPEOF(prec_sexp) == REALSXP) {
             cfg.mpfr_precision = Rcpp::as<unsigned int>(prec_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("buffer_size")) {
         SEXP buf_sexp = rcfg["buffer_size"];
         if (TYPEOF(buf_sexp) == INTSXP || TYPEOF(buf_sexp) == REALSXP) {
             cfg.buffer_size = Rcpp::as<size_t>(buf_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("distribution")) {
         SEXP dist_sexp = rcfg["distribution"];
         if (TYPEOF(dist_sexp) == INTSXP) {
@@ -2761,7 +2762,7 @@ PRNGConfig parsePRNGConfig(Rcpp::List rcfg) {
             else if (dist_str == "negative_binomial") cfg.distribution = PRNGConfig::NEGATIVE_BINOMIAL;
         }
     }
-    
+
     if (rcfg.containsElementNamed("normal_method")) {
         SEXP method_sexp = rcfg["normal_method"];
         if (TYPEOF(method_sexp) == INTSXP) {
@@ -2775,42 +2776,42 @@ PRNGConfig parsePRNGConfig(Rcpp::List rcfg) {
             else if (method_str == "ziggurat") cfg.normal_method = PRNGConfig::ZIGGURAT;
         }
     }
-    
+
     if (rcfg.containsElementNamed("range_min")) {
         SEXP min_sexp = rcfg["range_min"];
         if (TYPEOF(min_sexp) == REALSXP) {
             cfg.range_min = Rcpp::as<double>(min_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("range_max")) {
         SEXP max_sexp = rcfg["range_max"];
         if (TYPEOF(max_sexp) == REALSXP) {
             cfg.range_max = Rcpp::as<double>(max_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("normal_mean")) {
         SEXP mean_sexp = rcfg["normal_mean"];
         if (TYPEOF(mean_sexp) == REALSXP) {
             cfg.normal_mean = Rcpp::as<double>(mean_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("normal_sd")) {
         SEXP sd_sexp = rcfg["normal_sd"];
         if (TYPEOF(sd_sexp) == REALSXP) {
             cfg.normal_sd = Rcpp::as<double>(sd_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("exponential_lambda")) {
         SEXP lambda_sexp = rcfg["exponential_lambda"];
         if (TYPEOF(lambda_sexp) == REALSXP) {
             cfg.exponential_lambda = Rcpp::as<double>(lambda_sexp);
         }
     }
-    
+
     // New distribution parameters
     if (rcfg.containsElementNamed("poisson_lambda")) {
         SEXP lambda_sexp = rcfg["poisson_lambda"];
@@ -2818,35 +2819,35 @@ PRNGConfig parsePRNGConfig(Rcpp::List rcfg) {
             cfg.poisson_lambda = Rcpp::as<double>(lambda_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("gamma_shape")) {
         SEXP shape_sexp = rcfg["gamma_shape"];
         if (TYPEOF(shape_sexp) == REALSXP) {
             cfg.gamma_shape = Rcpp::as<double>(shape_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("gamma_scale")) {
         SEXP scale_sexp = rcfg["gamma_scale"];
         if (TYPEOF(scale_sexp) == REALSXP) {
             cfg.gamma_scale = Rcpp::as<double>(scale_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("beta_alpha")) {
         SEXP alpha_sexp = rcfg["beta_alpha"];
         if (TYPEOF(alpha_sexp) == REALSXP) {
             cfg.beta_alpha = Rcpp::as<double>(alpha_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("beta_beta")) {
         SEXP beta_sexp = rcfg["beta_beta"];
         if (TYPEOF(beta_sexp) == REALSXP) {
             cfg.beta_beta = Rcpp::as<double>(beta_sexp);
         }
     }
-    
+
     // New distribution parameters
     if (rcfg.containsElementNamed("bernoulli_p")) {
         SEXP p_sexp = rcfg["bernoulli_p"];
@@ -2854,77 +2855,77 @@ PRNGConfig parsePRNGConfig(Rcpp::List rcfg) {
             cfg.bernoulli_p = Rcpp::as<double>(p_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("binomial_n")) {
         SEXP n_sexp = rcfg["binomial_n"];
         if (TYPEOF(n_sexp) == INTSXP || TYPEOF(n_sexp) == REALSXP) {
             cfg.binomial_n = Rcpp::as<int>(n_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("binomial_p")) {
         SEXP p_sexp = rcfg["binomial_p"];
         if (TYPEOF(p_sexp) == REALSXP) {
             cfg.binomial_p = Rcpp::as<double>(p_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("lognormal_mu")) {
         SEXP mu_sexp = rcfg["lognormal_mu"];
         if (TYPEOF(mu_sexp) == REALSXP) {
             cfg.lognormal_mu = Rcpp::as<double>(mu_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("lognormal_sigma")) {
         SEXP sigma_sexp = rcfg["lognormal_sigma"];
         if (TYPEOF(sigma_sexp) == REALSXP) {
             cfg.lognormal_sigma = Rcpp::as<double>(sigma_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("weibull_shape")) {
         SEXP shape_sexp = rcfg["weibull_shape"];
         if (TYPEOF(shape_sexp) == REALSXP) {
             cfg.weibull_shape = Rcpp::as<double>(shape_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("weibull_scale")) {
         SEXP scale_sexp = rcfg["weibull_scale"];
         if (TYPEOF(scale_sexp) == REALSXP) {
             cfg.weibull_scale = Rcpp::as<double>(scale_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("chisquared_df")) {
         SEXP df_sexp = rcfg["chisquared_df"];
         if (TYPEOF(df_sexp) == INTSXP || TYPEOF(df_sexp) == REALSXP) {
             cfg.chisquared_df = Rcpp::as<int>(df_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("student_t_df")) {
         SEXP df_sexp = rcfg["student_t_df"];
         if (TYPEOF(df_sexp) == INTSXP || TYPEOF(df_sexp) == REALSXP) {
             cfg.student_t_df = Rcpp::as<int>(df_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("negative_binomial_r")) {
         SEXP r_sexp = rcfg["negative_binomial_r"];
         if (TYPEOF(r_sexp) == INTSXP || TYPEOF(r_sexp) == REALSXP) {
             cfg.negative_binomial_r = Rcpp::as<int>(r_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("negative_binomial_p")) {
         SEXP p_sexp = rcfg["negative_binomial_p"];
         if (TYPEOF(p_sexp) == REALSXP) {
             cfg.negative_binomial_p = Rcpp::as<double>(p_sexp);
         }
     }
-    
+
     // Advanced options
     if (rcfg.containsElementNamed("use_crypto_mixing")) {
         SEXP crypto_sexp = rcfg["use_crypto_mixing"];
@@ -2932,100 +2933,100 @@ PRNGConfig parsePRNGConfig(Rcpp::List rcfg) {
             cfg.use_crypto_mixing = Rcpp::as<bool>(crypto_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("adhoc_corrections")) {
         SEXP adhoc_sexp = rcfg["adhoc_corrections"];
         if (TYPEOF(adhoc_sexp) == LGLSXP) {
             cfg.adhoc_corrections = Rcpp::as<bool>(adhoc_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("use_tie_breaking")) {
         SEXP tie_sexp = rcfg["use_tie_breaking"];
         if (TYPEOF(tie_sexp) == LGLSXP) {
             cfg.use_tie_breaking = Rcpp::as<bool>(tie_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("reseed_interval")) {
         SEXP interval_sexp = rcfg["reseed_interval"];
         if (TYPEOF(interval_sexp) == INTSXP || TYPEOF(interval_sexp) == REALSXP) {
             cfg.reseed_interval = Rcpp::as<unsigned long>(interval_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("use_csv_discriminants")) {
         SEXP csv_sexp = rcfg["use_csv_discriminants"];
         if (TYPEOF(csv_sexp) == LGLSXP) {
             cfg.use_csv_discriminants = Rcpp::as<bool>(csv_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("use_parallel_filling")) {
         SEXP parallel_sexp = rcfg["use_parallel_filling"];
         if (TYPEOF(parallel_sexp) == LGLSXP) {
             cfg.use_parallel_filling = Rcpp::as<bool>(parallel_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("use_threading")) {
         SEXP threading_sexp = rcfg["use_threading"];
         if (TYPEOF(threading_sexp) == LGLSXP) {
             cfg.use_threading = Rcpp::as<bool>(threading_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("offset")) {
         SEXP offset_sexp = rcfg["offset"];
         if (TYPEOF(offset_sexp) == INTSXP || TYPEOF(offset_sexp) == REALSXP) {
             cfg.offset = Rcpp::as<size_t>(offset_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("debug")) {
         SEXP debug_sexp = rcfg["debug"];
         if (TYPEOF(debug_sexp) == LGLSXP) {
             cfg.debug = Rcpp::as<bool>(debug_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("seed")) {
         SEXP seed_sexp = rcfg["seed"];
         if (TYPEOF(seed_sexp) == INTSXP || TYPEOF(seed_sexp) == REALSXP) {
             cfg.seed = Rcpp::as<uint64_t>(seed_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("has_seed")) {
         SEXP has_seed_sexp = rcfg["has_seed"];
         if (TYPEOF(has_seed_sexp) == LGLSXP) {
             cfg.has_seed = Rcpp::as<bool>(has_seed_sexp);
         }
     }
-    
+
     if (rcfg.containsElementNamed("deterministic")) {
         SEXP deterministic_sexp = rcfg["deterministic"];
         if (TYPEOF(deterministic_sexp) == LGLSXP) {
             cfg.deterministic = Rcpp::as<bool>(deterministic_sexp);
         }
     }
-    
+
     // Validate the configuration before returning
     validatePRNGConfig(cfg);
-    
+
     return cfg;
 }
 
 // Helper to convert PRNGConfig to Rcpp::List
 Rcpp::List PRNGConfigToList(const PRNGConfig& cfg) {
     Rcpp::List result;
-    
+
     result["a"] = cfg.a;
     result["b"] = cfg.b;
     result["c"] = cfg.c;
     result["mpfr_precision"] = cfg.mpfr_precision;
     result["buffer_size"] = static_cast<int>(cfg.buffer_size);
-    
+
     // Convert distribution enum to string for R
     std::string dist_str;
     switch (cfg.distribution) {
@@ -3046,7 +3047,7 @@ Rcpp::List PRNGConfigToList(const PRNGConfig& cfg) {
         default: dist_str = "unknown"; break;
     }
     result["distribution"] = dist_str;
-    
+
     // Convert normal method enum to string for R
     std::string method_str;
     switch (cfg.normal_method) {
@@ -3055,20 +3056,20 @@ Rcpp::List PRNGConfigToList(const PRNGConfig& cfg) {
         default: method_str = "unknown"; break;
     }
     result["normal_method"] = method_str;
-    
+
     result["range_min"] = cfg.range_min;
     result["range_max"] = cfg.range_max;
     result["normal_mean"] = cfg.normal_mean;
     result["normal_sd"] = cfg.normal_sd;
     result["exponential_lambda"] = cfg.exponential_lambda;
-    
+
     // New distribution parameters
     result["poisson_lambda"] = cfg.poisson_lambda;
     result["gamma_shape"] = cfg.gamma_shape;
     result["gamma_scale"] = cfg.gamma_scale;
     result["beta_alpha"] = cfg.beta_alpha;
     result["beta_beta"] = cfg.beta_beta;
-    
+
     // Additional new distribution parameters
     result["bernoulli_p"] = cfg.bernoulli_p;
     result["binomial_n"] = cfg.binomial_n;
@@ -3081,7 +3082,7 @@ Rcpp::List PRNGConfigToList(const PRNGConfig& cfg) {
     result["student_t_df"] = cfg.student_t_df;
     result["negative_binomial_r"] = cfg.negative_binomial_r;
     result["negative_binomial_p"] = cfg.negative_binomial_p;
-    
+
     // Advanced settings
     result["use_crypto_mixing"] = cfg.use_crypto_mixing;
     result["adhoc_corrections"] = cfg.adhoc_corrections;
@@ -3095,7 +3096,7 @@ Rcpp::List PRNGConfigToList(const PRNGConfig& cfg) {
     result["seed"] = static_cast<double>(cfg.seed);
     result["has_seed"] = cfg.has_seed;
     result["deterministic"] = cfg.deterministic;
-    
+
     return result;
 }
 
@@ -3106,54 +3107,54 @@ void createPRNG_(Rcpp::List rcfg) {
         if (!qiprng::sodium_initialized) {
             initialize_libsodium_();
         }
-        
+
         PRNGConfig cfg = parsePRNGConfig(rcfg);
-    
+
     // Validate critical parameters
     if (cfg.a == 0) {
         throw std::invalid_argument("Parameter 'a' cannot be 0 in quadratic irrational generator");
     }
-    
+
     long long discriminant = static_cast<long long>(cfg.b) * cfg.b - 4LL * static_cast<long long>(cfg.a) * cfg.c;
-    
+
     if (discriminant <= 0) {
         throw std::invalid_argument("Discriminant (b^2 - 4ac) must be positive");
     }
-    
+
     // Make sure libsodium is initialized
     if (!qiprng::sodium_initialized) {
         Rcpp::stop("Libsodium not initialized before PRNG creation - this should not happen");
     }
-    
+
     // Update global threading flag based on config
     g_use_threading = cfg.use_threading;
-    
+
     if (g_use_threading) {
         // Clean up any existing thread-local PRNG
         t_prng.reset();
-        
+
         // For thread safety, we choose a slightly different a,b,c for each thread
         long long disc = chooseUniqueDiscriminant();
-        
+
         // Use std::tie instead of C++17 structured bindings
         std::tuple<long, long, long> abc_vals = makeABCfromDelta(disc);
         long a_val = std::get<0>(abc_vals);
         long b_val = std::get<1>(abc_vals);
         long c_val = std::get<2>(abc_vals);
-        
+
         // Override with thread-specific a,b,c unless user explicitly provided them
         if (!rcfg.containsElementNamed("a") && !rcfg.containsElementNamed("b") && !rcfg.containsElementNamed("c")) {
             cfg.a = a_val;
             cfg.b = b_val;
             cfg.c = c_val;
         }
-        
+
         // Select quadratic irrationals based on precision and create thread-local PRNG
         int num_qis = cfg.mpfr_precision < 64 ? 2 : (cfg.mpfr_precision < 128 ? 3 : 5);
-        std::vector<std::tuple<long, long, long>> abc_list = pickMultiQiSet(cfg.mpfr_precision, num_qis, 
+        std::vector<std::tuple<long, long, long>> abc_list = pickMultiQiSet(cfg.mpfr_precision, num_qis,
                                                                            cfg.seed, cfg.has_seed);
         t_prng = std::make_unique<EnhancedPRNG>(cfg, abc_list);
-        
+
         if (cfg.debug) {
             t_prng->dumpConfig();
         }
@@ -3161,18 +3162,18 @@ void createPRNG_(Rcpp::List rcfg) {
         std::lock_guard<std::mutex> lock(g_prng_mutex);
         // Clean up any existing global PRNG
         g_prng.reset();
-        
+
         // Select quadratic irrationals based on precision and create global PRNG
         int num_qis = cfg.mpfr_precision < 64 ? 2 : (cfg.mpfr_precision < 128 ? 3 : 5);
         std::vector<std::tuple<long, long, long>> abc_list = pickMultiQiSet(cfg.mpfr_precision, num_qis,
                                                                            cfg.seed, cfg.has_seed);
         g_prng = std::make_unique<EnhancedPRNG>(cfg, abc_list);
-        
+
         if (cfg.debug) {
             g_prng->dumpConfig();
         }
     }
-    
+
     } catch (const std::exception& e) {
         // Just rethrow for R error handling
         throw;
@@ -3185,11 +3186,11 @@ void createPRNG_(Rcpp::List rcfg) {
 // [[Rcpp::export(".updatePRNG_")]]
 void updatePRNG_(Rcpp::List rcfg) {
     PRNGConfig cfg = parsePRNGConfig(rcfg);
-    
+
     // Check if threading mode has changed
     bool was_threading = g_use_threading;
     g_use_threading = cfg.use_threading;
-    
+
     // If threading mode changed, handle appropriately
     if (was_threading != g_use_threading) {
         // If switching from non-threading to threading
@@ -3205,17 +3206,17 @@ void updatePRNG_(Rcpp::List rcfg) {
                 if (rcfg.containsElementNamed("c")) new_cfg.c = cfg.c;
                 // Ensure threading is enabled
                 new_cfg.use_threading = true;
-                
+
                 // Get the MultiQI set for our PRNG
                 int num_qis = new_cfg.mpfr_precision < 64 ? 2 : (new_cfg.mpfr_precision < 128 ? 3 : 5);
                 std::vector<std::tuple<long, long, long>> abc_list = pickMultiQiSet(new_cfg.mpfr_precision, num_qis,
                                                                                    new_cfg.seed, new_cfg.has_seed);
-                
+
                 // Create the thread-local PRNG
                 t_prng = std::make_unique<EnhancedPRNG>(new_cfg, abc_list);
             }
             // Otherwise the thread-local PRNG will be created on the next call to createPRNG_
-        } 
+        }
         // If switching from threading to non-threading
         else {
             // Create a new global PRNG based on the thread-local one if possible
@@ -3228,12 +3229,12 @@ void updatePRNG_(Rcpp::List rcfg) {
                 if (rcfg.containsElementNamed("c")) new_cfg.c = cfg.c;
                 // Ensure threading is disabled
                 new_cfg.use_threading = false;
-                
+
                 // Get the MultiQI set for our PRNG
                 int num_qis = new_cfg.mpfr_precision < 64 ? 2 : (new_cfg.mpfr_precision < 128 ? 3 : 5);
                 std::vector<std::tuple<long, long, long>> abc_list = pickMultiQiSet(new_cfg.mpfr_precision, num_qis,
                                                                                    new_cfg.seed, new_cfg.has_seed);
-                
+
                 // Create the global PRNG
                 std::lock_guard<std::mutex> lock(g_prng_mutex);
                 g_prng = std::make_unique<EnhancedPRNG>(new_cfg, abc_list);
@@ -3241,7 +3242,7 @@ void updatePRNG_(Rcpp::List rcfg) {
             // Otherwise the global PRNG will be created on the next call to createPRNG_
         }
     }
-    
+
     // Update the appropriate PRNG with the new config
     if (g_use_threading) {
         if (!t_prng) {
@@ -3296,9 +3297,9 @@ Rcpp::NumericVector generatePRNG_(int n) {
     if (n <= 0) {
         return Rcpp::NumericVector(0);
     }
-    
+
     Rcpp::NumericVector result(n);
-    
+
     if (g_use_threading) {
         if (!t_prng) {
             throw std::runtime_error("Cannot generate: No active PRNG in current thread");
@@ -3311,7 +3312,7 @@ Rcpp::NumericVector generatePRNG_(int n) {
         }
         g_prng->generate_n(result);
     }
-    
+
     return result;
 }
 
@@ -3344,7 +3345,7 @@ void cleanup_prng_() {
         Rcpp::Rcout << "Cleanup already in progress, skipping duplicate call" << std::endl;
         return;
     }
-    
+
     try {
         // Mark any thread-local ZigguratTLSManager instances as exiting
         try {
@@ -3352,18 +3353,18 @@ void cleanup_prng_() {
         } catch (...) {
             // Ignore any errors - this is just a best effort
         }
-        
+
         // First, prepare ZigguratNormal for shutdown (before we destroy any PRNGs)
         // This prevents segfaults from trying to access thread-local resources
         ZigguratNormal::prepare_for_shutdown();
-        
+
         // Call the EnhancedPRNG cleanup method to handle any thread-local resources
         EnhancedPRNG::cleanupAllThreadResources();
-        
+
         // Disable threading mode
         bool was_threading = g_use_threading;
         g_use_threading = false;
-        
+
         try {
             // Clear the PRNGs safely with multiple safeguards
             if (was_threading) {
@@ -3389,7 +3390,7 @@ void cleanup_prng_() {
             // Suppress any exceptions during PRNG cleanup
             Rcpp::Rcout << "Exception during PRNG pointer cleanup - suppressed" << std::endl;
         }
-        
+
         // Clean up ZigguratNormal resources one more time
         try {
             ZigguratNormal::cleanup_thread_local_resources();
@@ -3397,7 +3398,7 @@ void cleanup_prng_() {
             // Suppress any exceptions during ziggurat cleanup
             Rcpp::Rcout << "Exception during ziggurat cleanup - suppressed" << std::endl;
         }
-        
+
         // Reset flag after successful cleanup
         cleanup_in_progress.store(false, std::memory_order_release);
         Rcpp::Rcout << "PRNG cleanup completed successfully" << std::endl;
@@ -3411,7 +3412,7 @@ void cleanup_prng_() {
 // [[Rcpp::export(".skipPRNG_")]]
 void skipPRNG_(int n) {
     if (n <= 0) return;
-    
+
     if (g_use_threading) {
         if (!t_prng) {
             throw std::runtime_error("Cannot skip: No active PRNG in current thread");
@@ -3429,7 +3430,7 @@ void skipPRNG_(int n) {
 // [[Rcpp::export(".jumpAheadPRNG_")]]
 void jumpAheadPRNG_(double n) {
     if (n <= 0) return;
-    
+
     if (g_use_threading) {
         if (!t_prng) {
             throw std::runtime_error("Cannot jump ahead: No active PRNG in current thread");
@@ -3463,13 +3464,13 @@ bool cleanupPRNG_ThreadSafe_() {
                 Rcpp::warning("No active PRNG in current thread to clean up");
                 return true; // Nothing to clean up is not an error
             }
-            
+
             // Prepare for cleanup (disable thread-safe mode, etc)
             t_prng->prepareForCleanup();
-            
+
             // Perform actual cleanup
             t_prng->performCleanup();
-            
+
             // Clear the pointer
             t_prng = nullptr;
         } else {
@@ -3478,20 +3479,20 @@ bool cleanupPRNG_ThreadSafe_() {
                 Rcpp::warning("No active global PRNG to clean up");
                 return true; // Nothing to clean up is not an error
             }
-            
+
             // Prepare for cleanup (disable thread-safe mode, etc)
             g_prng->prepareForCleanup();
-            
+
             // Perform actual cleanup
             g_prng->performCleanup();
-            
+
             // Clear the pointer
             g_prng = nullptr;
         }
-        
+
         // Clean up all thread resources, not just the current thread
         EnhancedPRNG::cleanupAllThreadResources();
-        
+
         return true;
     } catch (const std::exception& e) {
         Rcpp::warning("Error during thread-safe PRNG cleanup: %s", e.what());
@@ -3506,21 +3507,21 @@ bool cleanupPRNG_ThreadSafe_() {
 bool cleanupPRNG_Final_() {
     try {
         // This is the final cleanup that should be called after all other cleanups
-        
+
         // Clear thread-local and global PRNG pointers (don't invoke destructors)
         t_prng = nullptr;
         {
             std::lock_guard<std::mutex> lock(g_prng_mutex);
             g_prng = nullptr;
         }
-        
+
         // Clean up all thread resources one more time
         EnhancedPRNG::cleanupAllThreadResources();
-        
+
         // Reset global flags
         g_use_threading = false;
         cleanup_in_progress.store(false, std::memory_order_release);
-        
+
         return true;
     } catch (...) {
         // We don't even try to log errors in the final cleanup
@@ -3555,32 +3556,32 @@ namespace qiprng {
 
 // [[Rcpp::export]]
 Rcpp::List test_choose_discriminant(int thread_count = 4, int iterations = 10) {
-    Rcpp::Rcout << "\nTesting with " << thread_count << " threads and " 
+    Rcpp::Rcout << "\nTesting with " << thread_count << " threads and "
                 << iterations << " iterations" << std::endl;
-    
+
     // Initialize vector to store results from each thread
     std::vector<std::vector<long long>> results(thread_count);
-    
+
     // Initialize libsodium first
     qiprng::initialize_libsodium_if_needed();
-    
+
     // Make sure CSV discriminants are loaded first in main thread
     // This prevents race conditions when multiple threads try to load it
     qiprng::loadCSVDiscriminants();
-    
+
     // Create threads
     std::vector<std::thread> threads;
-    
+
     // Starting barrier
     std::atomic<int> ready_count(0);
     std::atomic<bool> start_flag(false);
-    
+
     // Clear the global used discriminants set before starting test
     {
         std::lock_guard<std::mutex> lock(qiprng::g_disc_mutex);
         qiprng::g_used_discriminants.clear();
     }
-    
+
     Rcpp::Rcout << "Checking CSV discriminants are loaded..." << std::endl;
     size_t csv_size = 0;
     {
@@ -3588,11 +3589,11 @@ Rcpp::List test_choose_discriminant(int thread_count = 4, int iterations = 10) {
         csv_size = qiprng::g_csv_discriminants.size();
     }
     Rcpp::Rcout << "CSV discriminants size: " << csv_size << std::endl;
-    
+
     // Force CSV discriminants to be generated if empty
     if (csv_size == 0) {
         Rcpp::Rcout << "CSV discriminants is empty. Generating default values." << std::endl;
-        
+
         {
             std::lock_guard<std::mutex> lock(qiprng::g_csv_disc_mutex);
             for (int i = 0; i < 100; i++) {
@@ -3607,7 +3608,7 @@ Rcpp::List test_choose_discriminant(int thread_count = 4, int iterations = 10) {
             Rcpp::Rcout << "Generated " << qiprng::g_csv_discriminants.size() << " default discriminants" << std::endl;
         }
     }
-    
+
     // Launch threads with additional safety and debug
     for (int t = 0; t < thread_count; t++) {
         Rcpp::Rcout << "Creating thread " << t << std::endl;
@@ -3615,33 +3616,33 @@ Rcpp::List test_choose_discriminant(int thread_count = 4, int iterations = 10) {
             threads.push_back(std::thread([t, iterations, &results, &ready_count, &start_flag]() {
                 try {
                     Rcpp::Rcout << "Thread " << t << " starting" << std::endl;
-                    
+
                     // Wait for all threads to be ready
                     ready_count++;
                     while (!start_flag.load()) {
                         std::this_thread::yield();
                     }
-                    
+
                     Rcpp::Rcout << "Thread " << t << " running" << std::endl;
-                    
+
                     // Choose discriminants
                     results[t].reserve(iterations);
                     for (int i = 0; i < iterations; i++) {
                         try {
                             // Use a wider range to avoid collisions between threads
                             long long discriminant = qiprng::chooseUniqueDiscriminant(5, 10000000);
-                            
+
                             if (discriminant > 0) {
-                                Rcpp::Rcout << "Thread " << t << " selected discriminant " 
+                                Rcpp::Rcout << "Thread " << t << " selected discriminant "
                                             << i << ": " << discriminant << std::endl;
                                 results[t].push_back(discriminant);
                             } else {
-                                Rcpp::Rcout << "Thread " << t << " got invalid discriminant: " 
+                                Rcpp::Rcout << "Thread " << t << " got invalid discriminant: "
                                             << discriminant << std::endl;
                                 results[t].push_back(-1); // Error indicator
                             }
                         } catch (const std::exception& e) {
-                            Rcpp::Rcout << "Thread " << t << " encountered error in iteration " 
+                            Rcpp::Rcout << "Thread " << t << " encountered error in iteration "
                                         << i << ": " << e.what() << std::endl;
                             results[t].push_back(-1); // Error indicator
                         } catch (...) {
@@ -3650,12 +3651,12 @@ Rcpp::List test_choose_discriminant(int thread_count = 4, int iterations = 10) {
                             results[t].push_back(-1); // Error indicator
                         }
                     }
-                    
-                    Rcpp::Rcout << "Thread " << t << " completed with " 
+
+                    Rcpp::Rcout << "Thread " << t << " completed with "
                                 << results[t].size() << " discriminants" << std::endl;
-                    
+
                 } catch (const std::exception& e) {
-                    Rcpp::Rcout << "Thread " << t << " failed with exception: " 
+                    Rcpp::Rcout << "Thread " << t << " failed with exception: "
                                 << e.what() << std::endl;
                 } catch (...) {
                     Rcpp::Rcout << "Thread " << t << " failed with unknown exception" << std::endl;
@@ -3667,61 +3668,61 @@ Rcpp::List test_choose_discriminant(int thread_count = 4, int iterations = 10) {
             Rcpp::Rcout << "Failed to create thread " << t << " with unknown error" << std::endl;
         }
     }
-    
+
     // Wait for all threads to be ready
     while (ready_count.load() < thread_count) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-    
+
     // Start all threads at once
     start_flag.store(true);
-    
+
     // Wait for all threads to complete
     for (auto& t : threads) {
         if (t.joinable()) {
             t.join();
         }
     }
-    
+
     // Print summary of results
     int total_count = 0;
     for (int t = 0; t < thread_count; t++) {
         total_count += results[t].size();
-        Rcpp::Rcout << "Thread " << t << " generated " 
+        Rcpp::Rcout << "Thread " << t << " generated "
                     << results[t].size() << " discriminants" << std::endl;
     }
     Rcpp::Rcout << "Total discriminants: " << total_count << std::endl;
-    
+
     // Convert results to R list
     Rcpp::List r_results(thread_count);
     for (int t = 0; t < thread_count; t++) {
         r_results[t] = Rcpp::NumericVector(results[t].begin(), results[t].end());
     }
-    
+
     return r_results;
 }
 
 // [[Rcpp::export]]
 bool check_discriminants_unique(Rcpp::List discriminant_lists) {
     std::unordered_set<long long> all_discriminants;
-    
+
     for (int i = 0; i < discriminant_lists.size(); i++) {
         Rcpp::NumericVector discr_vec = discriminant_lists[i];
-        
+
         for (int j = 0; j < discr_vec.size(); j++) {
             long long d = static_cast<long long>(discr_vec[j]);
             if (d == -1) continue; // Skip error indicators
-            
+
             if (all_discriminants.find(d) != all_discriminants.end()) {
                 // Found duplicate
                 Rcpp::Rcout << "Duplicate discriminant found: " << d << std::endl;
                 return false;
             }
-            
+
             all_discriminants.insert(d);
         }
     }
-    
+
     Rcpp::Rcout << "All discriminants are unique (" << all_discriminants.size() << " total)" << std::endl;
     return true;
 }
@@ -3831,7 +3832,7 @@ void ZigguratNormal::initialize_static_tables() {
             for (int i = 1; i < ZIGGURAT_TABLE_SIZE - 1; ++i) {
                 double prev_x = cached_x_table_[i-1];
                 double prev_f = cached_y_table_[i-1]; // pdf(prev_x)
-                
+
                 cached_x_table_[i] = std::sqrt(-2.0 * std::log(V_zig / prev_x + prev_f));
                 cached_y_table_[i] = std::exp(-0.5 * cached_x_table_[i] * cached_x_table_[i]);
                 cached_k_table_[i] = static_cast<uint32_t>((cached_x_table_[i-1] / cached_x_table_[i]) * static_cast<double>(UINT32_MAX));
@@ -3841,7 +3842,7 @@ void ZigguratNormal::initialize_static_tables() {
             cached_k_table_[ZIGGURAT_TABLE_SIZE-1] = UINT32_MAX; // Always accept for the base segment
             cached_x_table_[ZIGGURAT_TABLE_SIZE-1] = 0.0;
             cached_y_table_[ZIGGURAT_TABLE_SIZE-1] = 1.0; // pdf(0)
-            
+
             // Make sure all writes are visible to other threads
             tables_initialized_.store(true, std::memory_order_release);
         }
@@ -3854,7 +3855,7 @@ void ZigguratNormal::initialize_tables_original() {
         use_cached_tables();
         return;
     }
-    
+
     // If custom parameters, initialize tables directly in instance
     // Constants for Ziggurat tables (Marsaglia and Tsang 2000)
     const double R_zig = 3.6541528853610088; // x_0, rightmost boundary of rectangles
@@ -3873,7 +3874,7 @@ void ZigguratNormal::initialize_tables_original() {
         // x_i = sqrt(-2 * log(V/x_{i-1} + f_{i-1}))
         double prev_x = x_table_[i-1];
         double prev_f = y_table_[i-1]; // pdf(prev_x)
-        
+
         x_table_[i] = std::sqrt(-2.0 * std::log(V_zig / prev_x + prev_f));
         y_table_[i] = std::exp(-0.5 * x_table_[i] * x_table_[i]);
         k_table_[i] = static_cast<uint32_t>((x_table_[i-1] / x_table_[i]) * static_cast<double>(UINT32_MAX));
@@ -3888,7 +3889,7 @@ void ZigguratNormal::initialize_tables_original() {
 void ZigguratNormal::use_cached_tables() {
     // Ensure the static tables are initialized
     initialize_static_tables();
-    
+
     // Copy from cached tables
     x_table_ = cached_x_table_;
     y_table_ = cached_y_table_;
@@ -3900,13 +3901,13 @@ void ZigguratNormal::initialize_thread_local_tables() {
     if (cleanup_in_progress_.load(std::memory_order_acquire)) {
         return;
     }
-    
+
     // Setup TLS manager if needed
     if (!tls_manager_) {
         tls_manager_ = &ZigguratTLSManager::instance();
         tls_manager_->set_owner(this);
     }
-    
+
     // Initialize tables if not already done
     if (!tls_tables_initialized_ && tls_manager_->is_valid()) {
         try {
@@ -3915,9 +3916,9 @@ void ZigguratNormal::initialize_thread_local_tables() {
             tls_y_table_ = y_table_;
             tls_k_table_ = k_table_;
             tls_tables_initialized_ = true;
-            
+
             if (ZIGGURAT_DEBUG_LOGGING) {
-                Rcpp::Rcout << "Thread " << std::this_thread::get_id() 
+                Rcpp::Rcout << "Thread " << std::this_thread::get_id()
                           << " initialized TLS tables" << std::endl;
             }
         }
@@ -3935,22 +3936,22 @@ void ZigguratNormal::initialize_random_cache() {
     if (cleanup_in_progress_.load(std::memory_order_acquire)) {
         return;
     }
-    
+
     // Setup TLS manager if needed (may not be done if initialize_thread_local_tables wasn't called first)
     if (!tls_manager_) {
         tls_manager_ = &ZigguratTLSManager::instance();
         tls_manager_->set_owner(this);
     }
-    
+
     // Only proceed if manager is valid
     if (tls_manager_->is_valid() && !tls_random_cache_initialized_) {
         try {
             // Initialize the cache
             refill_random_cache();
             tls_random_cache_initialized_ = true;
-            
+
             if (ZIGGURAT_DEBUG_LOGGING) {
-                Rcpp::Rcout << "Thread " << std::this_thread::get_id() 
+                Rcpp::Rcout << "Thread " << std::this_thread::get_id()
                           << " initialized random cache" << std::endl;
             }
         }
@@ -3990,27 +3991,27 @@ double ZigguratNormal::get_cached_uniform() {
     if (cleanup_in_progress_.load(std::memory_order_acquire)) {
         return 0.5; // Safe fallback value
     }
-    
+
     // Check TLS manager
     if (!tls_manager_ || !tls_manager_->is_valid()) {
         // TLS manager not initialized or invalid - try to initialize
         initialize_thread_local_tables();
-        
+
         if (!tls_manager_ || !tls_manager_->is_valid()) {
             return 0.5; // Safe fallback value if initialization fails
         }
     }
-    
+
     // Initialize cache if needed
     if (!tls_random_cache_initialized_) {
         initialize_random_cache();
-        
+
         // Double-check initialization success
         if (!tls_random_cache_initialized_) {
             return 0.5; // Safe fallback value if initialization fails
         }
     }
-    
+
     // Refill cache if empty
     if (tls_random_cache_pos_ >= RANDOM_CACHE_SIZE) {
         try {
@@ -4021,7 +4022,7 @@ double ZigguratNormal::get_cached_uniform() {
             return 0.5;
         }
     }
-    
+
     // Get the next value from the cache with bounds check
     if (tls_random_cache_pos_ < RANDOM_CACHE_SIZE) {
         return tls_random_cache_[tls_random_cache_pos_++];
@@ -4033,46 +4034,46 @@ double ZigguratNormal::get_cached_uniform() {
 
 double ZigguratNormal::sample_from_tail_thread_safe() {
     double x, y;
-    
+
     if (ZIGGURAT_DEBUG_LOGGING) Rcpp::Rcout << "[Ziggurat Tail TS] Enter. R_zig=" << tls_x_table_[0] << std::endl;
-    
+
     // Maximum number of attempts to avoid infinite loops
     const int MAX_ATTEMPTS = 100;
     int attempts = 0;
-    
+
     do {
         attempts++;
         if (attempts > MAX_ATTEMPTS) {
             throw std::runtime_error("ZigguratNormal::sample_from_tail_thread_safe exceeded maximum attempts");
         }
-        
+
         try {
             // Sample x from exp distribution with rate R_zig, shifted by R_zig
             // x = R_zig + E / R_zig where E ~ Exp(1)
             // E = -log(U1) where U1 ~ Uniform(0,1)
             double u1 = get_cached_uniform(); // Use cached uniform value
-            
+
             // Calculate exponential value using safe u1
             x = -std::log(u1) / tls_x_table_[0]; // This is E/R_zig
-            
+
             // Sample y from Exp(1)
             double u2 = get_cached_uniform(); // Use cached uniform value
-            
+
             // Calculate second exponential value
             y = -std::log(u2);
-            
+
             // Diagnostic output
             if (ZIGGURAT_DEBUG_LOGGING) {
-                Rcpp::Rcout << "[Ziggurat Tail TS] u1=" << u1 << ", u2=" << u2 
-                            << ", x_exp_part=" << x << ", y_exp=" << y 
+                Rcpp::Rcout << "[Ziggurat Tail TS] u1=" << u1 << ", u2=" << u2
+                            << ", x_exp_part=" << x << ", y_exp=" << y
                             << ", test: 2*y (" << 2*y << ") vs x*x (" << x*x << ")" << std::endl;
             }
-            
+
             // Break out of the loop if we've found a valid pair (accept condition)
             if (y + y >= x * x) {
                 break;
             }
-            
+
         } catch (const std::exception& e) {
             if (ZIGGURAT_DEBUG_LOGGING) {
                 Rcpp::Rcout << "[Ziggurat Tail TS] Exception: " << e.what() << ". Retrying." << std::endl;
@@ -4084,40 +4085,40 @@ double ZigguratNormal::sample_from_tail_thread_safe() {
             }
             // In case of exceptions, just retry
         }
-        
+
     } while (true); // Continue until we break out with valid values
-    
+
     // Calculate final result (R_zig + exponential part)
     double result = tls_x_table_[0] + x;
-    
+
     if (ZIGGURAT_DEBUG_LOGGING) {
         Rcpp::Rcout << "[Ziggurat Tail TS] Exit. Returning " << result << std::endl;
     }
-    
+
     return result;
 }
 
 double ZigguratNormal::sample_from_tail_original() {
     double x, y;
-    
+
     if (ZIGGURAT_DEBUG_LOGGING) Rcpp::Rcout << "[Ziggurat Tail] Enter. R_zig=" << x_table_[0] << std::endl;
-    
+
     // Maximum number of attempts to avoid infinite loops
     const int MAX_ATTEMPTS = 100;
     int attempts = 0;
-    
+
     do {
         attempts++;
         if (attempts > MAX_ATTEMPTS) {
             throw std::runtime_error("ZigguratNormal::sample_from_tail_original exceeded maximum attempts");
         }
-        
+
         try {
             // Sample x from exp distribution with rate R_zig, shifted by R_zig
             // x = R_zig + E / R_zig where E ~ Exp(1)
             // E = -log(U1) where U1 ~ Uniform(0,1)
             double u1 = uniform_generator_();
-            
+
             // Ensure u1 is valid for log operation
             int u1_attempts = 0;
             while (u1 <= 0.0 || u1 >= 1.0) {
@@ -4133,13 +4134,13 @@ double ZigguratNormal::sample_from_tail_original() {
                     break;
                 }
             }
-            
+
             // Calculate exponential value using safe u1
             x = -std::log(u1) / x_table_[0]; // This is E/R_zig
 
             // Sample y from Exp(1)
             double u2 = uniform_generator_();
-            
+
             // Ensure u2 is valid for log operation
             int u2_attempts = 0;
             while (u2 <= 0.0 || u2 >= 1.0) {
@@ -4155,22 +4156,22 @@ double ZigguratNormal::sample_from_tail_original() {
                     break;
                 }
             }
-            
+
             // Calculate second exponential value
             y = -std::log(u2);
-            
+
             // Diagnostic output
             if (ZIGGURAT_DEBUG_LOGGING) {
-                Rcpp::Rcout << "[Ziggurat Tail] u1=" << u1 << ", u2=" << u2 
-                            << ", x_exp_part=" << x << ", y_exp=" << y 
+                Rcpp::Rcout << "[Ziggurat Tail] u1=" << u1 << ", u2=" << u2
+                            << ", x_exp_part=" << x << ", y_exp=" << y
                             << ", test: 2*y (" << 2*y << ") vs x*x (" << x*x << ")" << std::endl;
             }
-            
+
             // Break out of the loop if we've found a valid pair (accept condition)
             if (y + y >= x * x) {
                 break;
             }
-            
+
         } catch (const std::exception& e) {
             if (ZIGGURAT_DEBUG_LOGGING) {
                 Rcpp::Rcout << "[Ziggurat Tail] Exception: " << e.what() << ". Retrying." << std::endl;
@@ -4182,34 +4183,34 @@ double ZigguratNormal::sample_from_tail_original() {
             }
             // In case of exceptions, just retry
         }
-        
+
     } while (true); // Continue until we break out with valid values
-    
+
     // Calculate final result (R_zig + exponential part)
     double result = x_table_[0] + x;
-    
+
     if (ZIGGURAT_DEBUG_LOGGING) {
         Rcpp::Rcout << "[Ziggurat Tail] Exit. Returning " << result << std::endl;
     }
-    
+
     return result;
 }
 
 
 double ZigguratNormal::generate_internal() {
     if (ZIGGURAT_DEBUG_LOGGING) Rcpp::Rcout << "[Ziggurat Gen] Enter." << std::endl;
-    
+
     uint32_t iz;     // Random integer from bits of uniform
     uint32_t idx;    // Index into tables
     double x_cand;   // Candidate x value
-    
+
     // Maximum number of attempts to avoid infinite loops
     const int MAX_ATTEMPTS = 1000;
     int attempts = 0;
 
     while (attempts < MAX_ATTEMPTS) {
         attempts++;
-        
+
         try {
             // Generate uniform u0 for sign and index
             // Guard against uniform_generator_ returning invalid values
@@ -4217,11 +4218,11 @@ double ZigguratNormal::generate_internal() {
             if (u0 <= 0.0 || u0 >= 1.0) {
                 u0 = 0.5; // Use a safe default if generator fails
             }
-            
+
             // Convert u0 to a 32-bit integer for table lookup
             iz = static_cast<uint32_t>(u0 * 4294967296.0); // Multiply by 2^32
             idx = iz & ZIGGURAT_MASK; // Get index (0 to TABLE_SIZE-1)
-            
+
             // Get random sign
             bool sign;
             try {
@@ -4231,13 +4232,13 @@ double ZigguratNormal::generate_internal() {
                 // If generator fails, use a deterministic approach based on iz
                 sign = (iz & 0x80000000) != 0; // Use top bit of iz
             }
-            
+
             if (ZIGGURAT_DEBUG_LOGGING) Rcpp::Rcout << "[Ziggurat Gen] u0=" << u0 << ", iz=" << iz << ", idx=" << idx << std::endl;
-            
+
             // Handle tail region (idx == 0)
             if (idx == 0) {
                 if (ZIGGURAT_DEBUG_LOGGING) Rcpp::Rcout << "[Ziggurat Gen] idx=0 (tail)." << std::endl;
-                
+
                 try {
                     x_cand = sample_from_tail_original();
                     if (ZIGGURAT_DEBUG_LOGGING) Rcpp::Rcout << "[Ziggurat Gen] Tail returned " << x_cand << std::endl;
@@ -4247,7 +4248,7 @@ double ZigguratNormal::generate_internal() {
                     continue;
                 }
             }
-            
+
             // For regular layers, generate x candidate
             double u1;
             try {
@@ -4259,26 +4260,26 @@ double ZigguratNormal::generate_internal() {
                 // If generator fails, derive u1 from iz
                 u1 = (iz & 0x7FFFFFFF) / static_cast<double>(0x7FFFFFFF);
             }
-            
+
             x_cand = u1 * x_table_[idx]; // x_cand is in [0, x_table_[idx])
-            
-            if (ZIGGURAT_DEBUG_LOGGING) Rcpp::Rcout << "[Ziggurat Gen] idx=" << idx << ", u1=" << u1 
+
+            if (ZIGGURAT_DEBUG_LOGGING) Rcpp::Rcout << "[Ziggurat Gen] idx=" << idx << ", u1=" << u1
                 << ", x_table_[idx]=" << x_table_[idx] << ", x_cand=" << x_cand << std::endl;
-            
+
             // Check if we're in the rectangle part (fast accept)
             if (iz < k_table_[idx]) {
-                if (ZIGGURAT_DEBUG_LOGGING) 
+                if (ZIGGURAT_DEBUG_LOGGING)
                     Rcpp::Rcout << "[Ziggurat Gen] Rectangle accept for idx=" << idx << ". x_cand=" << x_cand << std::endl;
                 return sign ? -x_cand : x_cand;
             }
-            
+
             // Handle base strip special case
             if (idx == ZIGGURAT_TABLE_SIZE - 1) {
-                if (ZIGGURAT_DEBUG_LOGGING) 
+                if (ZIGGURAT_DEBUG_LOGGING)
                     Rcpp::Rcout << "[Ziggurat Gen] Base strip for idx=" << idx << ". Re-looping." << std::endl;
                 continue;
             }
-            
+
             // Wedge test - need another uniform
             double u2;
             try {
@@ -4290,42 +4291,42 @@ double ZigguratNormal::generate_internal() {
                 // If generator fails, derive u2 deterministically
                 u2 = (((iz >> 8) & 0x7FFFFFFF)) / static_cast<double>(0x7FFFFFFF);
             }
-            
+
             if (ZIGGURAT_DEBUG_LOGGING) {
-                Rcpp::Rcout << "[Ziggurat Gen] Wedge test for idx=" << idx 
+                Rcpp::Rcout << "[Ziggurat Gen] Wedge test for idx=" << idx
                     << ". x_cand=" << x_cand << ", u2=" << u2 << std::endl;
-                Rcpp::Rcout << "                 y_table_[idx]=" << y_table_[idx] 
+                Rcpp::Rcout << "                 y_table_[idx]=" << y_table_[idx]
                     << ", y_table_[idx-1]=" << y_table_[idx-1] << std::endl;
             }
-            
+
             // Compute pdf value at the candidate point
             double pdf_x = std::exp(-0.5 * x_cand * x_cand);
-            
+
             // Compute random height in the wedge
             double y_wedge = y_table_[idx-1] + u2 * (y_table_[idx] - y_table_[idx-1]);
-            
+
             // Accept if point is under the PDF curve
             if (pdf_x > y_wedge) {
-                if (ZIGGURAT_DEBUG_LOGGING) 
+                if (ZIGGURAT_DEBUG_LOGGING)
                     Rcpp::Rcout << "[Ziggurat Gen] Wedge accept for idx=" << idx << ". x_cand=" << x_cand << std::endl;
                 return sign ? -x_cand : x_cand;
             }
-            
-            if (ZIGGURAT_DEBUG_LOGGING) 
+
+            if (ZIGGURAT_DEBUG_LOGGING)
                 Rcpp::Rcout << "[Ziggurat Gen] Wedge reject for idx=" << idx << ". Loop again." << std::endl;
             // If rejected, continue to next attempt
-            
+
         } catch (const std::exception& e) {
-            if (ZIGGURAT_DEBUG_LOGGING) 
+            if (ZIGGURAT_DEBUG_LOGGING)
                 Rcpp::Rcout << "[Ziggurat Gen] Exception: " << e.what() << ". Continuing." << std::endl;
             // Continue to next attempt
         } catch (...) {
-            if (ZIGGURAT_DEBUG_LOGGING) 
+            if (ZIGGURAT_DEBUG_LOGGING)
                 Rcpp::Rcout << "[Ziggurat Gen] Unknown exception. Continuing." << std::endl;
             // Continue to next attempt
         }
     }
-    
+
     // If we reach here, we've failed to generate a valid sample after MAX_ATTEMPTS
     throw std::runtime_error("ZigguratNormal::generate_internal failed after maximum attempts");
 }
@@ -4333,110 +4334,110 @@ double ZigguratNormal::generate_internal() {
 // Optimized thread-safe implementation using thread-local tables and random number cache
 double ZigguratNormal::generate_internal_thread_safe() {
     if (ZIGGURAT_DEBUG_LOGGING) Rcpp::Rcout << "[Ziggurat TS] Enter." << std::endl;
-    
+
     // Initialize thread-local tables if not yet done
     initialize_thread_local_tables();
-    
+
     // Initialize random cache if not yet done
     initialize_random_cache();
-    
+
     uint32_t iz;     // Random integer from bits of uniform
     uint32_t idx;    // Index into tables
     double x_cand;   // Candidate x value
-    
+
     // Maximum number of attempts to avoid infinite loops
     const int MAX_ATTEMPTS = 1000;
     int attempts = 0;
 
     while (attempts < MAX_ATTEMPTS) {
         attempts++;
-        
+
         try {
             // Generate uniform u0 for sign and index - from cache to avoid mutex
             double u0 = get_cached_uniform();
-            
+
             // Convert u0 to a 32-bit integer for table lookup
             iz = static_cast<uint32_t>(u0 * 4294967296.0); // Multiply by 2^32
             idx = iz & ZIGGURAT_MASK; // Get index (0 to TABLE_SIZE-1)
-            
+
             // Get random sign - from cache to avoid mutex
             double sign_u = get_cached_uniform();
             bool sign = (sign_u < 0.5);
-            
+
             if (ZIGGURAT_DEBUG_LOGGING) Rcpp::Rcout << "[Ziggurat TS] u0=" << u0 << ", iz=" << iz << ", idx=" << idx << std::endl;
-            
+
             // Handle tail region (idx == 0)
             if (idx == 0) {
                 if (ZIGGURAT_DEBUG_LOGGING) Rcpp::Rcout << "[Ziggurat TS] idx=0 (tail)." << std::endl;
-                
+
                 // Use thread-safe tail sampling that uses the cached values
                 double tail_sample = sample_from_tail_thread_safe();
-                
+
                 if (ZIGGURAT_DEBUG_LOGGING) Rcpp::Rcout << "[Ziggurat TS] Tail returned " << tail_sample << std::endl;
                 return sign ? -tail_sample : tail_sample;
             }
-            
+
             // For regular layers, generate x candidate - from cache to avoid mutex
             double u1 = get_cached_uniform();
-            
+
             // Use thread-local tables for the rest to avoid locks
             x_cand = u1 * tls_x_table_[idx]; // x_cand is in [0, tls_x_table_[idx])
-            
-            if (ZIGGURAT_DEBUG_LOGGING) Rcpp::Rcout << "[Ziggurat TS] idx=" << idx << ", u1=" << u1 
+
+            if (ZIGGURAT_DEBUG_LOGGING) Rcpp::Rcout << "[Ziggurat TS] idx=" << idx << ", u1=" << u1
                 << ", tls_x_table_[idx]=" << tls_x_table_[idx] << ", x_cand=" << x_cand << std::endl;
-            
+
             // Check if we're in the rectangle part (fast accept)
             if (iz < tls_k_table_[idx]) {
-                if (ZIGGURAT_DEBUG_LOGGING) 
+                if (ZIGGURAT_DEBUG_LOGGING)
                     Rcpp::Rcout << "[Ziggurat TS] Rectangle accept for idx=" << idx << ". x_cand=" << x_cand << std::endl;
                 return sign ? -x_cand : x_cand;
             }
-            
+
             // Handle base strip special case
             if (idx == ZIGGURAT_TABLE_SIZE - 1) {
-                if (ZIGGURAT_DEBUG_LOGGING) 
+                if (ZIGGURAT_DEBUG_LOGGING)
                     Rcpp::Rcout << "[Ziggurat TS] Base strip for idx=" << idx << ". Re-looping." << std::endl;
                 continue;
             }
-            
+
             // Wedge test - need another uniform - from cache to avoid mutex
             double u2 = get_cached_uniform();
-            
+
             if (ZIGGURAT_DEBUG_LOGGING) {
-                Rcpp::Rcout << "[Ziggurat TS] Wedge test for idx=" << idx 
+                Rcpp::Rcout << "[Ziggurat TS] Wedge test for idx=" << idx
                     << ". x_cand=" << x_cand << ", u2=" << u2 << std::endl;
-                Rcpp::Rcout << "                 tls_y_table_[idx]=" << tls_y_table_[idx] 
+                Rcpp::Rcout << "                 tls_y_table_[idx]=" << tls_y_table_[idx]
                     << ", tls_y_table_[idx-1]=" << tls_y_table_[idx-1] << std::endl;
             }
-            
+
             // Compute pdf value at the candidate point
             double pdf_x = std::exp(-0.5 * x_cand * x_cand);
-            
+
             // Compute random height in the wedge
             double y_wedge = tls_y_table_[idx-1] + u2 * (tls_y_table_[idx] - tls_y_table_[idx-1]);
-            
+
             // Accept if point is under the PDF curve
             if (pdf_x > y_wedge) {
-                if (ZIGGURAT_DEBUG_LOGGING) 
+                if (ZIGGURAT_DEBUG_LOGGING)
                     Rcpp::Rcout << "[Ziggurat TS] Wedge accept for idx=" << idx << ". x_cand=" << x_cand << std::endl;
                 return sign ? -x_cand : x_cand;
             }
-            
-            if (ZIGGURAT_DEBUG_LOGGING) 
+
+            if (ZIGGURAT_DEBUG_LOGGING)
                 Rcpp::Rcout << "[Ziggurat TS] Wedge reject for idx=" << idx << ". Loop again." << std::endl;
             // If rejected, continue to next attempt
-            
+
         } catch (const std::exception& e) {
-            if (ZIGGURAT_DEBUG_LOGGING) 
+            if (ZIGGURAT_DEBUG_LOGGING)
                 Rcpp::Rcout << "[Ziggurat TS] Exception: " << e.what() << ". Continuing." << std::endl;
             // Continue to next attempt
         } catch (...) {
-            if (ZIGGURAT_DEBUG_LOGGING) 
+            if (ZIGGURAT_DEBUG_LOGGING)
                 Rcpp::Rcout << "[Ziggurat TS] Unknown exception. Continuing." << std::endl;
             // Continue to next attempt
         }
     }
-    
+
     // If we reach here, we've failed to generate a valid sample after MAX_ATTEMPTS
     throw std::runtime_error("ZigguratNormal::generate_internal_thread_safe failed after maximum attempts");
 }
@@ -4445,19 +4446,19 @@ double ZigguratNormal::generate_internal_thread_safe() {
 ZigguratNormal::ZigguratNormal(std::function<double()> uniform_generator,
                                double mean, double stddev,
                                bool thread_safe_mode)
-    : uniform_generator_(uniform_generator), 
-      mean_(mean), 
+    : uniform_generator_(uniform_generator),
+      mean_(mean),
       stddev_(stddev),
       is_thread_safe_mode_(thread_safe_mode) {
     // Validate parameters with meaningful error messages
     if (!uniform_generator_) {
         throw std::invalid_argument("ZigguratNormal: Uniform generator cannot be null.");
     }
-    
+
     if (stddev_ <= 0) {
         throw std::invalid_argument("ZigguratNormal: Standard deviation must be positive.");
     }
-    
+
     try {
         // Use cached tables if standard parameters, otherwise initialize instance tables
         if (mean_ == 0.0 && stddev_ == 1.0) {
@@ -4465,11 +4466,11 @@ ZigguratNormal::ZigguratNormal(std::function<double()> uniform_generator,
         } else {
             initialize_tables_original();
         }
-        
+
         // Initialize thread-local tables if in thread-safe mode
         if (is_thread_safe_mode_.load()) {
             initialize_thread_local_tables();
-            
+
             // Initialize thread-local resources for this instance
         }
     } catch (const std::exception& e) {
@@ -4478,7 +4479,7 @@ ZigguratNormal::ZigguratNormal(std::function<double()> uniform_generator,
     } catch (...) {
         throw std::runtime_error("ZigguratNormal: Unknown error during initialization");
     }
-    
+
     // Don't test the generator during construction - this can cause circular dependencies
     // The generator will be tested the first time it's actually used
 }
@@ -4487,24 +4488,24 @@ void ZigguratNormal::set_parameters(double mean, double stddev) {
     if (stddev <= 0) {
         throw std::invalid_argument("ZigguratNormal: Standard deviation must be positive.");
     }
-    
+
     // In thread-safe mode, need to lock before changing parameters
     std::lock_guard<std::mutex> lock(instance_mutex_);
-    
+
     // If previously using standard parameters but now using custom ones,
     // or vice versa, we need to reinitialize tables
     bool reinitialize = (mean_ == 0.0 && stddev_ == 1.0) != (mean == 0.0 && stddev == 1.0);
-    
+
     mean_ = mean;
     stddev_ = stddev;
-    
+
     if (reinitialize) {
         if (mean_ == 0.0 && stddev_ == 1.0) {
             use_cached_tables();
         } else {
             initialize_tables_original();
         }
-        
+
         // Reset thread-local initialization flag to force refresh
         tls_tables_initialized_ = false;
     }
@@ -4513,7 +4514,7 @@ void ZigguratNormal::set_parameters(double mean, double stddev) {
 void ZigguratNormal::set_thread_safe_mode(bool enable) {
     // Set the thread-safe mode flag
     is_thread_safe_mode_.store(enable);
-    
+
     // Initialize thread-local tables if enabling thread-safe mode
     if (enable) {
         initialize_thread_local_tables();
@@ -4536,7 +4537,7 @@ double ZigguratNormal::generate() {
             std::normal_distribution<double> fallback_dist(mean_, stddev_);
             return fallback_dist(fallback_rng);
         }
-        
+
         // Choose between thread-safe and normal implementation
         double std_normal_val;
         if (is_thread_safe_mode_.load()) {
@@ -4547,7 +4548,7 @@ double ZigguratNormal::generate() {
                 std::normal_distribution<double> fallback_dist(mean_, stddev_);
                 return fallback_dist(fallback_rng);
             }
-            
+
             // Initialize thread-local resources if needed
             if (!tls_tables_initialized_) {
                 try {
@@ -4559,7 +4560,7 @@ double ZigguratNormal::generate() {
                     return fallback_dist(fallback_rng);
                 }
             }
-            
+
             // Run thread-safe generation with exception handling
             try {
                 std_normal_val = generate_internal_thread_safe();
@@ -4578,10 +4579,10 @@ double ZigguratNormal::generate() {
         } else {
             std_normal_val = generate_internal();
         }
-        
+
         // Apply mean and stddev transformation
         double result = mean_ + stddev_ * std_normal_val;
-        
+
         // Validate the result
         if (std::isnan(result) || std::isinf(result)) {
             // Use fallback RNG instead of fixed mean value
@@ -4589,7 +4590,7 @@ double ZigguratNormal::generate() {
             std::normal_distribution<double> fallback_dist(mean_, stddev_);
             return fallback_dist(fallback_rng);
         }
-        
+
         return result;
     } catch (const std::exception& e) {
         static thread_local int warning_count = 0;
@@ -4605,13 +4606,13 @@ double ZigguratNormal::generate() {
         // Something catastrophic happened - possibly thread exit
         // Mark this thread for cleanup
 
-        
+
         // Check if cleanup is already in progress
         if (!cleanup_in_progress_.load(std::memory_order_acquire)) {
             // Clean up thread-local resources to prevent segfaults
             cleanup_thread_local_resources();
         }
-        
+
         // Use fallback RNG instead of fixed mean value
         static thread_local std::mt19937 fallback_rng(std::random_device{}());
         std::normal_distribution<double> fallback_dist(mean_, stddev_);
@@ -4625,11 +4626,11 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
         Rcpp::warning("ZigguratNormal::generate_n called with null buffer");
         return;
     }
-    
+
     // Thread exit detection - if a previous operation marked this thread as exiting,
     // don't attempt complex multi-threading
     static thread_local bool local_thread_exiting = false;
-    
+
     try {
         // For small buffers, non-threaded mode, or thread-exit situations, use the simple loop
         if (count < 1000 || !is_thread_safe_mode_.load() || local_thread_exiting) {
@@ -4647,7 +4648,7 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
             }
             return;
         }
-        
+
         // Safety check for object validity during multi-threaded operation
         if (!uniform_generator_) {
             // Something is wrong with the generator - fill with mean values
@@ -4656,17 +4657,17 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
             }
             return;
         }
-        
+
         // For larger buffers in thread-safe mode, use multiple threads with proper cleanup
-        
+
         // Get the hardware concurrency (number of available cores)
         const size_t hardware_threads = std::thread::hardware_concurrency();
-        
+
         // Calculate optimal thread count (limited to avoid creating too many threads)
         // Use fewer threads to reduce contention and resource usage
         const size_t max_threads = std::min(hardware_threads, size_t(4)); // Reduced from 8
         const size_t thread_count = std::min(max_threads, count / 2000 + 1); // Increased threshold
-        
+
         if (thread_count <= 1) {
             // If only one thread would be created, just use the simple loop
             for (size_t i = 0; i < count; ++i) {
@@ -4681,25 +4682,25 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
             }
             return;
         }
-        
+
         // Calculate chunk size for each thread
         const size_t chunk_size = count / thread_count;
         const size_t remainder = count % thread_count;
-        
+
         // Create and start threads
         std::vector<std::thread> threads;
         std::atomic<bool> any_thread_failed(false);
-        
+
         for (size_t t = 0; t < thread_count; ++t) {
             // Calculate start and end for this thread
             size_t start = t * chunk_size + std::min(t, remainder);
             size_t end = start + chunk_size + (t < remainder ? 1 : 0);
-            
+
             // Create thread with thread-specific exit flag
             threads.push_back(std::thread([this, buffer, start, end, &any_thread_failed]() {
                 // Thread-local exit flag for this worker thread
                 thread_local bool worker_exiting = false;
-                
+
                 try {
                     // Initialize thread-local tables and cache for this thread
                     // with proper error handling
@@ -4710,14 +4711,14 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
                         // If initialization fails, mark thread as failed
                         any_thread_failed.store(true);
                         worker_exiting = true;
-                        
+
                         // Fill this thread's portion with mean values
                         for (size_t i_local = start; i_local < end; ++i_local) {
                             buffer[i_local] = mean_;
                         }
                         return; // Exit this thread's lambda
                     }
-                    
+
                     // Generate values for this chunk
                     for (size_t i_local = start; i_local < end; ++i_local) {
                         // Check if thread is marked as exiting
@@ -4725,14 +4726,14 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
                             buffer[i_local] = mean_;
                             continue;
                         }
-                        
+
                         try {
                             // Check if parent object is still valid via thread-safe mode flag
                             if (!is_thread_safe_mode_.load()) {
                                 buffer[i_local] = mean_;
                                 continue;
                             }
-                            
+
                             // Use the optimized thread-safe implementation with fallback
                             double std_normal_val;
                             try {
@@ -4747,10 +4748,10 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
                                     continue;
                                 }
                             }
-                                
+
                             // Apply mean and stddev transformation
                             buffer[i_local] = mean_ + stddev_ * std_normal_val;
-                            
+
                             // Validate the result
                             if (std::isnan(buffer[i_local]) || std::isinf(buffer[i_local])) {
                                 buffer[i_local] = mean_; // Fallback to mean value
@@ -4758,7 +4759,7 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
                         } catch (...) {
                             // If generate fails for an individual value, use mean
                             buffer[i_local] = mean_;
-                            
+
                             // If too many failures occur, mark this thread as exiting
                             static thread_local int failure_count = 0;
                             if (++failure_count > 20) {
@@ -4770,20 +4771,20 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
                     // If this thread fails completely, mark it
                     any_thread_failed.store(true);
                     worker_exiting = true;
-                    
+
                     // Fill this thread's portion with mean values
                     for (size_t i_local = start; i_local < end; ++i_local) {
                         buffer[i_local] = mean_;
                     }
                 }
-                
+
                 // Clean up thread-local resources if this thread is marked as exiting
                 if (worker_exiting) {
                     cleanup_thread_local_resources();
                 }
             }));
         }
-        
+
         // Safer thread joining with timeout
         for (size_t t = 0; t < threads.size(); ++t) {
             if (threads[t].joinable()) {
@@ -4793,7 +4794,7 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
                     auto thread_finished = std::async(std::launch::async, [&]() {
                         threads[t].join();
                     });
-                    
+
                     if (thread_finished.wait_for(timeout) != std::future_status::ready) {
                         // Thread didn't finish in time - we have a problem
                         any_thread_failed.store(true);
@@ -4805,7 +4806,7 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
                 }
             }
         }
-        
+
         // If any thread failed, log a warning
         if (any_thread_failed.load()) {
             Rcpp::warning("Some threads failed during parallel generation. Results may be affected.");
@@ -4813,13 +4814,13 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
     } catch (const std::exception& e) {
         // Something went wrong with the overall process
         Rcpp::warning("ZigguratNormal::generate_n failed: %s", e.what());
-        
+
         // Mark this thread as exiting to prevent further generation attempts
         local_thread_exiting = true;
-        
+
         // Clean up thread-local resources to prevent segfaults
         cleanup_thread_local_resources();
-        
+
         // Fill entire buffer with mean value
         for (size_t i = 0; i < count; ++i) {
             buffer[i] = mean_;
@@ -4827,10 +4828,10 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
     } catch (...) {
         // Unknown error - mark thread as exiting
         local_thread_exiting = true;
-        
+
         // Clean up thread-local resources
         cleanup_thread_local_resources();
-        
+
         // Fill with mean values
         for (size_t i = 0; i < count; ++i) {
             buffer[i] = mean_;
@@ -4842,7 +4843,7 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
 ZigguratNormal::~ZigguratNormal() {
     // Set thread-safe mode to false before cleanup to prevent thread races
     is_thread_safe_mode_.store(false);
-    
+
     if (ZIGGURAT_DEBUG_LOGGING) {
         Rcpp::Rcout << "ZigguratNormal destructor called" << std::endl;
     }
@@ -4861,11 +4862,11 @@ void ZigguratNormal::prepare_for_shutdown() {
         // Cleanup is already in progress, just return
         return;
     }
-    
+
     if (ZIGGURAT_DEBUG_LOGGING) {
         Rcpp::Rcout << "ZigguratNormal prepared for shutdown" << std::endl;
     }
-    
+
     // During shutdown, we ensure all thread-local resources are reset to safe values
     try {
         // We don't have access to each thread's resources directly, but we'll set up flags
@@ -4885,29 +4886,29 @@ void ZigguratNormal::cleanup_thread_local_resources() {
     if (!cleanup_in_progress_.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
         // Cleanup is already in progress by another thread, don't duplicate effort
         if (ZIGGURAT_DEBUG_LOGGING) {
-            Rcpp::Rcout << "Thread " << std::this_thread::get_id() 
+            Rcpp::Rcout << "Thread " << std::this_thread::get_id()
                        << " skipping cleanup as it's already in progress" << std::endl;
         }
         return;
     }
-    
+
     try {
         // Reset all thread-local variables to a clean state
         tls_tables_initialized_ = false;
         tls_random_cache_initialized_ = false;
         tls_random_cache_pos_ = RANDOM_CACHE_SIZE;  // Mark as empty
-        
+
         // Invalidate the TLS manager if it exists
         if (tls_manager_) {
             tls_manager_->invalidate();
             tls_manager_ = nullptr;
         }
-        
+
         if (ZIGGURAT_DEBUG_LOGGING) {
-            Rcpp::Rcout << "Thread " << std::this_thread::get_id() 
+            Rcpp::Rcout << "Thread " << std::this_thread::get_id()
                        << " cleaned up ZigguratNormal resources" << std::endl;
         }
-        
+
         // Reset TLS tables - only do this if they were initialized
         if (tls_tables_initialized_) {
             for (size_t i = 0; i < ZIGGURAT_TABLE_SIZE; ++i) {
@@ -4916,7 +4917,7 @@ void ZigguratNormal::cleanup_thread_local_resources() {
                 tls_k_table_[i] = 0;
             }
         }
-        
+
         if (ZIGGURAT_DEBUG_LOGGING) {
             Rcpp::Rcout << "ZigguratNormal thread-local resources cleaned up" << std::endl;
         }
@@ -4926,7 +4927,7 @@ void ZigguratNormal::cleanup_thread_local_resources() {
             Rcpp::Rcout << "Exception during thread-local cleanup - suppressed" << std::endl;
         }
     }
-    
+
     // Keep the cleanup flag set - we don't reset it because once we've cleaned up,
     // we want to prevent any new access attempts
 }
@@ -4973,7 +4974,7 @@ void QuadraticIrrational::step_once() {
     int ret = 0;
 
     int op_ret = 0;
-    
+
     op_ret = mpfr_mul(*temp_->get(), *value_->get(), *value_->get(), MPFR_RNDN);
     ret |= op_ret;
     check_mpfr_result(op_ret, "multiplication");
@@ -5039,23 +5040,23 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
     if (a == 0) {
         throw std::invalid_argument("QuadraticIrrational: 'a' parameter cannot be zero");
     }
-    
+
     if (prec < MPFR_PREC_MIN || prec > MPFR_PREC_MAX) {
         throw std::invalid_argument("QuadraticIrrational: Invalid precision value");
     }
-    
+
     // Use __int128 for safe discriminant calculation when available
     long long disc_ll;
-    
+
 #ifdef __SIZEOF_INT128__
     // Use 128-bit integers for overflow-safe calculation
     __int128 b_128 = static_cast<__int128>(b_);
     __int128 a_128 = static_cast<__int128>(a_);
     __int128 c_128 = static_cast<__int128>(c_);
     __int128 disc_128 = b_128 * b_128 - 4 * a_128 * c_128;
-    
+
     // Check if result fits in long long
-    if (disc_128 > std::numeric_limits<long long>::max() || 
+    if (disc_128 > std::numeric_limits<long long>::max() ||
         disc_128 < std::numeric_limits<long long>::min()) {
         throw std::runtime_error("QuadraticIrrational: discriminant exceeds long long range");
     }
@@ -5063,17 +5064,17 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
 #else
     // Fallback to overflow checking for platforms without __int128
     const long long MAX_SAFE_LONG = std::numeric_limits<long>::max();
-    
+
     // Check if b can safely be squared
     if (std::abs(static_cast<long long>(b)) > static_cast<long long>(std::sqrt(static_cast<double>(MAX_SAFE_LONG)))) {
         throw std::runtime_error("QuadraticIrrational: 'b' parameter is too large, would cause overflow in discriminant calculation");
     }
-    
+
     // Check for the 4*a*c calculation
     if (std::abs(a) > MAX_SAFE_LONG / 4 || (a != 0 && std::abs(c) > MAX_SAFE_LONG / (4 * std::abs(a)))) {
         throw std::runtime_error("QuadraticIrrational: 'a' and 'c' parameters would cause overflow in 4*a*c calculation");
     }
-    
+
     // Now safely calculate discriminant
     long long b_ll = static_cast<long long>(b_);
     long long a_ll = static_cast<long long>(a_);
@@ -5082,13 +5083,13 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
     long long four_ac = 4LL * a_ll * c_ll;
     disc_ll = b_squared - four_ac;
 #endif
-    
+
     // Check for non-positive discriminant
     if (disc_ll <= 0) {
          Rcpp::Rcerr << "a=" << a_ << ", b=" << b_ << ", c=" << c_ << ", disc=" << disc_ll << std::endl;
         throw std::runtime_error("QuadraticIrrational: non-positive discriminant");
     }
-    
+
     // Check if discriminant is too large for safe square root calculation
     if (disc_ll > static_cast<long long>(std::pow(2.0, 53))) {
         Rcpp::warning("QuadraticIrrational: discriminant %lld is very large, potential precision issues", disc_ll);
@@ -5107,11 +5108,11 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
         }
 
         int op_ret = 0;
-        
+
         // MPFR may not have mpfr_set_sj for signed long long, use mpfr_set_si with casting
         op_ret = mpfr_set_si(*root_->get(), static_cast<long>(disc_ll), MPFR_RNDN);
         check_mpfr_result(op_ret, "set_discriminant");
-        
+
         op_ret = mpfr_sqrt(*root_->get(), *root_->get(), MPFR_RNDN);
         // It's normal for sqrt to be inexact, so suppress this specific warning
         if (op_ret != 0 && !suppress_mpfr_warnings.load()) {
@@ -5143,7 +5144,7 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
         // Warm-up period for quadratic irrational sequences
         // Literature suggests that nonlinear PRNGs benefit from an initial "burn-in" period
         // to ensure the sequence has moved away from potentially predictable initial states.
-        // 
+        //
         // For quadratic recurrences:
         // - Minimum of sqrt(period) steps recommended (Knuth, TAOCP Vol 2)
         // - For cryptographic applications, 10x the state size is common practice
@@ -5151,12 +5152,12 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
         //   empirically chosen values that balance security and performance
         //
         // Range [10000, 100000] chosen because:
-        // - 10,000 minimum ensures at least 10^4 nonlinear iterations 
+        // - 10,000 minimum ensures at least 10^4 nonlinear iterations
         // - 100,000 maximum prevents excessive initialization time
         // - Random selection within range prevents timing-based state inference
         const uint64_t MIN_WARMUP_ITERATIONS = 10000;   // ~10^4 ensures good mixing
         const uint64_t MAX_WARMUP_ITERATIONS = 100000;  // ~10^5 upper bound for performance
-        
+
         // Determine skip amount based on whether seed is provided
         uint64_t skip_amt;
         if (has_seed) {
@@ -5172,7 +5173,7 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
             std::uniform_int_distribution<uint64_t> skip_dist(MIN_WARMUP_ITERATIONS, MAX_WARMUP_ITERATIONS);
             skip_amt = skip_dist(rng);
         }
-        
+
         // Perform the initial warm-up skip
         for (uint64_t i = 0; i < skip_amt; i++) {
             step_once();
@@ -5207,14 +5208,14 @@ void QuadraticIrrational::jump_ahead(uint64_t n) {
         !temp2_->is_valid() || !root_->is_valid()) {
         throw std::runtime_error("QuadraticIrrational: Invalid MPFR state at the beginning of jump_ahead");
     }
-    
+
     if (n == 0) {
         return; // No jump needed
     }
-    
+
     // For large jumps, we can process in blocks to improve cache efficiency
     const uint64_t BLOCK_SIZE = 1024;
-    
+
     if (n < BLOCK_SIZE) {
         // For small jumps, just iterate
         for (uint64_t i = 0; i < n; i++) {
@@ -5224,14 +5225,14 @@ void QuadraticIrrational::jump_ahead(uint64_t n) {
         // For large jumps, process in blocks
         uint64_t full_blocks = n / BLOCK_SIZE;
         uint64_t remainder = n % BLOCK_SIZE;
-        
+
         // Process full blocks
         for (uint64_t block = 0; block < full_blocks; block++) {
             for (uint64_t i = 0; i < BLOCK_SIZE; i++) {
                 step_once();
             }
         }
-        
+
         // Process remainder
         for (uint64_t i = 0; i < remainder; i++) {
             step_once();
@@ -5285,7 +5286,7 @@ void CryptoMixer::secure_random(unsigned char* buf, size_t len) {
     if (!buf || len == 0) {
         throw std::invalid_argument("CryptoMixer: Invalid buffer for secure random generation");
     }
-    
+
     if (has_seed_) {
         // Use deterministic generation when seed is provided
         std::uniform_int_distribution<unsigned int> dist(0, 255);
@@ -5389,7 +5390,7 @@ bool CryptoMixer::mix(unsigned char* data, size_t len) {
             for (size_t i = 0; i < num_doubles; i++) {
                  if (i * sizeof(double) + sizeof(uint64_t) > random_bytes_buf.size()) { // Check against random_bytes_buf
                     Rcpp::warning("CryptoMixer: Random buffer access out of bounds in modular addition path.");
-                    return false; 
+                    return false;
                 }
                 uint64_t crypto_bits_val = 0; // Renamed variable
                 std::memcpy(&crypto_bits_val, &random_bytes_buf[i * sizeof(double)], sizeof(uint64_t));
@@ -5400,22 +5401,22 @@ bool CryptoMixer::mix(unsigned char* data, size_t len) {
 
                 // Simplified normalization to [0,1) range
                 double mixed_val = doubles[i] + crypto_uniform;
-                
+
                 // Normalize to [0,1) range using a single approach
                 mixed_val = mixed_val - std::floor(mixed_val);
                 if (mixed_val < 0.0) mixed_val += 1.0;
-                
+
                 // Safety checks for numeric stability
                 if (std::isnan(mixed_val) || std::isinf(mixed_val)) {
                     Rcpp::warning("CryptoMixer: Invalid result in mixing, using fallback value 0.5");
                     mixed_val = 0.5;
                 }
-                
+
                 // Ensure result is strictly in [0, 1)
                 if (mixed_val >= 1.0) {
                     mixed_val = std::nextafter(1.0, 0.0);
                 }
-                
+
                 doubles[i] = mixed_val;
 
                 if (use_tie_breaking_ && i > 0 && doubles[i] == prev_val) {
@@ -5482,7 +5483,7 @@ bool CryptoMixer::mix(unsigned char* data, size_t len) {
     }
 }
 
-} // namespace qiprng 
+} // namespace qiprng
 ```
 
 ```
@@ -5525,28 +5526,28 @@ double MultiQI::next() {
     // Critical section with robust error handling
     try {
         std::lock_guard<std::mutex> lock(mutex_);
-        
+
         // Safety check
         if (qis_.empty()) {
             // Empty state fallback - shouldn't happen in normal operation
             return 0.5;
         }
-        
+
         // Check index bounds
         if (idx_ >= qis_.size()) {
             idx_ = 0; // Reset to valid index
         }
-        
+
         // Get the current QuadraticIrrational
         QuadraticIrrational* current_qi = qis_[idx_].get();
-        
+
         // Safety check for null pointer
         if (!current_qi) {
             // Advance index and return fallback value
             idx_ = (idx_ + 1) % qis_.size();
             return 0.5;
         }
-        
+
         // Get next value and advance index
         double val;
         try {
@@ -5555,10 +5556,10 @@ double MultiQI::next() {
             // If next() throws, use fallback
             val = 0.5;
         }
-        
+
         // Safely advance the index
         idx_ = (idx_ + 1) % qis_.size();
-        
+
         return val;
     } catch (...) {
         // Ultimate fallback for any exception
@@ -5611,7 +5612,7 @@ void MultiQI::fill(double* buffer, size_t fill_size) {
         }
         return;
     }
-    
+
     // Fill buffer using next() which has its own lock
     for (size_t i = 0; i < fill_size; i++) {
         buffer[i] = next();
@@ -5623,11 +5624,11 @@ void MultiQI::fill_thread_safe(double* buffer, size_t fill_size) {
     if (!buffer) {
         return;
     }
-    
+
     // Hold the lock for the entire operation - more efficient for large fills
     try {
         std::lock_guard<std::mutex> lock(mutex_);
-        
+
         if (qis_.empty()) {
             // Fallback for empty state
             for (size_t i = 0; i < fill_size; ++i) {
@@ -5635,12 +5636,12 @@ void MultiQI::fill_thread_safe(double* buffer, size_t fill_size) {
             }
             return;
         }
-        
+
         // Make sure index is valid
         if (idx_ >= qis_.size()) {
             idx_ = 0;
         }
-        
+
         // Fill buffer directly with values from the QIs in sequence
         for (size_t i = 0; i < fill_size; i++) {
             try {
@@ -5654,7 +5655,7 @@ void MultiQI::fill_thread_safe(double* buffer, size_t fill_size) {
                 // If next() throws, use fallback
                 buffer[i] = 0.5;
             }
-            
+
             // Safely advance the index
             idx_ = (idx_ + 1) % qis_.size();
         }
@@ -5666,7 +5667,7 @@ void MultiQI::fill_thread_safe(double* buffer, size_t fill_size) {
     }
 }
 
-} // namespace qiprng 
+} // namespace qiprng
 ```
 
 ```

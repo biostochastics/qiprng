@@ -7,12 +7,14 @@ This document presents the comprehensive statistical test results for the qiprng
 ## Test Methodology
 
 ### Configuration
+
 - **Number of runs**: 100 per test (increased from 50 for better statistical power)
 - **Sample sizes**: 10,000, 100,000, 1,000,000, and 5,000,000
 - **Generators tested**: 18 different PRNGs including QIPRNG variants, dqrng, R built-ins, and OpenSSL
 - **Test categories**: Basic distribution, advanced statistical, correlation, and moments analysis
 
 ### Key Improvements
+
 1. **Fixed Gap Test**: Properly implements geometric distribution analysis for gaps between value occurrences
 2. **Fixed Spectral Test**: Uses Kolmogorov-Smirnov test comparing spectral densities to exponential distribution
 3. **Fixed dqrng variants**: Each variant now properly uses its specific algorithm
@@ -58,12 +60,14 @@ Analysis of total deviation from theoretical moments:
 ### Test Category Performance
 
 #### Basic Tests (Average Pass Rate: 95.2%)
+
 - Kolmogorov-Smirnov: 96.9%
 - Chi-squared: 95.3%
 - Runs Test: 94.9%
 - Autocorrelation: 94.6%
 
 #### Advanced Tests (After Fixes)
+
 - **Spectral Test**: 99.1% (was 100% due to bug returning fixed 0.01)
 - **Gap Test**: 96.4% (was 0% due to bug returning 0)
 
@@ -78,7 +82,7 @@ Analysis of total deviation from theoretical moments:
 
 ## Key Findings
 
-1. **Statistical Quality Hierarchy**: 
+1. **Statistical Quality Hierarchy**:
    - Best moments adherence: R Knuth-TAOCP (0.000586)
    - QIPRNG shows good statistical quality (0.001427-0.003427)
    - dqrng prioritizes speed over moments accuracy (0.002597-0.009004)
@@ -94,12 +98,14 @@ Analysis of total deviation from theoretical moments:
 ## Test Implementation Details
 
 ### Gap Test
+
 - Analyzes gaps between occurrences of values in range [0.3, 0.7]
 - Compares observed gap distribution to expected geometric distribution
 - Uses chi-squared goodness-of-fit test
 - Average pass rate: 96.4%
 
-### Spectral Test  
+### Spectral Test
+
 - Computes periodogram using FFT
 - Normalizes spectral densities by their mean
 - Tests if normalized values follow exponential(1) distribution using KS test

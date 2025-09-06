@@ -52,9 +52,16 @@ bool QuadraticIrrational::is_square_free(long long n) {
     if (n > 1) {
         // If n is still > 1, it's either prime or has larger factors
         // Check if it's a perfect square
-        long long sqrt_n = static_cast<long long>(std::sqrt(static_cast<double>(n)));
-        if (sqrt_n * sqrt_n == n) {
-            return false;
+
+        // SECURITY FIX: Prevent integer overflow in sqrt_n * sqrt_n
+        double sqrt_n_dbl = std::sqrt(static_cast<double>(n));
+
+        // Check if sqrt_n would overflow when squared
+        if (sqrt_n_dbl <= std::sqrt(static_cast<double>(LLONG_MAX))) {
+            long long sqrt_n = static_cast<long long>(sqrt_n_dbl);
+            if (sqrt_n * sqrt_n == n) {
+                return false;
+            }
         }
     }
 
@@ -171,9 +178,11 @@ void QuadraticIrrational::compute_cfe_period() {
     }
 
     // If we reach here, period is too long or doesn't exist
-    Rcpp::warning("QuadraticIrrational: CFE period exceeds maximum length %d", MAX_PERIOD);
+    // Use exception for consistency in error handling
     cfe_period_length_ = 0;
     cfe_computed_ = true;
+    throw std::runtime_error("QuadraticIrrational: CFE period exceeds maximum length " +
+                             std::to_string(MAX_PERIOD));
 }
 
 // Enhanced step_once using Gauss-Legendre insights for optimization
@@ -286,9 +295,11 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
 
     // Check if discriminant is square-free for quality PRNG (v0.5.0 enhancement)
     if (!is_square_free(disc_ll)) {
-        Rcpp::warning(
-            "QuadraticIrrational: discriminant %lld is not square-free, may affect PRNG quality",
-            disc_ll);
+        // Use exception for critical quality issues that affect PRNG correctness
+        throw std::invalid_argument(
+            "QuadraticIrrational: discriminant " + std::to_string(disc_ll) +
+            " is not square-free. This significantly affects PRNG quality. "
+            "Please use different parameters (a, b, c) that produce a square-free discriminant.");
     }
 
     // Check if discriminant is too large for safe square root calculation
@@ -313,8 +324,14 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
 
         int op_ret = 0;
 
-        // MPFR may not have mpfr_set_sj for signed long long, use mpfr_set_si with casting
-        op_ret = mpfr_set_si(*root_->get(), static_cast<long>(disc_ll), MPFR_RNDN);
+        // FIX: Validate discriminant fits in long before casting
+        if (disc_ll > LONG_MAX || disc_ll < LONG_MIN) {
+            // Use string conversion for large discriminants
+            std::string disc_str = std::to_string(disc_ll);
+            op_ret = mpfr_set_str(*root_->get(), disc_str.c_str(), 10, MPFR_RNDN);
+        } else {
+            op_ret = mpfr_set_si(*root_->get(), static_cast<long>(disc_ll), MPFR_RNDN);
+        }
         check_mpfr_result(op_ret, "set_discriminant");
 
         op_ret = mpfr_sqrt(*root_->get(), *root_->get(), MPFR_RNDN);
@@ -456,6 +473,20 @@ void QuadraticIrrational::jump_ahead(uint64_t n) {
 }
 
 // Optimized O(log n) jump-ahead using matrix exponentiation (v0.5.0 enhancement)
+/**
+ * @brief Jumps ahead in the PRNG sequence by n steps in O(log n) time.
+ *
+ * This function uses matrix exponentiation to efficiently jump ahead in the sequence.
+ * The recurrence relation of the quadratic irrational number can be represented by a 2x2 matrix.
+ * To jump ahead by n steps, we compute the n-th power of this matrix and apply the resulting
+ * transformation to the current state.
+ *
+ * The function first computes the CFE period of the number if it has not been computed yet.
+ * If the jump is much larger than the period, it jumps by full periods using matrix exponentiation
+ * and then handles the remainder by stepping through the sequence.
+ *
+ * @param n The number of steps to jump ahead.
+ */
 void QuadraticIrrational::jump_ahead_optimized(uint64_t n) {
     if (n == 0) {
         return;

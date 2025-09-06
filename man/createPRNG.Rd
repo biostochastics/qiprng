@@ -55,7 +55,7 @@ createPRNG()
 # Create PRNG with custom configuration
 createPRNG(list(
   a = 3L,
-  b = 7L, 
+  b = 7L,
   c = -5L,
   distribution = "normal",
   normal_mean = 10,
@@ -71,5 +71,5 @@ seq1 <- generatePRNG(10)
 cleanup_prng()
 createPRNG(list(seed = 12345))
 seq2 <- generatePRNG(10)
-identical(seq1, seq2)  # TRUE
+identical(seq1, seq2) # TRUE
 }

@@ -18,6 +18,11 @@ src/*.dll
 # Test results
 test_results/*
 test_log.txt
+tests/test_results/
+
+# Analysis and reports
+analysis/reports/
+analysis/results/
 
 # Documentation and build files
 code_concat_output.md
@@ -78,4 +83,4 @@ archive
 
 # Task files
 # tasks.json
-# tasks/ 
+# tasks/

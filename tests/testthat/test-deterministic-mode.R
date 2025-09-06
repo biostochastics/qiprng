@@ -3,7 +3,7 @@ library(qiprng)
 
 test_that("Same seed produces identical sequences", {
   # Test 1: Basic reproducibility
-  cfg1 <- list(seed = 12345)
+  cfg1 <- list(seed = 12345, use_crypto_mixing = FALSE)
   createPRNG(cfg1)
   seq1 <- generatePRNG(1000)
   cleanupPRNG()
@@ -16,8 +16,8 @@ test_that("Same seed produces identical sequences", {
 })
 
 test_that("Different seeds produce different sequences", {
-  cfg1 <- list(seed = 12345)
-  cfg2 <- list(seed = 54321)
+  cfg1 <- list(seed = 12345, use_crypto_mixing = FALSE)
+  cfg2 <- list(seed = 54321, use_crypto_mixing = FALSE)
 
   createPRNG(cfg1)
   seq1 <- generatePRNG(1000)
@@ -31,7 +31,7 @@ test_that("Different seeds produce different sequences", {
 })
 
 test_that("Deterministic mode works with jump-ahead", {
-  cfg <- list(seed = 12345)
+  cfg <- list(seed = 12345, use_crypto_mixing = FALSE)
 
   # Generate reference sequence
   createPRNG(cfg)
@@ -51,7 +51,7 @@ test_that("Deterministic mode works with jump-ahead", {
 test_that("Same seed works across different R sessions", {
   # This test verifies that the seed produces the same sequence
   # even after restarting R (simulated by cleanup and recreate)
-  cfg <- list(seed = 98765)
+  cfg <- list(seed = 98765, use_crypto_mixing = FALSE)
 
   # "Session 1"
   createPRNG(cfg)
@@ -70,7 +70,7 @@ test_that("Same seed works across different R sessions", {
 })
 
 test_that("Deterministic mode works with all distributions", {
-  base_cfg <- list(seed = 11111)
+  base_cfg <- list(seed = 11111, use_crypto_mixing = FALSE)
 
   distributions <- list(
     list(distribution = "uniform_01"),
@@ -104,7 +104,7 @@ test_that("Deterministic mode works with all distributions", {
 test_that("Thread-safe deterministic mode", {
   skip_if_not(capabilities("long.double"), "Platform doesn't support long double")
 
-  cfg <- list(seed = 22222, use_threading = TRUE)
+  cfg <- list(seed = 22222, use_threading = TRUE, use_crypto_mixing = FALSE)
 
   # Generate reference sequence without threading
   cfg_no_thread <- cfg
@@ -124,21 +124,21 @@ test_that("Thread-safe deterministic mode", {
 
 test_that("Invalid seed values are rejected", {
   expect_error(
-    createPRNG(list(seed = -1)),
+    createPRNG(list(seed = -1, use_crypto_mixing = FALSE)),
     "Seed must be between 0 and 2\\^53-1"
   )
   expect_error(
-    createPRNG(list(seed = 2^53)),
+    createPRNG(list(seed = 2^53, use_crypto_mixing = FALSE)),
     "Seed must be between 0 and 2\\^53-1"
   )
   expect_error(
-    createPRNG(list(seed = "not_a_number")),
+    createPRNG(list(seed = "not_a_number", use_crypto_mixing = FALSE)),
     "Seed must be between 0 and 2\\^53-1"
   )
 })
 
 test_that("Zero seed is valid", {
-  cfg <- list(seed = 0)
+  cfg <- list(seed = 0, use_crypto_mixing = FALSE)
 
   createPRNG(cfg)
   seq1 <- generatePRNG(100)
@@ -154,7 +154,7 @@ test_that("Zero seed is valid", {
 
 test_that("Large seeds work correctly", {
   # Test with maximum valid seed
-  cfg <- list(seed = 2^53 - 1)
+  cfg <- list(seed = 2^53 - 1, use_crypto_mixing = FALSE)
 
   createPRNG(cfg)
   seq1 <- generatePRNG(100)
@@ -171,6 +171,7 @@ test_that("Large seeds work correctly", {
 test_that("Deterministic mode with custom parameters", {
   cfg <- list(
     seed = 33333,
+    use_crypto_mixing = FALSE,
     a = 3L,
     b = 7L,
     c = -5L,
@@ -190,7 +191,7 @@ test_that("Deterministic mode with custom parameters", {
 })
 
 test_that("Deterministic mode with reseeding", {
-  cfg <- list(seed = 44444, reseed_interval = 100L)
+  cfg <- list(seed = 44444, reseed_interval = 100L, use_crypto_mixing = FALSE)
 
   createPRNG(cfg)
   seq1 <- generatePRNG(300) # Will trigger reseeds at 100 and 200

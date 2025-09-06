@@ -27,10 +27,10 @@ for modeling phenomena with power-law tails.
 \examples{
 \dontrun{
 # Generate from Pareto distribution
-x <- generate_pareto(1000, xm=1, alpha=2)
+x <- generate_pareto(1000, xm = 1, alpha = 2)
 
 # Heavy-tailed distribution (smaller alpha = heavier tail)
-y <- generate_pareto(1000, xm=10, alpha=1.5)
+y <- generate_pareto(1000, xm = 10, alpha = 1.5)
 }
 
 }

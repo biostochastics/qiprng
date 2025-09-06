@@ -34,10 +34,10 @@ distributions as special cases.
 \examples{
 \dontrun{
 # Generate from symmetric stable distribution
-x <- generate_levy_stable(1000, alpha=1.5, beta=0)
+x <- generate_levy_stable(1000, alpha = 1.5, beta = 0)
 
 # Generate from skewed stable distribution
-y <- generate_levy_stable(1000, alpha=1.8, beta=0.5, mu=2, sigma=1)
+y <- generate_levy_stable(1000, alpha = 1.8, beta = 0.5, mu = 2, sigma = 1)
 }
 
 }

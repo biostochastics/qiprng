@@ -34,9 +34,11 @@ x <- generate_multivariate_normal(1000, mean, cov)
 
 # 3D multivariate normal with correlation
 mean3 <- c(1, 2, 3)
-cov3 <- matrix(c(1, 0.3, 0.2,
-                 0.3, 1, 0.4,
-                 0.2, 0.4, 1), 3, 3)
+cov3 <- matrix(c(
+  1, 0.3, 0.2,
+  0.3, 1, 0.4,
+  0.2, 0.4, 1
+), 3, 3)
 y <- generate_multivariate_normal(1000, mean3, cov3)
 }
 

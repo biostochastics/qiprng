@@ -2,7 +2,7 @@
 
 <img src="images/qiprng_logo.png" alt="QIPRNG Logo" width="300"/>
 
-[![Version](https://img.shields.io/badge/Version-0.5.5-blue)](https://github.com/biostochastics/qiprng)
+[![Version](https://img.shields.io/badge/Version-0.6.0-blue)](https://github.com/biostochastics/qiprng)
 [![ThreadSafe](https://img.shields.io/badge/Thread%20Safe-Yes-brightgreen)](https://github.com/biostochastics/qiprng)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen)](https://github.com/biostochastics/qiprng)
@@ -13,7 +13,9 @@
 
 ## Overview
 
-The `qiprng` package implements a pseudo-random number generator based on quadratic irrational numbers with hardware acceleration and parallel generation capabilities. It provides cryptographic security features and extensive statistical distribution support.
+The `qiprng` package implements a pseudo-random number generator based on quadratic
+irrational numbers with hardware acceleration and parallel generation capabilities.
+It provides cryptographic security features and extensive statistical distribution support.
 
 ```r
 library(qiprng)
@@ -22,15 +24,34 @@ x <- generatePRNG(10000)
 hist(x, breaks = 50, main = "qiprng uniform distribution", col = "skyblue")
 ```
 
-## What's New in v0.5.5
+## What's New in v0.6.0
 
-This release enhances security by replacing the weak `std::random_device` with libsodium's cryptographically secure `randombytes_buf()` for seed generation, ensuring unpredictable seeds on all platforms including Windows. Comprehensive input validation with bounds checking and overflow protection has been added to prevent potential exploits. The codebase now follows consistent formatting standards with Google C++ Style Guide for C++ code and tidyverse style for R code, enforced through clang-format and styler respectively. Several syntax errors in test files have been fixed, and the package has been thoroughly tested with all security enhancements verified working.
+This release addresses critical security vulnerabilities and thread safety issues.
+Key improvements include integer overflow protection in discriminant validation,
+mandatory exception throwing for deterministic seeds with cryptographic mixing, and
+comprehensive thread safety fixes using `std::once_flag` and memory barriers. The
+error handling has been unified to use exceptions consistently instead of warnings,
+ensuring failures are properly propagated. Numerical stability has been enhanced with
+matrix overflow protection and precision loss mitigation in MPFR conversions. All code
+has been formatted to standards and pre-commit hooks have been configured for ongoing
+code quality.
 
 For complete version history and migration guides, see [CHANGELOG.md](CHANGELOG.md).
 
 ## Key Features
 
-The package offers high-precision computation using the MPFR library with configurable precision from 24 to 10,000 bits, supporting over 14 statistical distributions including standard continuous and discrete distributions as well as extended distributions like Levy stable, Pareto, and multivariate normal. Hardware acceleration is provided through SIMD vectorization with AVX2/NEON support and OpenMP parallelization with work-stealing queues for optimal load balancing. The cryptographic security layer uses ChaCha20 cipher for mixing with multiple strategies including XOR, averaging, modular, and cascade mixing for enhanced entropy. Thread safety is guaranteed through proper synchronization primitives and thread-local resources, while deterministic mode with seed support enables reproducible sequences for research and testing. The implementation has been validated with over 70 statistical tests and uses 370 discriminants rated as excellent through comprehensive testing.
+The package offers high-precision computation using the MPFR library with configurable
+precision from 24 to 10,000 bits, supporting over 14 statistical distributions including
+standard continuous and discrete distributions as well as extended distributions like
+Levy stable, Pareto, and multivariate normal. Hardware acceleration is provided through
+SIMD vectorization with AVX2/NEON support and OpenMP parallelization with work-stealing
+queues for optimal load balancing. The cryptographic security layer uses ChaCha20 cipher
+for mixing with multiple strategies including XOR, averaging, modular, and cascade mixing
+for enhanced entropy. Thread safety is guaranteed through proper synchronization
+primitives and thread-local resources, while deterministic mode with seed support enables
+reproducible sequences for research and testing. The implementation has been validated
+with over 70 statistical tests and uses 370 discriminants rated as excellent through
+comprehensive testing.
 
 ## Quick Start
 
@@ -44,44 +65,60 @@ createPRNG()
 random_values <- generatePRNG(1000)
 ```
 
-For detailed installation instructions by platform, see the [Installation](#installation) section below.
+For detailed installation instructions by platform, see the [Installation](#installation)
+section below.
 
 ## Acknowledgments
 
-> This implementation is based on  **Vincent Granville's** work on random number generators using quadratic irrationals. The mathematical foundation and the core algorithm design both follow Granville's approach.
+> This implementation is based on  **Vincent Granville's** work on random number generators
+> using quadratic irrationals. The mathematical foundation and the core algorithm design
+> both follow Granville's approach.
 >
-> **Reference:** Granville, V. (2022). [Military Grade Fast Random Number Generator Based on Quadratic Irrationals](https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/)
+> **Reference:** Granville, V. (2022). [Military Grade Fast Random Number Generator
+> Based on Quadratic
+> Irrationals](https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/)
 
 ## Performance & Quality
 
-The generator achieves 8.18 million values per second in single-threaded mode with near-linear scaling in multi-threaded configurations. Memory usage remains constant at O(1) with thread-local caching, delivering sub-122ns latency per value. All 750 possible discriminants have been validated through comprehensive testing with one million samples each. The package defaults to using only the 370 discriminants rated as "Excellent" (49.3% of total), ensuring optimal statistical properties. For research purposes, all discriminants can be enabled through configuration options.
+The generator achieves 8.18 million values per second in single-threaded mode with
+near-linear scaling in multi-threaded configurations. Memory usage remains constant at
+O(1) with thread-local caching, delivering sub-122ns latency per value. All 750 possible
+discriminants have been validated through comprehensive testing with one million samples
+each. The package defaults to using only the 370 discriminants rated as "Excellent"
+(49.3% of total), ensuring optimal statistical properties. For research purposes, all
+discriminants can be enabled through configuration options.
 
 ## Installation
 
-This package contains C++ code and requires a compiler and several system libraries to be installed on your system before the R package can be built.
+This package contains C++ code and requires a compiler and several system libraries to be
+installed on your system before the R package can be built.
 
 ### Prerequisites
 
-**macOS**
+#### macOS
 
-You will need to install the Command Line Tools for Xcode and the required libraries using [Homebrew](https://brew.sh/).
+You will need to install the Command Line Tools for Xcode and the required libraries using
+[Homebrew](https://brew.sh/).
 
-1.  **Install Xcode Command Line Tools**:
+1. **Install Xcode Command Line Tools**:
+
     ```sh
     xcode-select --install
     ```
 
-2.  **Install Homebrew** (if you don't have it):
+2. **Install Homebrew** (if you don't have it):
+
     ```sh
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     ```
 
-3.  **Install required libraries**:
+3. **Install required libraries**:
+
     ```sh
     brew install pkg-config gmp mpfr libsodium openssl
     ```
 
-**Linux (Debian/Ubuntu)**
+#### Linux (Debian/Ubuntu)
 
 Use `apt-get` to install the required development libraries:
 
@@ -90,7 +127,7 @@ sudo apt-get update
 sudo apt-get install build-essential libmpfr-dev libgmp-dev libsodium-dev libssl-dev
 ```
 
-**Linux (Fedora/CentOS/RHEL)**
+#### Linux (Fedora/CentOS/RHEL)
 
 Use `yum` or `dnf` to install the required development libraries:
 
@@ -99,13 +136,16 @@ sudo dnf groupinstall "Development Tools"
 sudo dnf install gmp-devel mpfr-devel libsodium-devel openssl-devel
 ```
 
-**Windows**
+#### Windows
 
-For Windows, the required libraries are downloaded automatically during installation, but you need to have [Rtools](https://cran.r-project.org/bin/windows/Rtools/) installed and configured correctly.
+For Windows, the required libraries are downloaded automatically during installation, but
+you need to have [Rtools](https://cran.r-project.org/bin/windows/Rtools/) installed and
+configured correctly.
 
 ### Install the Package
 
-Once the prerequisites are installed, you can install `qiprng` from GitHub using the `remotes` package in R:
+Once the prerequisites are installed, you can install `qiprng` from GitHub using the
+`remotes` package in R:
 
 ```r
 if (!require("remotes")) {
@@ -114,14 +154,16 @@ if (!require("remotes")) {
 remotes::install_github("biostochastics/qiprng")
 ```
 
-
 ## Supported Distributions
 
 ### Standard Distributions
-**Continuous**: Uniform, Normal, Exponential, Gamma, Beta, Log-Normal, Weibull, Chi-Squared, Student's t  
+
+**Continuous**: Uniform, Normal, Exponential, Gamma, Beta, Log-Normal, Weibull,
+Chi-Squared, Student's t
 **Discrete**: Bernoulli, Binomial, Poisson, Negative Binomial
 
 ### Extended Distributions (v0.5.0)
+
 - **Levy Stable**: Alpha-stable random variates using Chambers-Mallows-Stuck algorithm
 - **Pareto**: Heavy-tailed distribution for extreme events modeling
 - **Cauchy**: Fat-tailed distribution with undefined mean
@@ -161,7 +203,8 @@ copula_samples <- generate_with_copula(n = 1000, correlation, marginals)
 
 ### Basic Usage
 
-The simplest way to use qiprng is with default settings. The generator automatically selects optimal parameters and uses uniform distribution over [0,1]:
+The simplest way to use qiprng is with default settings. The generator automatically
+selects optimal parameters and uses uniform distribution over [0,1]:
 
 ```r
 library(qiprng)
@@ -173,7 +216,8 @@ var(x)   # ~1/12
 
 ### Distributions
 
-Configure the generator for different statistical distributions by specifying the distribution type and its parameters:
+Configure the generator for different statistical distributions by specifying the
+distribution type and its parameters:
 
 ```r
 # Normal distribution
@@ -198,7 +242,8 @@ pois_samples <- generatePRNG(1000)
 
 ### Advanced Configuration
 
-For high-performance applications, you can customize precision, mixing strategies, and parallelization:
+For high-performance applications, you can customize precision, mixing strategies, and
+parallelization:
 
 ```r
 cfg <- list(
@@ -269,7 +314,10 @@ set2 <- generatePRNG(100)
 all(set1 == set2)  # TRUE
 ```
 
-Note: When seed is provided, the PRNG uses deterministic initialization while maintaining mathematical properties. The generator performs a warm-up period for proper mixing. This mode is suitable for research and testing but not for cryptographic applications. For full determinism with normal distributions, use `normal_method = "box_muller"`.
+Note: When seed is provided, the PRNG uses deterministic initialization while maintaining
+mathematical properties. The generator performs a warm-up period for proper mixing. This
+mode is suitable for research and testing but not for cryptographic applications. For full
+determinism with normal distributions, use `normal_method = "box_muller"`.
 
 ### MultiQI Mixing Strategies
 
@@ -310,7 +358,13 @@ after_jump <- generatePRNG(5)
 
 ## Statistical Testing
 
-The package includes a comprehensive testing framework with over 70 statistical tests covering distribution uniformity, independence, correlation, entropy, and cryptographic randomness. The test suite implements the NIST SP 800-22 standards along with classical PRNG tests like coupon collector, poker test, and birthday spacing. In comparative benchmarks, qiprng achieves pass rates above 95% across all test categories with minimal moment deviation, matching or exceeding the performance of established generators like Mersenne Twister and dqrng's Threefry implementation.
+The package includes a comprehensive testing framework with over 70 statistical tests
+covering distribution uniformity, independence, correlation, entropy, and cryptographic
+randomness. The test suite implements the NIST SP 800-22 standards along with classical
+PRNG tests like coupon collector, poker test, and birthday spacing. In comparative
+benchmarks, qiprng achieves pass rates above 95% across all test categories with minimal
+moment deviation, matching or exceeding the performance of established generators like
+Mersenne Twister and dqrng's Threefry implementation.
 
 Running tests is straightforward with the built-in test framework:
 
@@ -328,13 +382,26 @@ results <- run_prng_test_suite(suite, save_report = TRUE)
 
 ## Mathematical Foundation
 
-The generator implements the quadratic irrational recurrence relation x_{n+1} = (a·x_n² + b·x_n + c) mod 1, where the coefficients satisfy a > 0, c < 0, and the discriminant b² - 4ac is a non-perfect square. This formulation, based on ergodic theory of quadratic maps, ensures excellent statistical properties and long periods. The jump-ahead functionality uses matrix exponentiation with MPFR arithmetic to achieve O(log n) complexity, enabling efficient advancement by astronomical distances (10^18+ steps) for parallel stream generation.
+The generator implements the quadratic irrational recurrence relation
+x_{n+1} = (a·x_n² + b·x_n + c) mod 1, where the coefficients satisfy a > 0, c < 0, and
+the discriminant b² - 4ac is a non-perfect square. This formulation, based on ergodic
+theory of quadratic maps, ensures excellent statistical properties and long periods. The
+jump-ahead functionality uses matrix exponentiation with MPFR arithmetic to achieve
+O(log n) complexity, enabling efficient advancement by astronomical distances (10^18+ steps)
+for parallel stream generation.
 
 For detailed mathematical theory and proofs, see [MATH.md](MATH.md).
 
 ## Performance Considerations
 
-The qiprng generator prioritizes cryptographic-quality randomness and mathematical rigor over raw speed. Using high-precision MPFR arithmetic and optional ChaCha20 cryptographic mixing, it runs approximately 50x slower than simple linear congruential generators but delivers superior statistical properties and security guarantees. The trade-off is worthwhile for applications requiring cryptographic security, precise statistical control, reproducible research results, or validated random number quality. For general Monte Carlo simulations where speed is paramount and cryptographic security is not required, standard generators like Mersenne Twister may be more appropriate.
+The qiprng generator prioritizes cryptographic-quality randomness and mathematical rigor
+over raw speed. Using high-precision MPFR arithmetic and optional ChaCha20 cryptographic
+mixing, it runs approximately 50x slower than simple linear congruential generators but
+delivers superior statistical properties and security guarantees. The trade-off is
+worthwhile for applications requiring cryptographic security, precise statistical control,
+reproducible research results, or validated random number quality. For general Monte Carlo
+simulations where speed is paramount and cryptographic security is not required, standard
+generators like Mersenne Twister may be more appropriate.
 
 ## API Reference
 
@@ -351,11 +418,17 @@ The package provides a simple yet powerful API for random number generation:
 
 ### Configuration Options
 
-The generator accepts numerous configuration parameters to customize behavior. Key options include quadratic coefficients (a, b, c), MPFR precision (24-10000 bits), distribution type and parameters, mixing strategy for multiple QIs, cryptographic mixing settings, and parallelization options. See the package documentation for complete parameter descriptions and valid ranges.
+The generator accepts numerous configuration parameters to customize behavior. Key options
+include quadratic coefficients (a, b, c), MPFR precision (24-10000 bits), distribution
+type and parameters, mixing strategy for multiple QIs, cryptographic mixing settings, and
+parallelization options. See the package documentation for complete parameter descriptions
+and valid ranges.
 
 ### Testing Functions
 
-The testing framework provides comprehensive validation capabilities through `test_prng()` for quick validation, `create_prng_test_suite()` for custom test configurations, and `run_prng_test_suite()` for executing full test batteries with detailed reporting.
+The testing framework provides comprehensive validation capabilities through `test_prng()`
+for quick validation, `create_prng_test_suite()` for custom test configurations, and
+`run_prng_test_suite()` for executing full test batteries with detailed reporting.
 
 ## Dependencies
 
@@ -388,17 +461,17 @@ If you use this package in your research, please cite:
 }
 ```
 
-
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Contact
 
-Sergey Kornilov - sergey.kornilov@biostochastics.com
+Sergey Kornilov - <sergey.kornilov@biostochastics.com>
 
 Project Link: [https://github.com/biostochastics/qiprng](https://github.com/biostochastics/qiprng)
 
 ---
 
-*Part of the [Biostochastics](https://github.com/biostochastics) collection of tools for translational science and biomarker discovery*
+*Part of the [Biostochastics](https://github.com/biostochastics) collection of tools for
+translational science and biomarker discovery*

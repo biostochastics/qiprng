@@ -112,10 +112,11 @@ void validatePRNGConfig(const PRNGConfig& cfg) {
         }
     }
 
-    // SECURITY FIX: Add validation for seed values
+    // SECURITY FIX: Prevent deterministic seed with crypto mixing
     if (cfg.has_seed && cfg.use_crypto_mixing) {
-        Rcpp::warning("SECURITY WARNING: Using deterministic seed with crypto mixing defeats "
-                      "cryptographic security");
+        throw std::runtime_error(
+            "SECURITY ERROR: Using deterministic seed with crypto mixing defeats "
+            "cryptographic security. Either disable crypto mixing or remove the seed.");
     }
 
     // Validate MPFR precision

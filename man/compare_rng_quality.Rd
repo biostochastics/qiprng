@@ -30,8 +30,8 @@ A list containing:
   }
 }
 \description{
-This function performs a comprehensive quality assessment of different random number 
-generators, applying various statistical tests and visualizations to evaluate 
+This function performs a comprehensive quality assessment of different random number
+generators, applying various statistical tests and visualizations to evaluate
 randomness, uniformity, and independence properties.
 }
 \examples{

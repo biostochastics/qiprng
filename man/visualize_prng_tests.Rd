@@ -20,8 +20,8 @@ visualize_prng_tests(suite, create_report = TRUE)
 The updated test suite object with visualization paths and report path (if generated)
 }
 \description{
-This function generates comprehensive visualizations for statistical test results 
-from the PRNG test suite. It creates plots for each test category and can optionally 
+This function generates comprehensive visualizations for statistical test results
+from the PRNG test suite. It creates plots for each test category and can optionally
 generate an HTML report summarizing all results.
 }
 \details{

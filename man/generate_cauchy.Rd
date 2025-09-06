@@ -30,7 +30,7 @@ independent normal random variables.
 x <- generate_cauchy(1000)
 
 # Cauchy with different location and scale
-y <- generate_cauchy(1000, location=5, scale=2)
+y <- generate_cauchy(1000, location = 5, scale = 2)
 }
 
 }

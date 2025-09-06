@@ -25,12 +25,22 @@
 
 namespace qiprng {
 
-// Thread-local fallback PRNG used when QI generation fails (null pointers, exceptions, empty
-// states) Ensures continuous random number generation without statistical bias in error cases Used
-// in: empty QI vector, null QI pointer, exception during next() call
-thread_local std::random_device tl_rd;
-thread_local std::mt19937_64 tl_fallback_rng(tl_rd());
-thread_local std::uniform_real_distribution<double> tl_fallback_dist(0.0, 1.0);
+// Thread-safe fallback PRNG with lazy initialization to prevent races
+struct ThreadLocalPRNG {
+    std::mt19937_64 rng;
+    std::uniform_real_distribution<double> dist{0.0, 1.0};
+    std::once_flag init_flag;
+
+    double generate() {
+        std::call_once(init_flag, [this]() {
+            std::random_device rd;
+            rng.seed(rd());
+        });
+        return dist(rng);
+    }
+};
+
+thread_local ThreadLocalPRNG tl_fallback;
 
 // Thread-local cache to reduce lock contention
 thread_local std::vector<double> tl_cache;
@@ -130,13 +140,13 @@ double MultiQI::getFromCache() {
 // Helper method: Generate a single value with error handling
 double MultiQI::generateSingleValue(QuadraticIrrational* qi) {
     if (!qi) {
-        return tl_fallback_dist(tl_fallback_rng);
+        return tl_fallback.generate();
     }
 
     try {
         return qi->next();
     } catch (...) {
-        return tl_fallback_dist(tl_fallback_rng);
+        return tl_fallback.generate();
     }
 }
 
@@ -157,7 +167,7 @@ void MultiQI::refillCache() {
         if (qis_.empty()) {
             // Fill cache with fallback values
             for (size_t i = 0; i < CACHE_SIZE; ++i) {
-                tl_cache.push_back(tl_fallback_dist(tl_fallback_rng));
+                tl_cache.push_back(tl_fallback.generate());
             }
             tl_cache_pos = 0;
             return;
@@ -182,10 +192,14 @@ void MultiQI::refillCache() {
         local_idx = (local_idx + 1) % local_qis.size();
     }
 
-    // Update shared index with minimal lock
+    // Update shared index with atomic operation for cache coherency
+    // Use atomic exchange to ensure visibility across threads
     {
         std::lock_guard<std::mutex> lock(mutex_);
+        // Memory barrier ensures all threads see consistent state
+        std::atomic_thread_fence(std::memory_order_release);
         idx_ = local_idx;
+        std::atomic_thread_fence(std::memory_order_acquire);
     }
 
     tl_cache_pos = 0;
@@ -201,10 +215,10 @@ double MultiQI::next() {
     // Cache miss - refill and return first value
     try {
         refillCache();
-        return tl_cache.empty() ? tl_fallback_dist(tl_fallback_rng) : tl_cache[tl_cache_pos++];
+        return tl_cache.empty() ? tl_fallback.generate() : tl_cache[tl_cache_pos++];
     } catch (...) {
         // Ultimate fallback for any exception
-        return tl_fallback_dist(tl_fallback_rng);
+        return tl_fallback.generate();
     }
 }
 

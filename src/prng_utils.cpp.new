@@ -57,7 +57,7 @@ std::mt19937_64& qiprng::getThreadLocalEngine() {
         std::random_device rd;
         std::array<std::uint32_t, std::mt19937_64::state_size / 2> seeds; // Correct seeding
         for(size_t i = 0; i < seeds.size(); ++i) seeds[i] = rd();
-        
+
         // Incorporate thread ID for better seed diversity across threads
         auto tid_hash = std::hash<std::thread::id>()(std::this_thread::get_id());
         seeds[0] ^= static_cast<uint32_t>(tid_hash & 0xFFFFFFFFULL);
@@ -113,12 +113,12 @@ std::vector<std::tuple<long, long, long>> qiprng::pickMultiQiSet(int precision, 
 
             if (a == 0) a = (rng() % 2 == 0) ? 1 : -1; // Ensure a is not zero
             if (c == 0) c = (rng() % 2 == 0) ? -1 : 1; // Ensure c is not zero
-            
+
             // Ensure discriminant b^2 - 4ac > 0
             if ((a > 0 && c > 0) || (a < 0 && c < 0)) { // a and c have same sign
                 c = -c; // Flip sign of c to make -4ac positive
             }
-            
+
             long long current_disc = static_cast<long long>(b) * b - 4LL * static_cast<long long>(a) * c;
             if (current_disc <= 0) {
                 // Make |b| large relative to |ac|
@@ -132,7 +132,7 @@ std::vector<std::tuple<long, long, long>> qiprng::pickMultiQiSet(int precision, 
 
                 current_disc = static_cast<long long>(b) * b - 4LL * static_cast<long long>(a) * c;
                 if (current_disc <= 0) { // Ultimate fallback
-                    a = std::get<0>(baseParams[i % baseParams.size()]); 
+                    a = std::get<0>(baseParams[i % baseParams.size()]);
                     b = std::get<1>(baseParams[i % baseParams.size()]);
                     c = std::get<2>(baseParams[i % baseParams.size()]);
                 }
@@ -147,12 +147,12 @@ std::vector<std::tuple<long, long, long>> qiprng::pickMultiQiSet(int precision, 
 void qiprng::loadCSVDiscriminants() {
     // Use a static flag to avoid potential race conditions with the mutex
     static std::atomic<bool> load_attempt_in_progress(false);
-    
+
     // First quick check without lock
     if (g_csv_discriminants_loaded) {
         return;
     }
-    
+
     // Try to set the in-progress flag
     bool expected = false;
     if (!load_attempt_in_progress.compare_exchange_strong(expected, true)) {
@@ -167,10 +167,10 @@ void qiprng::loadCSVDiscriminants() {
         // If we get here, the other thread might be stuck
         return; // Give up waiting
     }
-    
+
     // We got the flag, now get the mutex
     std::lock_guard<std::mutex> lock(g_csv_disc_mutex);
-    
+
     // Double-check after acquiring the lock
     if (g_csv_discriminants_loaded) {
         load_attempt_in_progress.store(false);
@@ -180,17 +180,17 @@ void qiprng::loadCSVDiscriminants() {
     // Proceed with loading the discriminants
     try {
         std::vector<std::tuple<long, long, long, long long>> temp_discriminants;
-        
+
         // Try different possible paths for the CSV file
         std::vector<std::string> possible_paths = {
             "discriminants.csv",
             "../discriminants.csv",
             "../../discriminants.csv"
         };
-        
+
         std::ifstream file;
         std::string used_path;
-        
+
         for (const auto& path : possible_paths) {
             file.open(path);
             if (file.is_open()) {
@@ -202,7 +202,7 @@ void qiprng::loadCSVDiscriminants() {
 
         if (!file.is_open()) {
             Rcpp::warning("Could not open discriminants.csv file in any standard location. Will use generated discriminants.");
-            
+
             // Generate default discriminants instead
             for (int i = 0; i < 100; i++) {
                 long a = 1 + (i % 10);
@@ -213,7 +213,7 @@ void qiprng::loadCSVDiscriminants() {
                     temp_discriminants.emplace_back(a, b, c, disc);
                 }
             }
-            
+
             g_csv_discriminants.swap(temp_discriminants);
             Rcpp::Rcout << "Created " << g_csv_discriminants.size() << " default discriminants." << std::endl;
             g_csv_discriminants_loaded = true;
@@ -281,7 +281,7 @@ void qiprng::loadCSVDiscriminants() {
             Rcpp::Rcout << "Loaded " << g_csv_discriminants.size() << " discriminants from CSV file." << std::endl;
         } else {
             Rcpp::warning("No valid discriminants found in CSV file or file was empty. Generating default discriminants.");
-            
+
             // Generate default discriminants instead
             for (int i = 0; i < 100; i++) {
                 long a = 1 + (i % 10);
@@ -292,20 +292,20 @@ void qiprng::loadCSVDiscriminants() {
                     g_csv_discriminants.emplace_back(a, b, c, disc);
                 }
             }
-            
+
             if (!g_csv_discriminants.empty()) {
                 Rcpp::Rcout << "Generated " << g_csv_discriminants.size() << " default discriminants." << std::endl;
             } else {
                 Rcpp::warning("Failed to generate default discriminants. Thread safety issues may occur.");
             }
         }
-        
+
         // Always mark as loaded, even if we failed, to avoid repeated attempts
         g_csv_discriminants_loaded = true;
-        
+
         // Reset the in-progress flag
         load_attempt_in_progress.store(false);
-        
+
     } catch (const std::exception& e) {
         Rcpp::warning("Exception during CSV discriminants loading: %s", e.what());
         g_csv_discriminants_loaded = true;
@@ -341,8 +341,8 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
     // First approach: Use CSV discriminants if configured
     if (use_csv) {
         // Make sure CSV discriminants are loaded - this has its own thread safety
-        loadCSVDiscriminants(); 
-        
+        loadCSVDiscriminants();
+
         // Create a local copy of CSV discriminants to work with outside the lock
         std::vector<std::tuple<long,long,long,long long>> local_csv_copy;
         {
@@ -355,13 +355,13 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
         if (!local_csv_copy.empty()) {
             // Randomize the order of candidates to avoid contention among threads
             std::shuffle(local_csv_copy.begin(), local_csv_copy.end(), rng);
-            
+
             for (const auto& entry : local_csv_copy) {
                 long long disc_candidate = std::get<3>(entry);
                 long csv_a = std::get<0>(entry);
                 long csv_b = std::get<1>(entry);
                 long csv_c = std::get<2>(entry);
-                
+
                 // Critical section: Check and update discriminant usage
                 bool is_new_discriminant = false;
                 {
@@ -371,7 +371,7 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
                         is_new_discriminant = true;
                     }
                 }
-                
+
                 // If we found a new discriminant, update config and return it
                 if (is_new_discriminant) {
                     // Update the PRNG's a,b,c with the ones from CSV
@@ -388,7 +388,7 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
                     return disc_candidate;
                 }
             }
-            
+
             // If we get here, all CSV discriminants are used
             if (current_config.debug) {
                 Rcpp::warning("All unique discriminants from CSV have been used. Falling back to random generation.");
@@ -403,8 +403,8 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
 
     // Second approach: Generate random discriminants
     std::uniform_int_distribution<long long> dist(min_value, max_value);
-    int max_attempts = 1000; 
-    
+    int max_attempts = 1000;
+
     for (int attempt = 0; attempt < max_attempts; ++attempt) {
         long long candidate = dist(rng);
         if (candidate <= 0) continue;
@@ -413,14 +413,14 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
         bool is_sf = true;
         long limit = static_cast<long>(std::sqrt(static_cast<double>(candidate)));
         if (limit > 1000) limit = 1000; // Cap for performance
-        
+
         for (long f = 2; f <= limit; ++f) {
             if (candidate % (f * f) == 0) {
                 is_sf = false;
                 break;
             }
         }
-        
+
         if (!is_sf) continue;
 
         // Critical section: Check and update discriminant usage
@@ -432,7 +432,7 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
                 is_new_discriminant = true;
             }
         }
-        
+
         if (is_new_discriminant) {
             // Calculate a, b, c values for this discriminant
             try {
@@ -440,7 +440,7 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
                 long a = std::get<0>(abc);
                 long b = std::get<1>(abc);
                 long c = std::get<2>(abc);
-                
+
                 // Update the PRNG with these values
                 if (g_use_threading && t_prng) {
                     PRNGConfig cfg = t_prng->getConfig();
@@ -452,7 +452,7 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
                     cfg.a = a; cfg.b = b; cfg.c = c;
                     g_prng->updateConfig(cfg);
                 }
-                
+
                 return candidate;
             } catch (const std::exception& e) {
                 // Log error but continue looking
@@ -463,7 +463,7 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
             }
         }
     }
-    
+
     // Fallback if we couldn't find a good discriminant
     long long fallback_disc = 41; // Default value (from 2,5,-2)
     try {
@@ -471,7 +471,7 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
         long a = std::get<0>(abc);
         long b = std::get<1>(abc);
         long c = std::get<2>(abc);
-        
+
         // Update the PRNG with these values
         if (g_use_threading && t_prng) {
             PRNGConfig cfg = t_prng->getConfig();
@@ -496,7 +496,7 @@ long long qiprng::chooseUniqueDiscriminant(long min_value, long max_value) {
             g_prng->updateConfig(cfg);
         }
     }
-    
+
     return fallback_disc;
 }
 
@@ -506,11 +506,11 @@ std::tuple<long, long, long> qiprng::makeABCfromDelta(long long Delta) {
     if (Delta <= 0) {
         return {1, 5, -1}; // Safe default fallback
     }
-    
+
     try {
         // Use a thread-local PRNG for reproducibility within a thread but diversity between threads
         std::mt19937_64& rng = getThreadLocalEngine();
-        
+
         // Choose a random a value with a preference for small absolute values
         std::vector<long> a_choices = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15};
         // Randomize sign 50% of the time
@@ -519,31 +519,31 @@ std::tuple<long, long, long> qiprng::makeABCfromDelta(long long Delta) {
                 a_choices[i] = -a_choices[i];
             }
         }
-        
+
         // Prefer small values for performance
         std::shuffle(a_choices.begin(), a_choices.end(), rng);
         std::sort(a_choices.begin(), a_choices.end(), [](long a, long b) {
             return std::abs(a) < std::abs(b);
         });
-        
+
         // Try each a value to find a suitable b and c
         for (long a_val : a_choices) {
             if (a_val == 0) continue; // Skip a=0
-            
+
             // Limit search space for b to reasonable values
             long b_search_limit = static_cast<long>(std::sqrt(static_cast<double>(Delta)) + 1000);
             b_search_limit = std::min(b_search_limit, 20000L); // Cap at 20000 for performance
             b_search_limit = std::max(b_search_limit, 100L);   // Ensure at least 100 to avoid tiny search space
-    
+
             std::uniform_int_distribution<long> b_dist(-b_search_limit, b_search_limit);
-    
+
             // Try multiple random b values for each a value
             for (int i = 0; i < 200; ++i) {
                 long b_val = b_dist(rng);
-                
+
                 // Skip b=0 unless appropriate condition is met
                 if (b_val == 0 && Delta % (4LL * a_val) != 0) continue;
-                
+
                 // Use safe computation for b^2 to avoid overflow
                 // Check if b^2 would overflow a long long
                 long long b_ll = static_cast<long long>(b_val);
@@ -553,41 +553,41 @@ std::tuple<long, long, long> qiprng::makeABCfromDelta(long long Delta) {
                 if (b_ll < 0 && b_ll < std::numeric_limits<long long>::min() / b_ll) {
                     continue; // Would overflow, skip this value
                 }
-                
+
                 long long b_squared = b_ll * b_ll;
-                
+
                 // Compute numerator and denominator for c
                 long long num = b_squared - Delta;
                 long long den = 4LL * a_val;
-                
+
                 // Skip invalid cases
                 if (den == 0) continue;  // Should not happen with a_choices
-                
+
                 // Check if we can get an integer c
                 if (num % den == 0) {
                     long long c_ll = num / den;
-                    
+
                     // Check if c fits in a long
-                    if (c_ll >= std::numeric_limits<long>::min() && 
+                    if (c_ll >= std::numeric_limits<long>::min() &&
                         c_ll <= std::numeric_limits<long>::max()) {
-                        
+
                         long c_val = static_cast<long>(c_ll);
-                        
+
                         // Skip c=0 unless appropriate condition is met
                         if (c_val == 0 && b_squared != Delta) continue;
-                        
+
                         // Verify the result actually gives the correct discriminant
                         // Check for overflow in 4*a*c calculation
                         long long a_ll = static_cast<long long>(a_val);
                         long long c_ll = static_cast<long long>(c_val);
-                        
+
                         // First check 4*a for overflow
                         if (a_ll > 0 && 4LL > std::numeric_limits<long long>::max() / a_ll) {
                             continue; // Would overflow
                         }
-                        
+
                         long long four_a = 4LL * a_ll;
-                        
+
                         // Then check four_a * c for overflow
                         bool will_overflow = false;
                         if (four_a > 0 && c_ll > 0) {
@@ -607,14 +607,14 @@ std::tuple<long, long, long> qiprng::makeABCfromDelta(long long Delta) {
                                 will_overflow = true;
                             }
                         }
-                        
+
                         if (will_overflow) {
                             continue;  // Skip if multiplication would overflow
                         }
-                        
+
                         long long four_ac = four_a * c_ll;
                         long long disc = b_squared - four_ac;
-                        
+
                         if (disc == Delta) {
                             return {a_val, b_val, c_val};
                         }
@@ -622,10 +622,10 @@ std::tuple<long, long, long> qiprng::makeABCfromDelta(long long Delta) {
                 }
             }
         }
-        
+
         // Fallback if no suitable a,b,c found
         long fallback_a = 1;
-        
+
         // Calculate a reasonable b value for the fallback
         long fallback_b;
         if (Delta <= 4) {
@@ -633,19 +633,19 @@ std::tuple<long, long, long> qiprng::makeABCfromDelta(long long Delta) {
         } else {
             fallback_b = static_cast<long>(std::sqrt(static_cast<double>(Delta)));
         }
-        
+
         // Choose c to satisfy b^2 - 4ac = Delta
         long long b_squared = static_cast<long long>(fallback_b) * fallback_b;
         long fallback_c = static_cast<long>((b_squared - Delta) / (4 * fallback_a));
-        
+
         // Verify result
-        long long test_disc = static_cast<long long>(fallback_b) * fallback_b - 
+        long long test_disc = static_cast<long long>(fallback_b) * fallback_b -
                               4LL * static_cast<long long>(fallback_a) * fallback_c;
-        
+
         if (test_disc == Delta) {
             return {fallback_a, fallback_b, fallback_c};
         }
-        
+
         // Ultimate fallback with nice round numbers
         return {1, 5, -1}; // This gives 41
     } catch (...) {
