@@ -1,10 +1,10 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://biostochastics.github.io/qiprng/404.html</loc></url>
-<url><loc>https://biostochastics.github.io/qiprng/CLAUDE.html</loc></url>
-<url><loc>https://biostochastics.github.io/qiprng/DOUBLE_INIT_FIX.html</loc></url>
-<url><loc>https://biostochastics.github.io/qiprng/GEMINI.html</loc></url>
+<url><loc>https://biostochastics.github.io/qiprng/CHANGELOG.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/LICENSE-text.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/PACKAGE_STATUS.html</loc></url>
+<url><loc>https://biostochastics.github.io/qiprng/articles/index.html</loc></url>
+<url><loc>https://biostochastics.github.io/qiprng/articles/mathematical_foundation.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/authors.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/index.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/news/index.html</loc></url>
@@ -112,4 +112,3 @@
 <url><loc>https://biostochastics.github.io/qiprng/reference/visualize_prng_tests.html</loc></url>
 <url><loc>https://biostochastics.github.io/qiprng/reference/withTimeout.html</loc></url>
 </urlset>
-

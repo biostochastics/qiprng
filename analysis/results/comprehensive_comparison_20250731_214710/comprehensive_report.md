@@ -3,6 +3,7 @@
 Generated on: 2025-07-31 21:49:07.928273
 
 ## Configuration
+
 - Sample sizes tested:   10000,  100000, 1000000
 - Runs per configuration: 50
 - Total generators tested: 18
@@ -77,6 +78,7 @@ Generated on: 2025-07-31 21:49:07.928273
 | dqrng (Threefry) | 1.20e-03 | 1.15e-04 | 5.69e-03 | 2.01e-03 | 9.00e-03 |
 
 ### Expected Values
+
 - Mean: 0.5
 - Variance: 1/12 ≈ 0.0833
 - Skewness: 0
@@ -128,4 +130,3 @@ Generation rates shown for largest sample size tested.
 | dqrng (Xoshiro256+) | 100.00% |
 | dqrng (Xoshiro256++) | 100.00% |
 | QIPRNG (High Precision) | 98.00% |
-

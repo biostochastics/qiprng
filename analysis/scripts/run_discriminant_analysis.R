@@ -2,10 +2,10 @@
 
 # Main Discriminant Analysis Script
 # Comprehensive testing of all discriminants in discriminants.csv
-# 
+#
 # This script performs extensive statistical testing on random numbers generated
 # using each discriminant configuration from the discriminants.csv file.
-# 
+#
 # Usage:
 #   Rscript run_discriminant_analysis.R [sample_size] [max_discriminants]
 #
@@ -122,8 +122,10 @@ top_indices <- order(summary_data$overall_score, decreasing = TRUE)[1:5]
 for (i in 1:5) {
   if (i <= length(top_indices)) {
     row <- summary_data[top_indices[i], ]
-    cat(sprintf("  #%d: a=%d, b=%d, c=%d, Δ=%d (Score: %.3f)\n", 
-                row$index, row$a, row$b, row$c, row$discriminant, row$overall_score))
+    cat(sprintf(
+      "  #%d: a=%d, b=%d, c=%d, Δ=%d (Score: %.3f)\n",
+      row$index, row$a, row$b, row$c, row$discriminant, row$overall_score
+    ))
   }
 }
 
@@ -139,7 +141,7 @@ if (nrow(valid_data) > 10) {
   discriminant_cor <- cor(valid_data$discriminant, valid_data$overall_score)
   a_cor <- cor(valid_data$a, valid_data$overall_score)
   abs_c_cor <- cor(abs(valid_data$c), valid_data$overall_score)
-  
+
   cat("\nParameter Correlations with Quality Score:\n")
   cat(sprintf("  Discriminant value: %.3f\n", discriminant_cor))
   cat(sprintf("  Parameter a: %.3f\n", a_cor))
@@ -183,37 +185,39 @@ cat("For visualizations, see PNG files in: ./results/discriminant_analysis_resul
 cat("\n=== ANALYSIS COMPLETE ===\n")
 
 # Load and display excellent discriminants summary
-cat("\n", paste(rep("=", 50), collapse=""), "\n")
+cat("\n", paste(rep("=", 50), collapse = ""), "\n")
 cat("EXCELLENT DISCRIMINANTS ANALYSIS\n")
-cat(paste(rep("=", 50), collapse=""), "\n")
+cat(paste(rep("=", 50), collapse = ""), "\n")
 
-tryCatch({
-  print_excellent_summary("analysis/results/discriminant_analysis_results/raw_results.rds")
-  
-  cat("\n=== PRODUCTION RECOMMENDATIONS ===\n")
-  cat("The analysis identified excellent discriminants suitable for production use.\n")
-  cat("These discriminants have passed rigorous statistical testing and show superior randomness quality.\n\n")
-  
-  cat("To use excellent discriminants in your code:\n")
-  cat("\n# Load the excellent discriminants module\n")
-  cat("source('R/excellent_discriminants.R')\n\n")
-  
-  cat("# Get top 10 recommended discriminants\n")
-  cat("recommended <- get_recommended_discriminants(n=10, criteria='balanced')\n\n")
-  
-  cat("# Generate random numbers using the best discriminant\n")
-  cat("samples <- generate_excellent_random(n=50000, discriminant_index=1)\n\n")
-  
-  cat("# Create PRNG config for production use\n")
-  cat("excellent <- load_excellent_discriminants()\n")
-  cat("config <- create_excellent_prng_config(excellent[1,], precision=256)\n")
-  cat("createPRNG(config=config)\n")
-  cat("random_numbers <- generatePRNG(10000)\n\n")
-  
-}, error = function(e) {
-  cat("Note: Excellent discriminants analysis requires completed results.\n")
-  cat("Run the full analysis first to access the 227 excellent discriminants.\n")
-})
+tryCatch(
+  {
+    print_excellent_summary("analysis/results/discriminant_analysis_results/raw_results.rds")
+
+    cat("\n=== PRODUCTION RECOMMENDATIONS ===\n")
+    cat("The analysis identified excellent discriminants suitable for production use.\n")
+    cat("These discriminants have passed rigorous statistical testing and show superior randomness quality.\n\n")
+
+    cat("To use excellent discriminants in your code:\n")
+    cat("\n# Load the excellent discriminants module\n")
+    cat("source('R/excellent_discriminants.R')\n\n")
+
+    cat("# Get top 10 recommended discriminants\n")
+    cat("recommended <- get_recommended_discriminants(n=10, criteria='balanced')\n\n")
+
+    cat("# Generate random numbers using the best discriminant\n")
+    cat("samples <- generate_excellent_random(n=50000, discriminant_index=1)\n\n")
+
+    cat("# Create PRNG config for production use\n")
+    cat("excellent <- load_excellent_discriminants()\n")
+    cat("config <- create_excellent_prng_config(excellent[1,], precision=256)\n")
+    cat("createPRNG(config=config)\n")
+    cat("random_numbers <- generatePRNG(10000)\n\n")
+  },
+  error = function(e) {
+    cat("Note: Excellent discriminants analysis requires completed results.\n")
+    cat("Run the full analysis first to access the 227 excellent discriminants.\n")
+  }
+)
 
 cat("\n=== QUARTO REPORT GENERATION ===\n")
 cat("To generate the comprehensive Quarto report:\n")

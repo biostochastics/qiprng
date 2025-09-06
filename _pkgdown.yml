@@ -1,10 +1,23 @@
 url: https://biostochastics.github.io/qiprng/
 template:
   bootstrap: 5
-  bootswatch: flatly
-  theme: arrow-light
+  bootswatch: darkly
+  theme: arrow-dark
   bslib:
     pkgdown-nav-height: 100px
+    bg: "#1a1a1a"
+    fg: "#e6e6e6"
+    primary: "#0d6efd"
+    secondary: "#6c757d"
+    success: "#198754"
+    info: "#0dcaf0"
+    warning: "#ffc107"
+    danger: "#dc3545"
+    light: "#2c2c2c"
+    dark: "#e6e6e6"
+    base_font: {google: "Inter"}
+    heading_font: {google: "Poppins"}
+    code_font: {google: "JetBrains Mono"}
 
 home:
   title: "QIPRNG - Quadratic Irrational Pseudo-Random Number Generator"
@@ -63,7 +76,7 @@ reference:
   - generate_cauchy
   - generate_multivariate_normal
   - generate_with_copula
-  
+
 - title: "Discriminant Analysis and Management"
   desc: "Functions for analyzing, validating, and managing discriminant parameters"
   contents:
@@ -202,7 +215,7 @@ reference:
 
 development:
   mode: auto
-  
+
 figures:
   dev: ragg::agg_png
   dpi: 96
@@ -219,6 +232,6 @@ footer:
 
 search:
   exclude: ['news/index.html']
-  
+
 deploy:
   install_metadata: true

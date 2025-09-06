@@ -2,114 +2,208 @@
 
 ## Overview
 
-The qiprng test suite has been reorganized and consolidated to provide comprehensive coverage of all functionality, including recent improvements from Phases 1-3.
+The qiprng test suite provides comprehensive coverage of all package functionality using the standard R testthat framework. The test suite has been reorganized to eliminate redundancy and provide clear, maintainable test coverage.
 
-## Test Structure
+## Current Test Structure
 
-### Master Test Runner
-- **File**: `run_master_test_suite.R`
-- **Purpose**: Consolidated test execution for all package components
-- **Usage**: `Rscript tests/run_master_test_suite.R`
+### Primary Test Framework
+
+- **Entry Point**: `testthat.R` - Standard R package test runner
+- **Test Directory**: `testthat/` - Contains all production test files
+- **Test Pattern**: `test-*.R` - Consistent naming convention for all tests
 
 ### Test Categories
 
+The test suite is organized into logical categories within the `testthat/` directory:
+
 #### 1. Core Functionality Tests
-Located in `testthat/` with pattern `test-(basic|normal|thread|config|validation|caching)`
-- Basic PRNG functionality
-- Normal distribution generation
-- Thread safety
-- Configuration management
-- Validation framework
-- Caching system
 
-#### 2. Statistical Improvements Tests
-Located in `testthat/` with pattern `test-(p-value-adjustment|comprehensive-improvements)`
-- **test-p-value-adjustment.R**: Phase 1 multiple testing correction
-- **test-comprehensive-improvements.R**: All Phase 1-3 improvements
+- `test-basic.R` - Basic PRNG initialization and generation
+- `test-prng.R` - Core PRNG operations
+- `test-config.R` - Configuration management
+- `test-config-manager.R` - Advanced configuration handling
+- `test-validation.R` - Input validation and error handling
 
-#### 3. Statistical Tests
-Located in `testthat/` with pattern `test-(compression|bootstrap|multidim|nist|external)`
-- Compression tests
-- Bootstrap framework
-- Multidimensional tests
-- NIST test implementations
-- External package integration
+#### 2. Distribution Tests
 
-#### 4. Advanced Features
-Located in `testthat/` with pattern `test-(advanced|ziggurat|parallel)`
-- Advanced PRNG features
-- Ziggurat algorithm
-- Parallel processing
+- `test-distributions.R` - Standard distributions (uniform, normal)
+- `test-new-distributions.R` - Extended distributions (Cauchy, Levy, Pareto)
+- `test-ziggurat.R` - Ziggurat algorithm for normal distribution
+- `test-normal.R` - Normal distribution generation methods
 
-## Key Test Files
+#### 3. Performance & Threading
 
-### Comprehensive Improvements Test
-**File**: `testthat/test-comprehensive-improvements.R`
+- `test-thread-safety.R` - Thread safety validation
+- `test-parallel-*.R` - Parallel processing tests
+- `test-persistent-thread-pool.R` - Thread pool management
+- `test-jump-ahead-performance.R` - Jump-ahead functionality
 
-Tests all recent improvements:
-- Phase 1: P-value adjustment
-  - Multiple testing correction methods
-  - Pass/fail decision updates
-  - Helper functions
-- Phase 2: Weighting system
-  - Custom weight application
-  - Multi-faceted rankings
-  - Backward compatibility
-- Phase 3: Effect sizes
-  - Calculation accuracy
-  - Interpretation conventions
-  - Integration with results
+#### 4. Statistical Tests
 
-### Legacy Test Files
+- `test-statistical-tests.R` - Core statistical test suite
+- `test-compression-bootstrap.R` - Compression and bootstrap tests
+- `test-multidim-tests.R` - Multidimensional statistical tests
+- `test-nist-*.R` - NIST test implementations
+- `test-p-value-adjustment.R` - Multiple testing corrections
 
-Some test files appear to be redundant or development artifacts:
-- `basic_test.R`, `basic_verify.R` - Likely superseded by `test-basic.R`
-- `simple_ziggurat_test.R`, `safest_ziggurat_test.R` - Development versions
-- `debug_thread_safety.R`, `verify_thread_safety.R` - Debugging artifacts
+#### 5. Advanced Features
+
+- `test-advanced.R` - Advanced PRNG features
+- `test-caching-framework.R` - Result caching system
+- `test-bootstrap-framework.R` - Bootstrap statistical framework
+- `test-external-wrappers.R` - Integration with external packages
+
+#### 6. Bug Fixes & Improvements
+
+- `test-comprehensive-fixes.R` - Validation of bug fixes
+- `test-comprehensive-improvements.R` - Phase 1-3 improvements
+- `test-data-structure-fixes.R` - Data structure corrections
+- `test-overflow-safety.R` - Numerical overflow protection
+
+#### 7. Security
+
+- `test-crypto-security.R` - Cryptographic security features
+- `test-deterministic-mode.R` - Deterministic mode for testing
 
 ## Running Tests
 
 ### Run All Tests
+
 ```bash
-# From package root
-Rscript tests/run_master_test_suite.R
-```
+# Standard R package testing
+Rscript -e "devtools::test()"
 
-### Run Specific Category
-```r
-# In R
+# Or using testthat directly
+Rscript tests/testthat.R
+
+# Or within R
 library(testthat)
-test_file("tests/testthat/test-comprehensive-improvements.R")
+test_package("qiprng")
 ```
 
-### Run During Development
+### Run Specific Test Category
+
 ```r
-# In R, from package root
-devtools::test()
+# Run a specific test file
+test_file("tests/testthat/test-basic.R")
+
+# Run tests matching a pattern
+test_dir("tests/testthat", filter = "thread")
 ```
 
-## Test Coverage
+### Continuous Integration
 
-The test suite covers:
-1. **Statistical Validity**: P-value adjustments, multiple testing correction
-2. **Flexibility**: Configurable weighting systems
-3. **Interpretability**: Effect size calculations and interpretations
-4. **Performance**: Thread safety, parallel processing
-5. **Integration**: All components working together
-6. **Edge Cases**: Invalid inputs, empty data, numerical limits
+```bash
+# For CI/CD pipelines
+R CMD check .
+```
+
+## Test Coverage Areas
+
+The test suite provides comprehensive coverage for:
+
+1. **Core Functionality**
+   - PRNG initialization and cleanup
+   - Random number generation
+   - Configuration management
+   - State management
+
+2. **Statistical Validity**
+   - Distribution correctness
+   - Statistical test suites (NIST, compression, etc.)
+   - P-value adjustments and multiple testing corrections
+   - Effect size calculations
+
+3. **Performance & Scalability**
+   - Thread safety
+   - Parallel processing
+   - Memory management
+   - Performance benchmarks
+
+4. **Robustness**
+   - Edge cases and boundary conditions
+   - Invalid input handling
+   - Numerical stability
+   - Overflow protection
+
+5. **Integration**
+   - External package compatibility
+   - Cross-platform support
+   - Different R environments
+
+## Development Guidelines
+
+### Adding New Tests
+
+1. **Location**: Place new tests in `tests/testthat/`
+2. **Naming**: Use pattern `test-<feature>.R`
+3. **Structure**: Use testthat's `test_that()` blocks
+4. **Documentation**: Include clear test descriptions
+5. **Cleanup**: Always clean up resources (use `cleanup_prng()`)
+
+### Test Best Practices
+
+1. **Isolation**: Each test should be independent
+2. **Determinism**: Use seeds for reproducible results
+3. **Coverage**: Test both success and failure paths
+4. **Performance**: Keep individual tests fast (<1 second)
+5. **Clarity**: Use descriptive test names and expectations
+
+### Example Test Structure
+
+```r
+test_that("descriptive test name", {
+  # Setup
+  cfg <- list(...)
+  createPRNG(cfg)
+
+  # Test
+  result <- generatePRNG(1000)
+
+  # Assertions
+  expect_length(result, 1000)
+  expect_true(all(result >= 0 & result <= 1))
+
+  # Cleanup
+  cleanup_prng()
+})
+```
 
 ## Maintenance Notes
 
-1. **Adding New Tests**: Follow the naming convention `test-<feature>.R`
-2. **Categories**: Update `test_categories` in master runner when adding new categories
-3. **Dependencies**: Ensure all required files are sourced in test files
-4. **Documentation**: Update this file when making structural changes
+### Recent Cleanup (2025)
 
-## Recommended Cleanup
+- Removed 60+ redundant files from `standalone_tests/` directory
+- Consolidated duplicate test coverage
+- Standardized naming conventions
+- Updated documentation to reflect actual structure
 
-To reduce confusion, consider removing:
-- Duplicate basic test files
-- Debug/verification scripts
-- Development test versions
+### Test Organization Principles
 
-Keep only the canonical test files that follow the `test-*.R` pattern.
+1. **Single Source of Truth**: All tests in `testthat/`
+2. **Clear Categories**: Logical grouping by functionality
+3. **No Redundancy**: Each feature tested once
+4. **Standard Framework**: Use testthat exclusively
+
+### Deprecated/Removed
+
+- `standalone_tests/` directory (5,286 lines of redundant code)
+- Development/debug test files
+- Duplicate test implementations
+- Non-standard test runners
+
+## Test Statistics
+
+- **Total Test Files**: ~40 in testthat/
+- **Total Test Lines**: ~7,500 lines
+- **Coverage Areas**: 7 major categories
+- **Test Framework**: testthat 3.x
+
+## Contributing
+
+When contributing tests:
+
+1. Follow the existing structure and naming conventions
+2. Ensure tests pass locally before submitting
+3. Include tests for new features in the same PR
+4. Update this documentation if adding new test categories

@@ -66,9 +66,11 @@ print(paste("Significant correlations found:", result$num_significant))
 result <- test_serial_correlation(samples, max_lag = 100)
 
 # Plot correlation values
-plot(result$correlations, type = "h", 
-     main = "Serial Correlations by Lag",
-     xlab = "Lag", ylab = "Correlation")
+plot(result$correlations,
+  type = "h",
+  main = "Serial Correlations by Lag",
+  xlab = "Lag", ylab = "Correlation"
+)
 }
 
 }

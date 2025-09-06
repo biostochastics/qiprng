@@ -30,33 +30,33 @@ include(CheckCXXCompilerFlag)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     # Common flags
     add_compile_options(-Wall -Wextra -Wpedantic)
-    
+
     # Debug flags
     set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DDEBUG -fsanitize=address,undefined")
     set(CMAKE_EXE_LINKER_FLAGS_DEBUG "-fsanitize=address,undefined")
-    
+
     # Release flags with aggressive optimizations
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
-    
+
     # Check for native architecture support
     check_cxx_compiler_flag("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
     if(COMPILER_SUPPORTS_MARCH_NATIVE)
         set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
     endif()
-    
+
     # Check for fast-math
     check_cxx_compiler_flag("-ffast-math" COMPILER_SUPPORTS_FAST_MATH)
     if(COMPILER_SUPPORTS_FAST_MATH)
         set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -ffast-math")
     endif()
-    
+
     # Link-time optimization
     check_cxx_compiler_flag("-flto" COMPILER_SUPPORTS_LTO)
     if(COMPILER_SUPPORTS_LTO)
         set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -flto")
         set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -flto")
     endif()
-    
+
 elseif(MSVC)
     # MSVC flags
     add_compile_options(/W4 /permissive-)
@@ -200,21 +200,21 @@ if(BUILD_TESTS)
         GIT_TAG v3.4.0
     )
     FetchContent_MakeAvailable(Catch2)
-    
+
     enable_testing()
-    
+
     # Create tests directory if needed
     file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
-    
+
     # Example test file (to be created)
     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_standalone.cpp)
         add_executable(test_qiprng tests/test_standalone.cpp)
-        target_link_libraries(test_qiprng 
-            PRIVATE 
+        target_link_libraries(test_qiprng
+            PRIVATE
                 qiprng_standalone
                 Catch2::Catch2WithMain
         )
-        
+
         # Register tests with CTest
         include(Catch)
         catch_discover_tests(test_qiprng)
@@ -234,15 +234,15 @@ if(BUILD_BENCHMARKS)
     )
     set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Disable benchmark testing")
     FetchContent_MakeAvailable(benchmark)
-    
+
     # Create benchmarks directory if needed
     file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks)
-    
+
     # Example benchmark file (to be created)
     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/bench_performance.cpp)
         add_executable(bench_qiprng benchmarks/bench_performance.cpp)
-        target_link_libraries(bench_qiprng 
-            PRIVATE 
+        target_link_libraries(bench_qiprng
+            PRIVATE
                 qiprng_standalone
                 benchmark::benchmark
         )

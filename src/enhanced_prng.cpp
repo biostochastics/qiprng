@@ -24,20 +24,32 @@ namespace qiprng {
 // Helper method to get raw uniform without distribution transformations
 // This avoids circular dependencies when used with Ziggurat
 double EnhancedPRNG::next_raw_uniform() {
-    // Thread-local fallback generator for when main generator is unavailable
-    // SECURITY FIX: Use libsodium for cryptographically secure seed generation
-    static thread_local std::mt19937_64 fallback_rng([]() {
-        ensure_libsodium_initialized();
-        uint64_t seed;
-        randombytes_buf(&seed, sizeof(seed));
-        return seed;
-    }());
-    static thread_local std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
+    // Thread-safe fallback generator with lazy initialization
+    struct FallbackGen {
+        std::mt19937_64 rng;
+        std::uniform_real_distribution<double> dist{0.000001, 0.999999};
+        std::once_flag init_flag;
+
+        void init() {
+            std::call_once(init_flag, [this]() {
+                ensure_libsodium_initialized();
+                uint64_t seed;
+                randombytes_buf(&seed, sizeof(seed));
+                rng.seed(seed);
+            });
+        }
+
+        double generate() {
+            init();
+            return dist(rng);
+        }
+    };
+    static thread_local FallbackGen fallback_gen;
 
     // Check if object is being destroyed
     if (is_being_destroyed_.load(std::memory_order_acquire)) {
         // Return a random value from fallback generator if we're in the process of cleanup
-        return fallback_dist(fallback_rng);
+        return fallback_gen.generate();
     }
 
     // If buffer needs refilling, do so
@@ -46,13 +58,13 @@ double EnhancedPRNG::next_raw_uniform() {
             fill_buffer();
         } catch (...) {
             // Return a random value from fallback generator if fill_buffer fails
-            return fallback_dist(fallback_rng);
+            return fallback_gen.generate();
         }
     }
 
     // Ensure buffer position is valid even after fill_buffer might have changed it
     if (buffer_pos_ >= buffer_.size()) {
-        return fallback_dist(fallback_rng);  // Use fallback if buffer is still invalid
+        return fallback_gen.generate();  // Use fallback if buffer is still invalid
     }
 
     // Get raw uniform value with bounds checking
@@ -63,11 +75,11 @@ double EnhancedPRNG::next_raw_uniform() {
 
         // Validate the value
         if (u <= 0.0 || u >= 1.0 || std::isnan(u) || std::isinf(u)) {
-            u = fallback_dist(fallback_rng);  // Use fallback if we got an invalid uniform
+            u = fallback_gen.generate();  // Use fallback if we got an invalid uniform
         }
     } catch (...) {
         // Return a random value from fallback if array access throws
-        return fallback_dist(fallback_rng);
+        return fallback_gen.generate();
     }
 
     // Reseed crypto periodically if enabled
@@ -112,12 +124,12 @@ EnhancedPRNG::EnhancedPRNG(const PRNGConfig& cfg,
         // SECURITY FIX: Use centralized libsodium initialization
         ensure_libsodium_initialized();
 
-        // SECURITY WARNING: Crypto mixing should not be used with deterministic seeds
+        // SECURITY FIX: PREVENT deterministic seeds with crypto mixing
         if (config_.has_seed) {
-            Rcpp::warning(
-                "SECURITY WARNING: Deterministic seed detected with crypto mixing enabled. "
-                "This completely defeats cryptographic security. "
-                "Consider disabling crypto mixing for deterministic testing.");
+            throw std::runtime_error(
+                "SECURITY ERROR: Deterministic seeds are not allowed with cryptographic mixing. "
+                "This configuration would completely defeat cryptographic security. "
+                "Either disable crypto mixing or remove the deterministic seed.");
         }
 
         // SECURITY FIX: CryptoMixer no longer accepts seed parameters
@@ -706,9 +718,7 @@ void EnhancedPRNG::fill_buffer_openmp() {
 // Create thread-local MultiQI for this chunk
 // Note: In a real implementation, we'd cache these thread-local instances
 #    pragma omp critical
-                {
-                    multi_->fill_thread_safe(&buffer_[start], end - start);
-                }
+                { multi_->fill_thread_safe(&buffer_[start], end - start); }
             }
         }
 

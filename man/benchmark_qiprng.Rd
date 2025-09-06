@@ -51,7 +51,7 @@ configurations, and distributions.
 \dontrun{
 # Basic benchmark against R's built-in generator
 results <- benchmark_qiprng(
-  n_values = c(1000, 10000), 
+  n_values = c(1000, 10000),
   generators = list(
     "qiprng" = function(n) generatePRNG(n),
     "base_r" = function(n) runif(n)

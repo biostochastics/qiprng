@@ -223,13 +223,13 @@ validate_config <- function(config) {
 #'   use_threading = TRUE
 #' ))
 #'
-#' # Create PRNG with seed for reproducible sequences
-#' createPRNG(list(seed = 12345))
+#' # Create PRNG with seed for reproducible sequences (crypto mixing disabled)
+#' createPRNG(list(seed = 12345, use_crypto_mixing = FALSE))
 #' seq1 <- generatePRNG(10)
 #'
 #' # Same seed produces same sequence
 #' cleanup_prng()
-#' createPRNG(list(seed = 12345))
+#' createPRNG(list(seed = 12345, use_crypto_mixing = FALSE))
 #' seq2 <- generatePRNG(10)
 #' identical(seq1, seq2) # TRUE
 #' @export

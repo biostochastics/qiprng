@@ -1,0 +1,114 @@
+# Pre-commit hooks for qiprng R package with C++ components
+# See https://pre-commit.com for more information
+
+repos:
+  # Standard file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+        exclude: '\.Rd$'
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+      - id: no-commit-to-branch
+        args: ['--branch', 'main', '--branch', 'master']
+
+  # R-specific hooks
+  - repo: https://github.com/lorenzwalthert/precommit
+    rev: v0.4.2
+    hooks:
+      - id: style-files
+        args: [--style_pkg=styler, --style_fun=tidyverse_style]
+      - id: lintr
+        args: [--warn_only]
+      # - id: spell-check  # Disabled - too slow on large projects
+      #   exclude: >
+      #     (?x)^(
+      #     .*\.(feather|jpeg|pdf|png|RData|rds|Rds)|
+      #     inst/extdata/.*|
+      #     data/.*
+      #     )$
+      - id: parsable-R
+      - id: no-browser-statement
+      - id: no-debug-statement
+      - id: deps-in-desc
+      - id: use-tidy-description
+
+  # C++ formatting and linting
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v17.0.6
+    hooks:
+      - id: clang-format
+        files: '\.(cpp|hpp|c|h)$'
+        args: ['-i', '--style=file']
+
+  # C++ static analysis (optional - may need setup)
+  # - repo: https://github.com/pocc/pre-commit-hooks
+  #   rev: v1.3.5
+  #   hooks:
+  #     - id: clang-tidy
+  #       args: [--checks=*, --warnings-as-errors=*]
+  #     - id: cpplint
+
+  # Security scanning
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: package-lock.json
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.39.0
+    hooks:
+      - id: markdownlint
+        args: ['--fix']
+
+  # Local custom hooks
+  - repo: local
+    hooks:
+      # Check for common R artifacts
+      - id: forbid-to-commit
+        name: Don't commit common R artifacts
+        entry: Cannot commit .Rhistory, .RData, .Rds or .rds.
+        language: fail
+        files: '\.(Rhistory|RData|Rds|rds)$'
+
+      # Run R CMD check (lightweight)
+      - id: r-cmd-check
+        name: R CMD check (no manual/vignettes)
+        entry: R CMD check --no-manual --no-vignettes --no-build-vignettes .
+        language: system
+        pass_filenames: false
+        types: [r]
+        stages: [pre-push]
+
+      # Check for MPFR precision warnings
+      - id: check-precision-warnings
+        name: Check for precision loss warnings
+        entry: bash -c 'grep -r "PRECISION_WARNING_THRESHOLD\|PRECISION_ERROR_THRESHOLD" src/ | grep -v "static const"'
+        language: system
+        pass_filenames: false
+        types: [c++]
+
+      # Verify security enforcement
+      - id: verify-security
+        name: Verify security enforcement
+        entry: bash -c 'grep -q "SECURITY ERROR" src/rcpp_exports.cpp && echo "Security enforcement verified" || (echo "Security enforcement missing!" && exit 1)'
+        language: system
+        pass_filenames: false
+        types: [c++]
+
+# Configuration for pre-commit.ci
+ci:
+  autoupdate_schedule: monthly
+  skip: [r-cmd-check]

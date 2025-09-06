@@ -230,7 +230,7 @@ test_that("Memory management under parallel load is stable", {
 
   expect_true(result$success)
   expect_lt(memory_increase, 500, # Memory increase should be < 500MB
-    info = sprintf("Memory increased by %.1f MB", memory_increase)
+    label = sprintf("Memory increased by %.1f MB", memory_increase)
   )
 })
 

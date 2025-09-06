@@ -100,12 +100,13 @@ test_that("Deterministic seed with crypto triggers warning", {
   cfg$use_crypto_mixing <- TRUE
   cfg$seed <- 12345
 
-  expect_warning(
+  # The implementation now throws an error instead of a warning for security
+  expect_error(
     {
       createPRNG(cfg)
       cleanup_prng()
     },
-    "SECURITY WARNING.*deterministic"
+    "SECURITY ERROR.*deterministic"
   )
 })
 

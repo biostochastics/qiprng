@@ -2,22 +2,22 @@ QIPRNG COMPREHENSIVE TEST RESULTS V2
 ===================================
 
 Test Run Information:
-  Start Time: 2025-07-31 16:55:02 
-  End Time: 2025-07-31 16:56:00 
-  Duration: 58.06 seconds 
-  Package Version: 0.2.8 
-  R Version: R version 4.4.2 (2024-10-31) 
-  Platform: Darwin 
+  Start Time: 2025-07-31 16:55:02
+  End Time: 2025-07-31 16:56:00
+  Duration: 58.06 seconds
+  Package Version: 0.2.8
+  R Version: R version 4.4.2 (2024-10-31)
+  Platform: Darwin
 
 Summary Statistics:
-  Total Test Files: 22 
-  Total Tests Run: 0 
-  Passed Tests: 0 
-  Failed Tests: 0 
-  Skipped Tests: 0 
-  Error Files: 0 
-  Files with Warnings: 0 
-  Test Success Rate: 0.0% 
+  Total Test Files: 22
+  Total Tests Run: 0
+  Passed Tests: 0
+  Failed Tests: 0
+  Skipped Tests: 0
+  Error Files: 0
+  Files with Warnings: 0
+  Test Success Rate: 0.0%
 
 Statistical Improvements Validation:
   p value adjustment: PASS

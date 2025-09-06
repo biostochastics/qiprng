@@ -37,9 +37,11 @@ marginals <- list(
 x <- generate_with_copula(1000, correlation, marginals)
 
 # Three different marginals with correlation
-corr3 <- matrix(c(1, 0.3, 0.2,
-                  0.3, 1, 0.4,
-                  0.2, 0.4, 1), 3, 3)
+corr3 <- matrix(c(
+  1, 0.3, 0.2,
+  0.3, 1, 0.4,
+  0.2, 0.4, 1
+), 3, 3)
 marg3 <- list(
   list(type = "levy", alpha = 1.5, beta = 0, mu = 0, sigma = 1),
   list(type = "cauchy", location = 2, scale = 1),

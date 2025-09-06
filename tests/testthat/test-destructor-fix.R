@@ -64,7 +64,7 @@ for (j in 1:5) {
     cfg <- list(
       a = i,
       b = i + 10,
-      c = i - 5,
+      c = -(i + 1), # Ensure discriminant is positive: b^2 - 4ac > 0
       mpfr_precision = 53,
       use_threading = TRUE,
       buffer_size = 100,

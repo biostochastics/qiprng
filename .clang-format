@@ -131,6 +131,5 @@ Standard: c++17
 # Allow Rcpp attributes to remain on their own lines
 AttributeMacros: ['[[Rcpp::export]]', '[[Rcpp::depends]]']
 
----
 # Disable formatting for specific files if needed
 # Add file patterns to .clang-format-ignore

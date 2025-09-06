@@ -8,6 +8,11 @@
 #' The tests evaluate the compressibility of PRNG output, which is an
 #' important measure of randomness. Random data should not compress well.
 
+# Define null coalescing operator if not available
+if (!exists("%||%")) {
+  `%||%` <- function(a, b) if (is.null(a)) b else a
+}
+
 # Source bootstrap framework if not already loaded
 if (!exists("bootstrap_p_value")) {
   bootstrap_framework_path <- system.file("R", "bootstrap_framework.R", package = "qiprng")

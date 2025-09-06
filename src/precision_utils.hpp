@@ -8,6 +8,8 @@
 #ifndef QIPRNG_PRECISION_UTILS_HPP
 #define QIPRNG_PRECISION_UTILS_HPP
 
+#include <Rcpp.h>  // For Rcpp::warning
+
 #include <mpfr.h>
 
 #include <atomic>
@@ -93,6 +95,25 @@ inline double safe_mpfr_to_double(const mpfr_t& value, bool use_extended = true)
     size_t bits_lost = mpfr_prec > 53 ? mpfr_prec - 53 : 0;
     total_bits_lost.fetch_add(bits_lost, std::memory_order_relaxed);
     conversion_count.fetch_add(1, std::memory_order_relaxed);
+
+    // PRECISION LOSS MITIGATION: Warn and compensate when excessive precision is lost
+    static const size_t PRECISION_WARNING_THRESHOLD = 100;  // Warn if losing > 100 bits
+    static const size_t PRECISION_ERROR_THRESHOLD = 200;    // Error if losing > 200 bits
+
+    if (bits_lost > PRECISION_ERROR_THRESHOLD) {
+        throw std::runtime_error(
+            "Excessive precision loss: " + std::to_string(bits_lost) +
+            " bits lost in MPFR to double conversion. Consider using lower MPFR precision.");
+    }
+
+    if (bits_lost > PRECISION_WARNING_THRESHOLD) {
+        static std::atomic<size_t> warning_count{0};
+        if (warning_count.fetch_add(1) == 0) {  // Only warn once
+            Rcpp::warning("Significant precision loss detected: %zu bits lost. "
+                          "Consider adjusting MPFR precision settings.",
+                          bits_lost);
+        }
+    }
 
     if (!use_extended || mpfr_prec <= 64) {
         // Direct conversion for low precision or when extended not requested

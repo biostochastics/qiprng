@@ -79,7 +79,7 @@ The enhanced analysis evaluates **eight comprehensive statistical properties** f
 1.  **Uniformity (Dual Method)**: Kolmogorov-Smirnov and Chi-squared tests assess if numbers are evenly distributed over [0, 1]
 2.  **Independence (Runs Test)**: Wald-Wolfowitz runs test checks if each number is statistically independent
 3.  **Autocorrelation (Multi-lag)**: Tests for linear dependencies at up to 50 different time lags
-4.  **Enhanced Periodicity (5 Methods)**: 
+4.  **Enhanced Periodicity (5 Methods)**:
     - Fisher's g-test for spectral analysis
     - Bartels rank test for randomness
     - Cox-Stuart test for trend detection
@@ -117,8 +117,8 @@ cat("Estimated runtime: 2-4 hours depending on system performance.\n\n")
 # Execute the full analysis
 results <- run_discriminant_analysis(
   discriminants_file = "../data/discriminants.csv",
-  sample_size = 50000,  # Enhanced sample size
-  max_discriminants = NULL  # Test all discriminants
+  sample_size = 50000, # Enhanced sample size
+  max_discriminants = NULL # Test all discriminants
 )
 
 # Generate summary statistics
@@ -176,9 +176,10 @@ quality_df <- data.frame(
   Percentage = round(100 * as.numeric(quality_counts) / nrow(summary_data), 1)
 )
 
-kable(quality_df, 
-      caption = "Distribution of Quality Ratings Across All Discriminants",
-      col.names = c("Quality Rating", "Count", "Percentage (%)"))
+kable(quality_df,
+  caption = "Distribution of Quality Ratings Across All Discriminants",
+  col.names = c("Quality Rating", "Count", "Percentage (%)")
+)
 ```
 
 ```{r quality-plots-interactive}
@@ -191,13 +192,15 @@ p1 <- ggplot(summary_data, aes(x = overall_score)) +
   theme_analysis
 
 p2 <- ggplot(quality_df, aes(x = Rating, y = Percentage, fill = Rating)) +
-  geom_col() + coord_polar("y", start = 0) +
+  geom_col() +
+  coord_polar("y", start = 0) +
   labs(title = "Quality Distribution", x = "", y = "") +
-  theme_void() + scale_fill_brewer(palette = "Set3")
+  theme_void() +
+  scale_fill_brewer(palette = "Set3")
 
 # Render as interactive plots
 ggplotly(p1)
-print(p2)  # Use static plot for pie chart to avoid plotly issues
+print(p2) # Use static plot for pie chart to avoid plotly issues
 ```
 
 ## Test Performance Analysis
@@ -214,10 +217,11 @@ test_pass_data <- data.frame(
   ) * 100
 )
 
-kable(test_pass_data, 
-      digits = 1,
-      caption = "Test Pass Rates Across All Discriminants",
-      col.names = c("Statistical Test", "Pass Rate (%)"))
+kable(test_pass_data,
+  digits = 1,
+  caption = "Test Pass Rates Across All Discriminants",
+  col.names = c("Statistical Test", "Pass Rate (%)")
+)
 ```
 
 ```{r test-performance-plot-interactive}
@@ -226,10 +230,13 @@ kable(test_pass_data,
 p <- ggplot(test_pass_data, aes(x = reorder(Test, PassRate), y = PassRate, text = paste0(Test, ": ", round(PassRate, 1), "%"))) +
   geom_col(fill = "lightgreen", color = "black", alpha = 0.8) +
   coord_flip() +
-  labs(title = "Statistical Test Pass Rates", 
-       subtitle = "Percentage of discriminants passing each test", 
-       x = "", y = "Pass Rate (%)") +
-  ylim(0, 100) + theme_analysis
+  labs(
+    title = "Statistical Test Pass Rates",
+    subtitle = "Percentage of discriminants passing each test",
+    x = "", y = "Pass Rate (%)"
+  ) +
+  ylim(0, 100) +
+  theme_analysis
 
 ggplotly(p, tooltip = "text")
 ```
@@ -242,13 +249,13 @@ ggplotly(p, tooltip = "text")
 
 p1 <- ggplot(summary_data, aes(x = discriminant, y = overall_score, text = paste("Δ:", discriminant, "\nScore:", round(overall_score, 3)))) +
   geom_point(alpha = 0.6, color = "darkblue") +
-  labs(title = "Discriminant Value vs Quality Score", x = "Discriminant", y = "Overall Score") + 
+  labs(title = "Discriminant Value vs Quality Score", x = "Discriminant", y = "Overall Score") +
   theme_analysis
 
 p2 <- ggplot(summary_data, aes(x = a, y = abs(c), color = overall_score, text = paste("a:", a, "|c|:", abs(c), "\nScore:", round(overall_score, 3)))) +
   geom_point(alpha = 0.7) +
   scale_color_gradient(low = "red", high = "green", name = "Quality Score") +
-  labs(title = "Parameter Relationships", x = "Parameter a", y = "|Parameter c|") + 
+  labs(title = "Parameter Relationships", x = "Parameter a", y = "|Parameter c|") +
   theme_analysis
 
 ggplotly(p1, tooltip = "text")
@@ -269,11 +276,12 @@ if (nrow(valid_data) > 10) {
       cor(valid_data$b, valid_data$overall_score)
     )
   )
-  
-  kable(correlations, 
-        digits = 3,
-        caption = "Correlation Between Parameters and Quality Score",
-        col.names = c("Parameter", "Correlation with Quality Score"))
+
+  kable(correlations,
+    digits = 3,
+    caption = "Correlation Between Parameters and Quality Score",
+    col.names = c("Parameter", "Correlation with Quality Score")
+  )
 }
 ```
 
@@ -282,10 +290,12 @@ if (nrow(valid_data) > 10) {
 ```{r top-performers}
 # Get top 10 performers
 top_indices <- order(summary_data$overall_score, decreasing = TRUE)[1:10]
-top_performers <- summary_data[top_indices, c("index", "a", "b", "c", "discriminant", 
-                                               "overall_score", "quality_rating",
-                                               "uniformity_passed", "independence_passed",
-                                               "autocorrelation_passed", "periodicity_passed")]
+top_performers <- summary_data[top_indices, c(
+  "index", "a", "b", "c", "discriminant",
+  "overall_score", "quality_rating",
+  "uniformity_passed", "independence_passed",
+  "autocorrelation_passed", "periodicity_passed"
+)]
 
 # Create a nice table
 top_performers$Tests_Passed <- paste0(
@@ -295,13 +305,16 @@ top_performers$Tests_Passed <- paste0(
   ifelse(top_performers$periodicity_passed, "P", "")
 )
 
-display_table <- top_performers[, c("index", "a", "b", "c", "discriminant", 
-                                   "overall_score", "quality_rating", "Tests_Passed")]
+display_table <- top_performers[, c(
+  "index", "a", "b", "c", "discriminant",
+  "overall_score", "quality_rating", "Tests_Passed"
+)]
 
 kable(display_table,
-      digits = 3,
-      caption = "Top 10 Performing Discriminants (U=Uniformity, I=Independence, A=Autocorrelation, P=Periodicity)",
-      col.names = c("Index", "a", "b", "c", "Discriminant", "Score", "Rating", "Tests Passed"))
+  digits = 3,
+  caption = "Top 10 Performing Discriminants (U=Uniformity, I=Independence, A=Autocorrelation, P=Periodicity)",
+  col.names = c("Index", "a", "b", "c", "Discriminant", "Score", "Rating", "Tests Passed")
+)
 ```
 
 ## Bottom Performing Discriminants
@@ -310,7 +323,9 @@ kable(display_table,
 # Helper to pull worst examples per test
 get_fail_examples <- function(df, passed_col, pval_col, n = 3) {
   subset <- df[!df[[passed_col]] & !is.na(df[[pval_col]]), ]
-  if (nrow(subset) == 0) return(subset)
+  if (nrow(subset) == 0) {
+    return(subset)
+  }
   subset <- subset[order(subset[[pval_col]]), ]
   head(subset, n)
 }
@@ -320,9 +335,13 @@ independence_fail <- get_fail_examples(summary_data, "independence_passed", "ind
 periodicity_fail <- get_fail_examples(summary_data, "periodicity_passed", "periodicity_p_value")
 
 dplyr::bind_rows(
-  list(Uniformity = uniformity_fail,
-       Independence = independence_fail,
-       Periodicity = periodicity_fail), .id = "Test") %>%
+  list(
+    Uniformity = uniformity_fail,
+    Independence = independence_fail,
+    Periodicity = periodicity_fail
+  ),
+  .id = "Test"
+) %>%
   select(Test, index, a, b, c, discriminant, overall_score, starts_with("ks_p_value"), starts_with("independence_p_value"), starts_with("periodicity_p_value")) %>%
   knitr::kable(digits = 4, caption = "Examples of Discriminants Failing Core Tests (sorted by worst p-values)")
 ```
@@ -333,10 +352,12 @@ dplyr::bind_rows(
 # Get bottom 10 performers (excluding errors)
 non_error_data <- summary_data[summary_data$quality_rating != "Error", ]
 bottom_indices <- order(non_error_data$overall_score)[1:10]
-bottom_performers <- non_error_data[bottom_indices, c("index", "a", "b", "c", "discriminant", 
-                                                      "overall_score", "quality_rating",
-                                                      "uniformity_passed", "independence_passed",
-                                                      "autocorrelation_passed", "periodicity_passed")]
+bottom_performers <- non_error_data[bottom_indices, c(
+  "index", "a", "b", "c", "discriminant",
+  "overall_score", "quality_rating",
+  "uniformity_passed", "independence_passed",
+  "autocorrelation_passed", "periodicity_passed"
+)]
 
 bottom_performers$Tests_Failed <- paste0(
   ifelse(!bottom_performers$uniformity_passed, "U", ""),
@@ -345,13 +366,16 @@ bottom_performers$Tests_Failed <- paste0(
   ifelse(!bottom_performers$periodicity_passed, "P", "")
 )
 
-display_table_bottom <- bottom_performers[, c("index", "a", "b", "c", "discriminant", 
-                                              "overall_score", "quality_rating", "Tests_Failed")]
+display_table_bottom <- bottom_performers[, c(
+  "index", "a", "b", "c", "discriminant",
+  "overall_score", "quality_rating", "Tests_Failed"
+)]
 
 kable(display_table_bottom,
-      digits = 3,
-      caption = "Bottom 10 Performing Discriminants (U=Uniformity, I=Independence, A=Autocorrelation, P=Periodicity)",
-      col.names = c("Index", "a", "b", "c", "Discriminant", "Score", "Rating", "Tests Failed"))
+  digits = 3,
+  caption = "Bottom 10 Performing Discriminants (U=Uniformity, I=Independence, A=Autocorrelation, P=Periodicity)",
+  col.names = c("Index", "a", "b", "c", "Discriminant", "Score", "Rating", "Tests Failed")
+)
 ```
 
 ## Statistical Test Details
@@ -362,10 +386,13 @@ kable(display_table_bottom,
 #| fig-cap: "Interactive P-value Distributions"
 
 pvalue_data <- data.frame(
-  PValue = c(summary_data$ks_p_value, summary_data$chi_sq_p_value, 
-             summary_data$independence_p_value, summary_data$periodicity_p_value),
-  Test = rep(c("Uniformity (KS)", "Uniformity (Chi-Sq)", "Independence (Runs)", "Periodicity (Fisher)"), 
-           each = nrow(summary_data))
+  PValue = c(
+    summary_data$ks_p_value, summary_data$chi_sq_p_value,
+    summary_data$independence_p_value, summary_data$periodicity_p_value
+  ),
+  Test = rep(c("Uniformity (KS)", "Uniformity (Chi-Sq)", "Independence (Runs)", "Periodicity (Fisher)"),
+    each = nrow(summary_data)
+  )
 )
 pvalue_data <- pvalue_data[!is.na(pvalue_data$PValue), ]
 
@@ -374,7 +401,8 @@ p <- ggplot(pvalue_data, aes(x = PValue)) +
   facet_wrap(~Test, scales = "free_y") +
   geom_vline(xintercept = 0.05, linetype = "dashed", color = "red") +
   labs(title = "Distribution of P-values", x = "P-value", y = "Count") +
-  theme_analysis + theme(legend.position = "none")
+  theme_analysis +
+  theme(legend.position = "none")
 
 ggplotly(p)
 ```
@@ -393,7 +421,7 @@ if (length(valid_results) > 0) {
     SkewError = sapply(valid_results, function(x) x$moments$skew_error),
     KurtError = sapply(valid_results, function(x) x$moments$kurt_error)
   )
-  
+
   # Summary statistics
   moment_summary <- data.frame(
     Moment = c("Mean", "Variance", "Skewness", "Kurtosis"),
@@ -416,11 +444,12 @@ if (length(valid_results) > 0) {
       max(moment_data$KurtError, na.rm = TRUE)
     )
   )
-  
+
   kable(moment_summary,
-        digits = 6,
-        caption = "Moment Error Analysis Summary",
-        col.names = c("Moment", "Median Error", "Mean Error", "Maximum Error"))
+    digits = 6,
+    caption = "Moment Error Analysis Summary",
+    col.names = c("Moment", "Median Error", "Mean Error", "Maximum Error")
+  )
 }
 ```
 
@@ -443,8 +472,8 @@ DT::datatable(
     scrollX = TRUE
   ),
   rownames = FALSE,
-  filter = 'top',
-  class = 'cell-border stripe'
+  filter = "top",
+  class = "cell-border stripe"
 )
 ```
 
@@ -454,7 +483,7 @@ DT::datatable(
 # Create interactive table with all results
 # Check available columns first
 available_cols <- colnames(summary_data)
-cat("Available columns:", paste(available_cols, collapse=", "), "\n")
+cat("Available columns:", paste(available_cols, collapse = ", "), "\n")
 
 # Select only columns that exist
 base_cols <- c("index", "a", "b", "c", "discriminant", "overall_score", "quality_rating")
@@ -465,16 +494,19 @@ selected_cols <- c(base_cols, optional_cols[optional_cols %in% available_cols])
 interactive_data <- summary_data[, selected_cols]
 
 datatable(interactive_data,
-          caption = "Complete Discriminant Analysis Results (Interactive)",
-          options = list(
-            pageLength = 25,
-            scrollX = TRUE,
-            dom = 'Bfrtip',
-            buttons = c('copy', 'csv', 'excel')
-          ),
-          filter = 'top') %>%
-  formatRound(columns = intersect(c("overall_score", "ks_p_value", "chi_sq_p_value", "independence_p_value", 
-                                   "mean_error", "var_error"), colnames(interactive_data)), digits = 4)
+  caption = "Complete Discriminant Analysis Results (Interactive)",
+  options = list(
+    pageLength = 25,
+    scrollX = TRUE,
+    dom = "Bfrtip",
+    buttons = c("copy", "csv", "excel")
+  ),
+  filter = "top"
+) %>%
+  formatRound(columns = intersect(c(
+    "overall_score", "ks_p_value", "chi_sq_p_value", "independence_p_value",
+    "mean_error", "var_error"
+  ), colnames(interactive_data)), digits = 4)
 ```
 
 # Recommendations and Conclusions
@@ -492,13 +524,15 @@ cat("### Recommended for Production Use\n\n")
 if (nrow(excellent_discriminants) > 0) {
   cat("**", nrow(excellent_discriminants), " Excellent Discriminants** (Score ≥ 0.75):\n")
   cat("These discriminants passed most statistical tests and are recommended for production use.\n\n")
-  
+
   # Show top 5 excellent performers
   top_excellent <- head(excellent_discriminants[order(excellent_discriminants$overall_score, decreasing = TRUE), ], 5)
   for (i in 1:nrow(top_excellent)) {
     row <- top_excellent[i, ]
-    cat("- **Discriminant #", row$index, "**: a=", row$a, ", b=", row$b, ", c=", row$c, 
-        ", Δ=", row$discriminant, " (Score: ", round(row$overall_score, 3), ")\n")
+    cat(
+      "- **Discriminant #", row$index, "**: a=", row$a, ", b=", row$b, ", c=", row$c,
+      ", Δ=", row$discriminant, " (Score: ", round(row$overall_score, 3), ")\n"
+    )
   }
   cat("\n")
 }
@@ -542,14 +576,16 @@ cat("4. **Periodicity Performance**: ", round(periodicity_pass_rate, 1), "% of d
 # Parameter insights
 if (exists("correlations")) {
   strongest_corr <- correlations[which.max(abs(correlations$Correlation)), ]
-  cat("5. **Parameter Correlation**: The strongest correlation with quality is ", 
-      strongest_corr$Parameter, " (r = ", round(strongest_corr$Correlation, 3), ")\n\n")
+  cat(
+    "5. **Parameter Correlation**: The strongest correlation with quality is ",
+    strongest_corr$Parameter, " (r = ", round(strongest_corr$Correlation, 3), ")\n\n"
+  )
 }
 
 cat("### Mathematical Validation\n\n")
 cat("All tested discriminants satisfy the fundamental mathematical constraints:\n")
 cat("- a > 0 (positive coefficient)\n")
-cat("- c < 0 (negative constant term)\n") 
+cat("- c < 0 (negative constant term)\n")
 cat("- Δ = b² - 4ac > 0 (positive discriminant for chaotic behavior)\n\n")
 
 cat("The analysis confirms that discriminants with higher values tend to produce better statistical properties, ")
