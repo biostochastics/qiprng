@@ -44,6 +44,8 @@ test_that("Different seeds produce different sequences", {
 })
 
 test_that("Deterministic mode works with jump-ahead", {
+  ensure_clean_state()
+
   # Save original environment variable if it exists
   original_algo <- Sys.getenv("QIPRNG_JUMP_ALGORITHM", unset = NA)
 

@@ -308,7 +308,7 @@ Create `mintlify/custom.css`:
 
 ## Support
 
-- **Mintlify Support**: <support@mintlify.com>
+- **Mintlify Support**: [support@mintlify.com](mailto:support@mintlify.com)
 - **GitHub Issues**: <https://github.com/biostochastics/qiprng/issues>
 - **Documentation**: <https://mintlify.com/docs>
 
