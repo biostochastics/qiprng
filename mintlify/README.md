@@ -122,8 +122,8 @@ The domain `qiprng.biostochastics.com` should have a CNAME record pointing to `h
 ## Support
 
 - **Documentation Issues**: [GitHub Issues](https://github.com/biostochastics/qiprng/issues)
-- **Mintlify Support**: <support@mintlify.com>
-- **Package Maintainer**: <support@biostochastics.com>
+- **Mintlify Support**: [support@mintlify.com](mailto:support@mintlify.com)
+- **Package Maintainer**: [support@biostochastics.com](mailto:support@biostochastics.com)
 
 ## License
 

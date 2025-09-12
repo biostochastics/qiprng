@@ -1,0 +1,23 @@
+---
+title: "BufferManager"
+description: "Buffer manager class"
+sidebarTitle: "BufferManager"
+---
+
+# BufferManager
+
+## Description
+
+Buffer manager class
+
+## Source
+
+Defined in `src/buffer_manager.hpp`
+
+## Public Methods
+
+```cpp
+BufferManager(size_t buffer_size, MultiQI* source, CryptoMixer* crypto = nullptr)
+: buffer_(buffer_size), buffer_pos_(0), source_(source), crypto_(crypto) {
+fill_strategy_ = std::make_unique<SequentialFillStrategy>();
+```

@@ -1,0 +1,23 @@
+---
+title: "MPFRWrapper"
+description: "RAII wrapper for MPFR values with improved error handling and memory safety"
+sidebarTitle: "MPFRWrapper"
+---
+
+# MPFRWrapper
+
+## Description
+
+RAII wrapper for MPFR values with improved error handling and memory safety
+Optimized for v0.5.0 with enhanced performance features
+
+## Source
+
+Defined in `src/prng_common.hpp`
+
+## Public Methods
+
+```cpp
+static std::unique_ptr<MPFRWrapper> create_high_precision() {
+return std::make_unique<MPFRWrapper>(DEFAULT_HIGH_PRECISION);
+```

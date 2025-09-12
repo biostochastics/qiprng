@@ -1,6 +1,7 @@
 ---
 title: "Changelog"
-description: "Version history and release notes"
+description: "Version history and release notes for qiprng"
+sidebarTitle: "Changelog"
 ---
 
 # CHANGELOG
@@ -131,7 +132,7 @@ description: "Version history and release notes"
   - Added proper ignore patterns for node_modules, .DS_Store, and build artifacts
   - Ensures clean `R CMD build` and `R CMD check` execution
 
-### Files Modified
+### Modified Files (v0.6.1)
 
 - `src/quadratic_irrational.hpp`: Overflow-safe matrix operations, accessor methods
 - `src/quadratic_irrational.cpp`: Reseed implementation, MPFR precision tracking
@@ -200,7 +201,7 @@ description: "Version history and release notes"
   - Automatic formatting, linting, and security checks
   - Custom hooks for R package-specific validations
 
-### Files Modified
+### Modified Files (v0.6.0)
 
 - `src/quadratic_irrational.cpp`: Overflow fixes, error handling
 - `src/enhanced_prng.cpp`: Thread-safe initialization, security enforcement
@@ -359,7 +360,7 @@ description: "Version history and release notes"
 - **Fix**: Made mutex `mutable` for proper const-correctness
 - **Impact**: Eliminated data races detected by ThreadSanitizer
 
-### Performance Optimizations
+### Performance Enhancements (v0.5.1)
 
 #### Lock Contention Elimination
 

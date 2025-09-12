@@ -1,0 +1,25 @@
+---
+title: "API Reference"
+description: "Complete API documentation for qiprng"
+---
+
+# API Reference
+
+The qiprng package provides a comprehensive API for high-quality pseudo-random number generation.
+
+## Core Functions
+
+- [`createPRNG()`](/api-reference/r-functions/createPRNG) - Initialize a new generator
+- [`generatePRNG()`](/api-reference/r-functions/generatePRNG) - Generate random values
+- [`updatePRNG()`](/api-reference/r-functions/updatePRNG) - Update generator configuration
+- [`jumpAheadPRNG()`](/api-reference/r-functions/jumpAheadPRNG) - Jump ahead in sequence
+- [`cleanupPRNG()`](/api-reference/r-functions/cleanupPRNG) - Clean up resources
+
+## C++ Implementation
+
+The package is implemented in C++ for performance, with key classes including:
+
+- `QuadraticIrrational` - Core quadratic irrational implementation
+- `EnhancedPRNG` - Enhanced PRNG with distribution support
+- `CryptoMixer` - Cryptographic mixing for security
+- `Matrix2x2` - Matrix operations for jump-ahead

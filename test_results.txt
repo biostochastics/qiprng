@@ -1,0 +1,3082 @@
+
+R version 4.4.2 (2024-10-31) -- "Pile of Leaves"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-apple-darwin20
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+styler package loaded for code formatting
+The following objects are masked _by_ .GlobalEnv:
+
+    check_r_style, format_r_code, format_test_code
+
+> testthat::test_local()
+=== Creating Example Configuration ===
+Example configuration saved to: my_qiprng_config.json
+
+=== Loading Configuration ===
+
+=== Accessing Internal Test Parameters ===
+Default sample size: 10000
+Significance level: 0.010
+Chi-square test bins: 10
+Compression algorithms: gzip, bzip2, xz
+Parallel processing: Enabled
+Max cores: 13
+
+=== Modifying Configuration ===
+Updated significance level: 0.050
+Parallel processing disabled
+
+=== Getting Test Category Configuration ===
+Binary tests configuration:
+List of 3
+ $ frequency  :List of 2
+  ..$ block_size        : int 128
+  ..$ significance_level: num 0.01
+ $ runs       :List of 1
+  ..$ significance_level: num 0.01
+ $ longest_run:List of 2
+  ..$ block_size        : int 128
+  ..$ significance_level: num 0.01
+NULL
+
+=== Environment Variable Overrides ===
+Sample size from env: 50000
+Parallel from env: TRUE
+Max cores from env: 4
+
+=== Validating Configuration ===
+Internal configuration is valid
+
+=== Using Configuration in Tests ===
+Running chi-square test with:
+  Bins: 10
+  Significance level: 0.010
+  Min expected count: 5
+
+=== Demo Complete ===
+=== Testing RNGs with Effect Size Calculations ===
+
+
+Testing: Good RNG (R's runif)
+Description: R's built-in uniform RNG
+------------------------------------------------------------
+Loading required package: ggplot2
+
+Kolmogorov-Smirnov Test for Uniformity:
+  Result: PASS
+  p-value: 0.2715
+  Effect size: 0.0100 (negligible)
+
+Chi-squared Goodness-of-Fit Test:
+  Result: PASS
+  p-value: 0.7464
+  Effect size: 0.0088 (negligible)
+
+Mean Test:
+  Result: PASS
+  p-value: 0.3066
+  Effect size: 0.0102 (negligible)
+
+Variance Test:
+  Result: PASS
+  p-value: 0.7787
+  Effect size: 0.0039 (negligible)
+
+Minimum Value Test:
+  Result: PASS
+  p-value: 0.9331
+  Effect size: 1.7052 (large)
+
+Maximum Value Test:
+  Result: PASS
+  p-value: 0.4826
+  Effect size: 0.3411 (small)
+
+
+Testing: Biased RNG
+Description: RNG with subtle bias towards higher values
+------------------------------------------------------------
+
+Kolmogorov-Smirnov Test for Uniformity:
+  Result: FAIL
+  p-value: 0.0000
+  Effect size: 0.0439 (negligible)
+
+Chi-squared Goodness-of-Fit Test:
+  Result: FAIL
+  p-value: 0.0000
+  Effect size: 0.0248 (negligible)
+
+Mean Test:
+  Result: FAIL
+  p-value: 0.0000
+  Effect size: 0.0955 (negligible)
+
+Variance Test:
+  Result: FAIL
+  p-value: 0.0086
+  Effect size: 0.0375 (negligible)
+
+Minimum Value Test:
+  Result: PASS
+  p-value: 0.9474
+  Effect size: 1.9452 (large)
+
+Maximum Value Test:
+  Result: PASS
+  p-value: 0.5375
+  Effect size: 0.2289 (small)
+
+
+Testing: Poor RNG
+Description: RNG with obvious distribution problems
+------------------------------------------------------------
+
+Kolmogorov-Smirnov Test for Uniformity:
+  Result: FAIL
+  p-value: 0.0000
+  Effect size: 0.1046 (medium)
+
+Chi-squared Goodness-of-Fit Test:
+  Result: FAIL
+  p-value: 0.0000
+  Effect size: 0.0501 (small)
+
+Mean Test:
+  Result: FAIL
+  p-value: 0.0000
+  Effect size: 0.1884 (negligible)
+
+Variance Test:
+  Result: PASS
+  p-value: 0.4502
+  Effect size: 0.0106 (negligible)
+
+Minimum Value Test:
+  Result: PASS
+  p-value: 0.7510
+  Effect size: 0.3903 (small)
+
+Maximum Value Test:
+  Result: PASS
+  p-value: 0.4942
+  Effect size: 0.3183 (small)
+
+
+=== Effect Size Interpretation Guide ===
+
+Cohen's d (mean differences):
+  d = 0.1: negligible
+  d = 0.3: small
+  d = 0.6: medium
+  d = 1.0: large
+
+Cramér's V (chi-squared tests):
+  V = 0.05: small (df=19)
+  V = 0.15: medium (df=19)
+  V = 0.35: large (df=19)
+  V = 0.60: large (df=19)
+
+KS D statistic:
+  D = 0.03: negligible
+  D = 0.08: small
+  D = 0.15: medium
+  D = 0.25: large
+
+=== Summary ===
+Effect sizes provide information about the magnitude of deviations,
+complementing p-values which only indicate statistical significance.
+This helps distinguish between:
+- Statistically significant but practically negligible effects
+- Large effects that may not reach significance due to small samples
+=== Demo 1: Configuration Setup ===
+
+Test Configuration:
+- Sample size: 50000
+- Significance level: 0.010
+- Parallel enabled: TRUE
+- Max cores: 4
+
+=== Demo 2: Progress Monitoring ===
+
+  |
+  |                                                  |   0%
+  |
+  |==                                                |   5%
+  |
+  |=====                                             |  10%
+  |
+  |========                                          |  15%
+  |
+  |==========                                        |  20%
+  |
+  |============                                      |  25%
+  |
+  |===============                                   |  30%
+  |
+  |==================                                |  35%
+  |
+  |====================                              |  40%
+  |
+  |======================                            |  45%
+  |
+  |=========================                         |  50%
+  |
+  |============================                      |  55%
+  |
+  |==============================                    |  60%
+  |
+  |================================                  |  65%
+  |
+  |===================================               |  70%
+  |
+  |======================================            |  75%
+  |
+  |========================================          |  80%
+  |
+  |==========================================        |  85%
+  |
+  |=============================================     |  90%
+  |
+  |================================================  |  95%
+  |
+  |==================================================| 100%
+
+Test suite completed!
+
+=== Demo 3: Result Aggregation ===
+
+ PRNG Test Suite Summary
+==================================================
+Total Tests: 21
+Passed: 21 (100.0%)
+Failed: 0
+Errors: 0
+
+Results by Category:
+  basic: 100.0% pass rate (avg p-value: 0.580)
+  classical: 100.0% pass rate (avg p-value: 0.670)
+  binary: 100.0% pass rate (avg p-value: 0.463)
+
+P-value Distribution:
+  Mean: 0.571
+  Median: 0.594
+  Uniformity test p-value: 0.425
+
+=== Demo 4: Integrated System with Callbacks ===
+
+  |
+  |                                                  |   0%
+Running integrated test simulation...
+
+  |
+  |===                                               |   7%
+  |
+  |=======                                           |  13%
+  |
+  |==========                                        |  20%
+  |
+  |=============                                     |  27%
+  |
+  |=================                                 |  33%
+  |
+  |====================                              |  40%
+  |
+  |=======================                           |  47%
+  |
+  |===========================                       |  53%
+  |
+  |==============================                    |  60%
+  |
+  |=================================                 |  67%
+  |
+  |=====================================             |  73%
+  |
+  |========================================          |  80%
+  |
+  |===========================================       |  87%
+  |
+  |===============================================   |  93%
+  |
+  |==================================================| 100%
+
+Test suite completed!
+
+Integrated Results Summary:
+   category total_tests passed_tests failed_tests pass_rate avg_p_value
+1    binary           4            3            1     0.750   0.3930331
+2     basic           3            3            0     1.000   0.2906981
+3 classical           8            7            1     0.875   0.4734472
+
+=== Demo 5: Configuration-Driven Test Function ===
+
+Running classical test with:
+- Significance level: 0.010
+- Chi-square bins: 10
+- Min expected count: 5
+
+Test result: PASS (p-value: 0.0726)
+
+=== Demo 6: Performance Configuration ===
+
+Performance Configuration:
+- Parallel enabled: TRUE
+- Max cores: 4
+- Cache enabled: TRUE
+- Memory limit: 4096 MB
+
+=== Integrated System Demo Complete ===
+
+The integrated system provides:
+1. Flexible configuration management for tools and tests
+2. Real-time progress monitoring with multiple backends
+3. Comprehensive result aggregation and statistics
+4. Seamless integration between all components
+5. Export capabilities for results and reports
+=== Demo 1: Basic Memory Monitoring ===
+Memory limit setting is only supported on Windows. Using monitoring only.
+Memory monitoring started
+Initial memory usage: 148.9 MB
+
+Creating large objects...
+
+Current memory usage: 301.5 MB
+
+=== Demo 2: Automatic Garbage Collection ===
+Garbage collection #1: freed 0.0 MB (339.7 -> 339.7 MB)
+
+=== Demo 3: Memory-Efficient Chunked Processing ===
+Processing large dataset in chunks...
+Processing 20000000 items in 20 chunks of size 1000000
+Garbage collection #3: freed 0.0 MB (515.2 -> 515.2 MB)
+Garbage collection #5: freed 0.0 MB (525.8 -> 525.8 MB)
+Garbage collection #7: freed 0.0 MB (537.3 -> 537.3 MB)
+Garbage collection #9: freed 0.0 MB (537.3 -> 537.3 MB)
+Garbage collection #11: freed 0.0 MB (537.5 -> 537.5 MB)
+Garbage collection #13: freed -0.0 MB (537.5 -> 537.5 MB)
+Garbage collection #15: freed 0.0 MB (537.8 -> 537.8 MB)
+Garbage collection #17: freed 0.0 MB (538.1 -> 538.1 MB)
+Garbage collection #19: freed 0.0 MB (549.6 -> 549.6 MB)
+Processed 10/20 chunks (50.0%)
+Garbage collection #21: freed 0.0 MB (561.1 -> 561.1 MB)
+Garbage collection #23: freed 0.0 MB (572.6 -> 572.6 MB)
+Garbage collection #25: freed 0.0 MB (584.0 -> 584.0 MB)
+Garbage collection #27: freed 0.0 MB (591.7 -> 591.7 MB)
+Garbage collection #29: freed 0.0 MB (591.7 -> 591.7 MB)
+Garbage collection #31: freed 0.0 MB (599.5 -> 599.5 MB)
+Garbage collection #33: freed 0.0 MB (590.4 -> 590.4 MB)
+Garbage collection #35: freed 0.0 MB (588.7 -> 588.7 MB)
+Garbage collection #37: freed 0.0 MB (588.7 -> 588.7 MB)
+Processed 20/20 chunks (100.0%)
+Processed 20 chunks, results length: 20
+Garbage collection #39: freed 0.0 MB (436.2 -> 436.2 MB)
+
+=== Demo 4: Memory-Aware Function Wrapping ===
+Calling memory-intensive function with monitoring...
+Function returned 100 values
+
+=== Demo 5: Integration with Test Suite ===
+
+Running test: uniformity_test
+Test result: p-value = 0.8993
+
+Running test: correlation_test
+Test result: p-value = 0.7763
+
+Running test: entropy_test
+Test result: p-value = 0.9028
+
+=== Demo 6: Memory Usage Summary ===
+
+ Memory Usage Summary
+========================================
+Current usage: 451.5 MB (22.0%)
+Peak usage: 599.5 MB
+Memory limit: 2048.0 MB
+GC performed: 40 times
+
+Largest tracked objects:
+  large_vector: 76.3 MB (numeric)
+  large_matrix: 38.1 MB (matrix)
+  temp_data_1: 38.1 MB (numeric)
+  temp_data_2: 38.1 MB (numeric)
+  temp_data_3: 38.1 MB (numeric)
+
+Summary metrics:
+            metric      value
+1 current_usage_mb  451.45312
+2    peak_usage_mb  599.50000
+3  memory_limit_mb 2048.00000
+4 usage_percentage   22.04361
+5         gc_count   40.00000
+
+=== Demo 7: Chunked Random Number Generation ===
+Generating 50 million random numbers in chunks...
+Garbage collection #41: freed 0.0 MB (756.7 -> 756.7 MB)
+Generated 50000000 numbers in 0.69 seconds
+Garbage collection #43: freed 0.0 MB (587.8 -> 587.8 MB)
+
+=== Demo 8: Object Size Tracking Report ===
+
+Tracked objects:
+- large_vector: 76.3 MB (numeric, created at 00:48:30)
+- large_matrix: 38.1 MB (matrix, created at 00:48:30)
+- temp_data_1: 38.1 MB (numeric, created at 00:48:30)
+- temp_data_2: 38.1 MB (numeric, created at 00:48:30)
+- temp_data_3: 38.1 MB (numeric, created at 00:48:30)
+- temp_data_4: 38.1 MB (numeric, created at 00:48:30)
+- temp_data_5: 38.1 MB (numeric, created at 00:48:30)
+- uniformity_test_data: 7.6 MB (numeric, created at 00:48:37)
+- correlation_test_data: 15.3 MB (numeric, created at 00:48:37)
+- entropy_test_data: 38.1 MB (numeric, created at 00:48:37)
+
+Cleaned temporary objects older than 5 minutes
+
+=== Final Cleanup ===
+Memory monitoring stopped
+Peak memory usage: 969.3 MB
+
+Memory management demo complete!
+
+Key features demonstrated:
+- Real-time memory monitoring
+- Automatic garbage collection based on thresholds
+- Memory-efficient chunked processing
+- Function wrapping with memory checks
+- Object size tracking and reporting
+- Integration with test suites
+- Chunked random number generation
+
+Attaching package: ‘rlang’
+
+The following object is masked _by_ ‘.GlobalEnv’:
+
+    %||%
+
+The following objects are masked from ‘package:testthat’:
+
+    is_false, is_null, is_true
+
+Libsodium initialized successfully.
+✔ | F W  S  OK | Context
+
+⠏ |          0 | basic
+⠏ |          0 | Basic PRNG Tests                                               Loaded 370 discriminants from CSV file.
+PRNG cleanup completed successfully
+
+⠇ |   6      3 | Basic PRNG Tests                                               PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+✔ |   6      8 | Basic PRNG Tests
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-basic.R:17:3'): PRNG creation works
+Some inexact results in square root operations are normal and expected
+Backtrace:
+     ▆
+  1. ├─testthat::expect_no_error(createPRNG(cfg)) at test-basic.R:17:3
+  2. │ └─testthat:::expect_no_(...)
+  3. │   └─testthat:::quasi_capture(enquo(object), NULL, capture)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─rlang::try_fetch(...)
+  6. │     │   ├─base::tryCatch(...)
+  7. │     │   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8. │     │   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9. │     │   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10. │     │   └─base::withCallingHandlers(...)
+ 11. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 12. └─qiprng::createPRNG(cfg)
+ 13.   └─qiprng:::.createPRNG_(config) at qiprng/R/prng_interface.R:285:3
+
+Warning ('test-basic.R:17:3'): PRNG creation works
+MPFR multiplication operation resulted in inexact value
+Backtrace:
+     ▆
+  1. ├─testthat::expect_no_error(createPRNG(cfg)) at test-basic.R:17:3
+  2. │ └─testthat:::expect_no_(...)
+  3. │   └─testthat:::quasi_capture(enquo(object), NULL, capture)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─rlang::try_fetch(...)
+  6. │     │   ├─base::tryCatch(...)
+  7. │     │   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8. │     │   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9. │     │   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10. │     │   └─base::withCallingHandlers(...)
+ 11. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 12. └─qiprng::createPRNG(cfg)
+ 13.   └─qiprng:::.createPRNG_(config) at qiprng/R/prng_interface.R:285:3
+
+Warning ('test-basic.R:17:3'): PRNG creation works
+MPFR addition operation resulted in inexact value
+Backtrace:
+     ▆
+  1. ├─testthat::expect_no_error(createPRNG(cfg)) at test-basic.R:17:3
+  2. │ └─testthat:::expect_no_(...)
+  3. │   └─testthat:::quasi_capture(enquo(object), NULL, capture)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─rlang::try_fetch(...)
+  6. │     │   ├─base::tryCatch(...)
+  7. │     │   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8. │     │   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9. │     │   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10. │     │   └─base::withCallingHandlers(...)
+ 11. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 12. └─qiprng::createPRNG(cfg)
+ 13.   └─qiprng:::.createPRNG_(config) at qiprng/R/prng_interface.R:285:3
+
+Warning ('test-basic.R:17:3'): PRNG creation works
+MPFR add_scalar operation resulted in inexact value
+Backtrace:
+     ▆
+  1. ├─testthat::expect_no_error(createPRNG(cfg)) at test-basic.R:17:3
+  2. │ └─testthat:::expect_no_(...)
+  3. │   └─testthat:::quasi_capture(enquo(object), NULL, capture)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─rlang::try_fetch(...)
+  6. │     │   ├─base::tryCatch(...)
+  7. │     │   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8. │     │   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9. │     │   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10. │     │   └─base::withCallingHandlers(...)
+ 11. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 12. └─qiprng::createPRNG(cfg)
+ 13.   └─qiprng:::.createPRNG_(config) at qiprng/R/prng_interface.R:285:3
+
+Warning ('test-basic.R:17:3'): PRNG creation works
+MPFR step_once operation operation resulted in inexact value
+Backtrace:
+     ▆
+  1. ├─testthat::expect_no_error(createPRNG(cfg)) at test-basic.R:17:3
+  2. │ └─testthat:::expect_no_(...)
+  3. │   └─testthat:::quasi_capture(enquo(object), NULL, capture)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─rlang::try_fetch(...)
+  6. │     │   ├─base::tryCatch(...)
+  7. │     │   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8. │     │   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9. │     │   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10. │     │   └─base::withCallingHandlers(...)
+ 11. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 12. └─qiprng::createPRNG(cfg)
+ 13.   └─qiprng:::.createPRNG_(config) at qiprng/R/prng_interface.R:285:3
+
+Warning ('test-basic.R:17:3'): PRNG creation works
+MPFR multiplication operation resulted in inexact value
+Backtrace:
+     ▆
+  1. ├─testthat::expect_no_error(createPRNG(cfg)) at test-basic.R:17:3
+  2. │ └─testthat:::expect_no_(...)
+  3. │   └─testthat:::quasi_capture(enquo(object), NULL, capture)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─rlang::try_fetch(...)
+  6. │     │   ├─base::tryCatch(...)
+  7. │     │   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8. │     │   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9. │     │   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10. │     │   └─base::withCallingHandlers(...)
+ 11. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 12. └─qiprng::createPRNG(cfg)
+ 13.   └─qiprng:::.createPRNG_(config) at qiprng/R/prng_interface.R:285:3
+────────────────────────────────────────────────────────────────────────────────
+
+⠏ |          0 | bootstrap-framework
+  |
+  |                                                                      |   0%
+  |
+  |=======                                                               |  10%
+  |
+  |==============                                                        |  20%
+  |
+  |=====================                                                 |  30%
+  |
+  |============================                                          |  40%
+  |
+  |===================================                                   |  50%
+  |
+  |==========================================                            |  60%
+  |
+  |=================================================                     |  70%
+  |
+  |========================================================              |  80%
+  |
+  |===============================================================       |  90%
+  |
+  |======================================================================| 100%
+
+  |
+  |                                                                      |   0%
+  |
+  |=======                                                               |  10%
+  |
+  |==============                                                        |  20%
+  |
+  |=====================                                                 |  30%
+  |
+  |============================                                          |  40%
+  |
+  |===================================                                   |  50%
+  |
+  |==========================================                            |  60%
+  |
+  |=================================================                     |  70%
+  |
+  |========================================================              |  80%
+  |
+  |===============================================================       |  90%
+  |
+  |======================================================================| 100%
+
+  |
+  |                                                                      |   0%
+  |
+  |=======                                                               |  10%
+  |
+  |==============                                                        |  20%
+  |
+  |=====================                                                 |  30%
+  |
+  |============================                                          |  40%
+  |
+  |===================================                                   |  50%
+  |
+  |==========================================                            |  60%
+  |
+  |=================================================                     |  70%
+  |
+  |========================================================              |  80%
+  |
+  |===============================================================       |  90%
+  |
+  |======================================================================| 100%
+
+  |
+  |                                                                      |   0%
+  |
+  |=======                                                               |  10%
+  |
+  |==============                                                        |  20%
+  |
+  |=====================                                                 |  30%
+  |
+  |============================                                          |  40%
+  |
+  |===================================                                   |  50%
+  |
+  |==========================================                            |  60%
+  |
+  |=================================================                     |  70%
+  |
+  |========================================================              |  80%
+  |
+  |===============================================================       |  90%
+  |
+  |======================================================================| 100%
+
+  |
+  |                                                                      |   0%
+  |
+  |=======                                                               |  10%
+  |
+  |==============                                                        |  20%
+  |
+  |=====================                                                 |  30%
+  |
+  |============================                                          |  40%
+  |
+  |===================================                                   |  50%
+  |
+  |==========================================                            |  60%
+  |
+  |=================================================                     |  70%
+  |
+  |========================================================              |  80%
+  |
+  |===============================================================       |  90%
+  |
+  |======================================================================| 100%
+
+⠙ |         12 | bootstrap-framework
+  |
+  |                                                                      |   0%
+  |
+  |=======                                                               |  10%
+  |
+  |==============                                                        |  20%
+  |
+  |=====================                                                 |  30%
+  |
+  |============================                                          |  40%
+  |
+  |===================================                                   |  50%
+  |
+  |==========================================                            |  60%
+  |
+  |=================================================                     |  70%
+  |
+  |========================================================              |  80%
+  |
+  |===============================================================       |  90%
+  |
+  |======================================================================| 100%
+
+  |
+  |                                                                      |   0%
+  |
+  |=======                                                               |  10%
+  |
+  |==============                                                        |  20%
+  |
+  |=====================                                                 |  30%
+  |
+  |============================                                          |  40%
+  |
+  |===================================                                   |  50%
+  |
+  |==========================================                            |  60%
+  |
+  |=================================================                     |  70%
+  |
+  |========================================================              |  80%
+  |
+  |===============================================================       |  90%
+  |
+  |======================================================================| 100%
+
+  |
+  |                                                                      |   0%
+  |
+  |=======                                                               |  10%
+  |
+  |==============                                                        |  20%
+  |
+  |=====================                                                 |  30%
+  |
+  |============================                                          |  40%
+  |
+  |===================================                                   |  50%
+  |
+  |==========================================                            |  60%
+  |
+  |=================================================                     |  70%
+  |
+  |========================================================              |  80%
+  |
+  |===============================================================       |  90%
+  |
+  |======================================================================| 100%
+
+  |
+  |                                                                      |   0%
+  |
+  |=======                                                               |  10%
+  |
+  |==============                                                        |  20%
+  |
+  |=====================                                                 |  30%
+  |
+  |============================                                          |  40%
+  |
+  |===================================                                   |  50%
+  |
+  |==========================================                            |  60%
+  |
+  |=================================================                     |  70%
+  |
+  |========================================================              |  80%
+  |
+  |===============================================================       |  90%
+  |
+  |======================================================================| 100%
+
+⠧ |         38 | bootstrap-framework
+  |
+  |                                                                      |   0%
+  |
+  |=======                                                               |  10%
+  |
+  |==============                                                        |  20%
+  |
+  |=====================                                                 |  30%
+  |
+  |============================                                          |  40%
+  |
+  |===================================                                   |  50%
+  |
+  |==========================================                            |  60%
+  |
+  |=================================================                     |  70%
+  |
+  |========================================================              |  80%
+  |
+  |===============================================================       |  90%
+  |
+  |======================================================================| 100%
+
+✔ |         51 | bootstrap-framework
+
+⠏ |          0 | caching-framework
+⠧ |          8 | caching-framework
+✔ |         19 | caching-framework
+
+⠏ |          0 | comprehensive-fixes                                            PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠼ |          5 | comprehensive-fixes                                            PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠴ |          6 | comprehensive-fixes                                            PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠙ |         12 | comprehensive-fixes                                            PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠴ |         16 | comprehensive-fixes                                            PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠦ |         17 | comprehensive-fixes                                            PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+✔ |         21 | comprehensive-fixes [1.3s]
+
+⠏ |          0 | comprehensive-improvements                                     Multi-dimensional test fixes applied successfully.
+Fixed tests:
+- ripleys_k_test (2D and 3D)
+- scatter_test_3d
+- nearest_neighbor_test (3D only)
+- minimum_distance_test (3D only)
+
+⠏ |          0 | Comprehensive Improvements Test Suite
+⠙ |         42 | Comprehensive Improvements Test Suite
+⠼ |   1     54 | Comprehensive Improvements Test Suite
+  |
+  |                                                                      |   0%
+  |
+  |=                                                                     |   2%
+  |
+  |===                                                                   |   4%
+  |
+  |====                                                                  |   6%
+  |
+  |======                                                                |   8%
+  |
+  |=======                                                               |  10%
+  |
+  |========                                                              |  12%
+  |
+  |==========                                                            |  14%
+  |
+  |===========                                                           |  16%
+  |
+  |=============                                                         |  18%
+  |
+  |==============                                                        |  20%
+  |
+  |===============                                                       |  22%
+  |
+  |=================                                                     |  24%
+  |
+  |==================                                                    |  26%
+  |
+  |====================                                                  |  28%
+  |
+  |=====================                                                 |  30%
+  |
+  |======================                                                |  32%
+  |
+  |========================                                              |  34%
+  |
+  |=========================                                             |  36%
+  |
+  |===========================                                           |  38%
+  |
+  |============================                                          |  40%
+  |
+  |=============================                                         |  42%
+  |
+  |===============================                                       |  44%
+  |
+  |================================                                      |  46%
+  |
+  |==================================                                    |  48%
+  |
+  |===================================                                   |  50%
+  |
+  |====================================                                  |  52%
+  |
+  |======================================                                |  54%
+  |
+  |=======================================                               |  56%
+  |
+  |=========================================                             |  58%
+  |
+  |==========================================                            |  60%
+  |
+  |===========================================                           |  62%
+  |
+  |=============================================                         |  64%
+  |
+  |==============================================                        |  66%
+  |
+  |================================================                      |  68%
+  |
+  |=================================================                     |  70%
+  |
+  |==================================================                    |  72%
+  |
+  |====================================================                  |  74%
+  |
+  |=====================================================                 |  76%
+  |
+  |=======================================================               |  78%
+  |
+  |========================================================              |  80%
+  |
+  |=========================================================             |  82%
+  |
+  |===========================================================           |  84%
+  |
+  |============================================================          |  86%
+  |
+  |==============================================================        |  88%
+  |
+  |===============================================================       |  90%
+  |
+  |================================================================      |  92%
+  |
+  |==================================================================    |  94%
+  |
+  |===================================================================   |  96%
+  |
+  |===================================================================== |  98%
+  |
+  |======================================================================| 100%
+
+  |
+  |                                                                      |   0%
+  |
+  |=                                                                     |   2%
+  |
+  |===                                                                   |   4%
+  |
+  |====                                                                  |   6%
+  |
+  |======                                                                |   8%
+  |
+  |=======                                                               |  10%
+  |
+  |========                                                              |  12%
+  |
+  |==========                                                            |  14%
+  |
+  |===========                                                           |  16%
+  |
+  |=============                                                         |  18%
+  |
+  |==============                                                        |  20%
+  |
+  |===============                                                       |  22%
+  |
+  |=================                                                     |  24%
+  |
+  |==================                                                    |  26%
+  |
+  |====================                                                  |  28%
+  |
+  |=====================                                                 |  30%
+  |
+  |======================                                                |  32%
+  |
+  |========================                                              |  34%
+  |
+  |=========================                                             |  36%
+  |
+  |===========================                                           |  38%
+  |
+  |============================                                          |  40%
+  |
+  |=============================                                         |  42%
+  |
+  |===============================                                       |  44%
+  |
+  |================================                                      |  46%
+  |
+  |==================================                                    |  48%
+  |
+  |===================================                                   |  50%
+  |
+  |====================================                                  |  52%
+  |
+  |======================================                                |  54%
+  |
+  |=======================================                               |  56%
+  |
+  |=========================================                             |  58%
+  |
+  |==========================================                            |  60%
+  |
+  |===========================================                           |  62%
+  |
+  |=============================================                         |  64%
+  |
+  |==============================================                        |  66%
+  |
+  |================================================                      |  68%
+  |
+  |=================================================                     |  70%
+  |
+  |==================================================                    |  72%
+  |
+  |====================================================                  |  74%
+  |
+  |=====================================================                 |  76%
+  |
+  |=======================================================               |  78%
+  |
+  |========================================================              |  80%
+  |
+  |=========================================================             |  82%
+  |
+  |===========================================================           |  84%
+  |
+  |============================================================          |  86%
+  |
+  |==============================================================        |  88%
+  |
+  |===============================================================       |  90%
+  |
+  |================================================================      |  92%
+  |
+  |==================================================================    |  94%
+  |
+  |===================================================================   |  96%
+  |
+  |===================================================================== |  98%
+  |
+  |======================================================================| 100%
+
+⠴ |   2     54 | Comprehensive Improvements Test Suite
+  |
+  |                                                                      |   0%
+  |
+  |=                                                                     |   2%
+  |
+  |===                                                                   |   4%
+  |
+  |====                                                                  |   6%
+  |
+  |======                                                                |   8%
+  |
+  |=======                                                               |  10%
+  |
+  |========                                                              |  12%
+  |
+  |==========                                                            |  14%
+  |
+  |===========                                                           |  16%
+  |
+  |=============                                                         |  18%
+  |
+  |==============                                                        |  20%
+  |
+  |===============                                                       |  22%
+  |
+  |=================                                                     |  24%
+  |
+  |==================                                                    |  26%
+  |
+  |====================                                                  |  28%
+  |
+  |=====================                                                 |  30%
+  |
+  |======================                                                |  32%
+  |
+  |========================                                              |  34%
+  |
+  |=========================                                             |  36%
+  |
+  |===========================                                           |  38%
+  |
+  |============================                                          |  40%
+  |
+  |=============================                                         |  42%
+  |
+  |===============================                                       |  44%
+  |
+  |================================                                      |  46%
+  |
+  |==================================                                    |  48%
+  |
+  |===================================                                   |  50%
+  |
+  |====================================                                  |  52%
+  |
+  |======================================                                |  54%
+  |
+  |=======================================                               |  56%
+  |
+  |=========================================                             |  58%
+  |
+  |==========================================                            |  60%
+  |
+  |===========================================                           |  62%
+  |
+  |=============================================                         |  64%
+  |
+  |==============================================                        |  66%
+  |
+  |================================================                      |  68%
+  |
+  |=================================================                     |  70%
+  |
+  |==================================================                    |  72%
+  |
+  |====================================================                  |  74%
+  |
+  |=====================================================                 |  76%
+  |
+  |=======================================================               |  78%
+  |
+  |========================================================              |  80%
+  |
+  |=========================================================             |  82%
+  |
+  |===========================================================           |  84%
+  |
+  |============================================================          |  86%
+  |
+  |==============================================================        |  88%
+  |
+  |===============================================================       |  90%
+  |
+  |================================================================      |  92%
+  |
+  |==================================================================    |  94%
+  |
+  |===================================================================   |  96%
+  |
+  |===================================================================== |  98%
+  |
+  |======================================================================| 100%
+
+  |
+  |                                                                      |   0%
+  |
+  |=                                                                     |   2%
+  |
+  |===                                                                   |   4%
+  |
+  |====                                                                  |   6%
+  |
+  |======                                                                |   8%
+  |
+  |=======                                                               |  10%
+  |
+  |========                                                              |  12%
+  |
+  |==========                                                            |  14%
+  |
+  |===========                                                           |  16%
+  |
+  |=============                                                         |  18%
+  |
+  |==============                                                        |  20%
+  |
+  |===============                                                       |  22%
+  |
+  |=================                                                     |  24%
+  |
+  |==================                                                    |  26%
+  |
+  |====================                                                  |  28%
+  |
+  |=====================                                                 |  30%
+  |
+  |======================                                                |  32%
+  |
+  |========================                                              |  34%
+  |
+  |=========================                                             |  36%
+  |
+  |===========================                                           |  38%
+  |
+  |============================                                          |  40%
+  |
+  |=============================                                         |  42%
+  |
+  |===============================                                       |  44%
+  |
+  |================================                                      |  46%
+  |
+  |==================================                                    |  48%
+  |
+  |===================================                                   |  50%
+  |
+  |====================================                                  |  52%
+  |
+  |======================================                                |  54%
+  |
+  |=======================================                               |  56%
+  |
+  |=========================================                             |  58%
+  |
+  |==========================================                            |  60%
+  |
+  |===========================================                           |  62%
+  |
+  |=============================================                         |  64%
+  |
+  |==============================================                        |  66%
+  |
+  |================================================                      |  68%
+  |
+  |=================================================                     |  70%
+  |
+  |==================================================                    |  72%
+  |
+  |====================================================                  |  74%
+  |
+  |=====================================================                 |  76%
+  |
+  |=======================================================               |  78%
+  |
+  |========================================================              |  80%
+  |
+  |=========================================================             |  82%
+  |
+  |===========================================================           |  84%
+  |
+  |============================================================          |  86%
+  |
+  |==============================================================        |  88%
+  |
+  |===============================================================       |  90%
+  |
+  |================================================================      |  92%
+  |
+  |==================================================================    |  94%
+  |
+  |===================================================================   |  96%
+  |
+  |===================================================================== |  98%
+  |
+  |======================================================================| 100%
+
+⠦ |   3     54 | Comprehensive Improvements Test Suite
+⠇ |   5     54 | Comprehensive Improvements Test Suite
+⠏ |   6     54 | Comprehensive Improvements Test Suite
+⠙ |   8     54 | Comprehensive Improvements Test Suite
+✔ |   10  1  60 | Comprehensive Improvements Test Suite [12.2s]
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-comprehensive-improvements.R:297:7'): All improvements work together in comprehensive comparison
+NAs introduced by coercion to integer range
+Backtrace:
+     ▆
+  1. ├─base::tryCatch(...) at test-comprehensive-improvements.R:295:3
+  2. │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  3. │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  4. │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+  5. └─global compare_generators_comprehensive(...) at test-comprehensive-improvements.R:297:7
+  6.   └─global run_all_internal_tests(generators, sample_config, verbose)
+  7.     ├─base::tryCatch(...)
+  8.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  9.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 10.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 11.     └─global test_func(suite)
+ 12.       └─global numeric_to_bits_vectorized(x)
+
+Warning ('test-comprehensive-improvements.R:297:7'): All improvements work together in comprehensive comparison
+NAs introduced by coercion to integer range
+Backtrace:
+     ▆
+  1. ├─base::tryCatch(...) at test-comprehensive-improvements.R:295:3
+  2. │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  3. │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  4. │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+  5. └─global compare_generators_comprehensive(...) at test-comprehensive-improvements.R:297:7
+  6.   └─global run_all_internal_tests(generators, sample_config, verbose)
+  7.     ├─base::tryCatch(...)
+  8.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  9.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 10.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 11.     └─global test_func(suite)
+ 12.       └─global numeric_to_bits_vectorized(x)
+
+Warning ('test-comprehensive-improvements.R:297:7'): All improvements work together in comprehensive comparison
+NaNs produced
+Backtrace:
+    ▆
+ 1. ├─base::tryCatch(...) at test-comprehensive-improvements.R:295:3
+ 2. │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 3. │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 4. │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 5. └─global compare_generators_comprehensive(...) at test-comprehensive-improvements.R:297:7
+ 6.   └─global compare_generators_multidim(...)
+ 7.     └─global uniformity_test_2d(points)
+ 8.       └─global calculate_morans_i_2d(cell_counts, grid_size)
+
+Warning ('test-comprehensive-improvements.R:297:7'): All improvements work together in comprehensive comparison
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. ├─base::tryCatch(...) at test-comprehensive-improvements.R:295:3
+ 2. │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 3. │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 4. │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 5. └─global compare_generators_comprehensive(...) at test-comprehensive-improvements.R:297:7
+ 6.   └─global compare_generators_multidim(...)
+ 7.     └─global minimum_distance_test(points)
+ 8.       ├─stats::ks.test(min_distances, expected_cdf)
+ 9.       └─stats:::ks.test.default(min_distances, expected_cdf)
+
+Warning ('test-comprehensive-improvements.R:297:7'): All improvements work together in comprehensive comparison
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. ├─base::tryCatch(...) at test-comprehensive-improvements.R:295:3
+ 2. │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 3. │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 4. │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 5. └─global compare_generators_comprehensive(...) at test-comprehensive-improvements.R:297:7
+ 6.   └─global compare_generators_multidim(...)
+ 7.     └─global minimum_distance_test(points)
+ 8.       ├─stats::ks.test(min_distances, expected_cdf)
+ 9.       └─stats:::ks.test.default(min_distances, expected_cdf)
+
+Warning ('test-comprehensive-improvements.R:297:7'): All improvements work together in comprehensive comparison
+NaNs produced
+Backtrace:
+    ▆
+ 1. ├─base::tryCatch(...) at test-comprehensive-improvements.R:295:3
+ 2. │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 3. │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 4. │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 5. └─global compare_generators_comprehensive(...) at test-comprehensive-improvements.R:297:7
+ 6.   └─global compare_generators_multidim(...)
+ 7.     └─global uniformity_test_2d(points)
+ 8.       └─global calculate_morans_i_2d(cell_counts, grid_size)
+
+Warning ('test-comprehensive-improvements.R:297:7'): All improvements work together in comprehensive comparison
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. ├─base::tryCatch(...) at test-comprehensive-improvements.R:295:3
+ 2. │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 3. │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 4. │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 5. └─global compare_generators_comprehensive(...) at test-comprehensive-improvements.R:297:7
+ 6.   └─global compare_generators_multidim(...)
+ 7.     └─global minimum_distance_test(points)
+ 8.       ├─stats::ks.test(min_distances, expected_cdf)
+ 9.       └─stats:::ks.test.default(min_distances, expected_cdf)
+
+Warning ('test-comprehensive-improvements.R:297:7'): All improvements work together in comprehensive comparison
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. ├─base::tryCatch(...) at test-comprehensive-improvements.R:295:3
+ 2. │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 3. │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 4. │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 5. └─global compare_generators_comprehensive(...) at test-comprehensive-improvements.R:297:7
+ 6.   └─global compare_generators_multidim(...)
+ 7.     └─global minimum_distance_test(points)
+ 8.       ├─stats::ks.test(min_distances, expected_cdf)
+ 9.       └─stats:::ks.test.default(min_distances, expected_cdf)
+
+Warning ('test-comprehensive-improvements.R:297:7'): All improvements work together in comprehensive comparison
+No p-values found in test results. No adjustment performed.
+Backtrace:
+    ▆
+ 1. ├─base::tryCatch(...) at test-comprehensive-improvements.R:295:3
+ 2. │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 3. │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 4. │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 5. └─global compare_generators_comprehensive(...) at test-comprehensive-improvements.R:297:7
+ 6.   └─global adjust_p_values(unified_suite, method = p_adjustment_method)
+
+Warning ('test-comprehensive-improvements.R:337:3'): Functions handle edge cases gracefully
+No p-values found in test results. No adjustment performed.
+Backtrace:
+    ▆
+ 1. └─global adjust_p_values(empty_suite, method = "BH") at test-comprehensive-improvements.R:337:3
+────────────────────────────────────────────────────────────────────────────────
+
+⠏ |          0 | compression-bootstrap
+⠹ |   2      1 | compression-bootstrap
+⠧ |   4  1   3 | compression-bootstrap
+⠋ |   6  1   4 | compression-bootstrap
+⠙ |   8  1  13 | compression-bootstrap
+⠏ |   10  1  19 | compression-bootstrap
+⠴ |   12  2  22 | compression-bootstrap
+⠇ |   15  2  22 | compression-bootstrap
+✔ |   15  2  29 | compression-bootstrap [4.2s]
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-compression-bootstrap.R:77:3'): compression ratio bootstrap test works correctly
+Error testing algorithm gzip : 'data' must be a numeric vector with at least 2 elements
+Backtrace:
+    ▆
+ 1. └─global run_compression_tests_bootstrap(suite, use_legacy = FALSE) at test-compression-bootstrap.R:77:3
+ 2.   └─base::tryCatch(...)
+ 3.     └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.       └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.         └─value[[3L]](cond)
+
+Warning ('test-compression-bootstrap.R:77:3'): compression ratio bootstrap test works correctly
+Error testing algorithm bzip2 : 'data' must be a numeric vector with at least 2 elements
+Backtrace:
+    ▆
+ 1. └─global run_compression_tests_bootstrap(suite, use_legacy = FALSE) at test-compression-bootstrap.R:77:3
+ 2.   └─base::tryCatch(...)
+ 3.     └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.       └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.         └─value[[3L]](cond)
+
+Warning ('test-compression-bootstrap.R:118:3'): compression test detects non-random data
+Error testing algorithm gzip : 'data' must be a numeric vector with at least 2 elements
+Backtrace:
+    ▆
+ 1. └─global run_compression_tests_bootstrap(suite, use_legacy = FALSE) at test-compression-bootstrap.R:118:3
+ 2.   └─base::tryCatch(...)
+ 3.     └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.       └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.         └─value[[3L]](cond)
+
+Warning ('test-compression-bootstrap.R:118:3'): compression test detects non-random data
+Error testing algorithm bzip2 : 'data' must be a numeric vector with at least 2 elements
+Backtrace:
+    ▆
+ 1. └─global run_compression_tests_bootstrap(suite, use_legacy = FALSE) at test-compression-bootstrap.R:118:3
+ 2.   └─base::tryCatch(...)
+ 3.     └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.       └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.         └─value[[3L]](cond)
+
+Warning ('test-compression-bootstrap.R:138:3'): entropy bootstrap test works correctly
+Error testing algorithm gzip : 'data' must be a numeric vector with at least 2 elements
+Backtrace:
+    ▆
+ 1. └─global run_compression_tests_bootstrap(suite, use_legacy = FALSE) at test-compression-bootstrap.R:138:3
+ 2.   └─base::tryCatch(...)
+ 3.     └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.       └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.         └─value[[3L]](cond)
+
+Warning ('test-compression-bootstrap.R:138:3'): entropy bootstrap test works correctly
+Error testing algorithm bzip2 : 'data' must be a numeric vector with at least 2 elements
+Backtrace:
+    ▆
+ 1. └─global run_compression_tests_bootstrap(suite, use_legacy = FALSE) at test-compression-bootstrap.R:138:3
+ 2.   └─base::tryCatch(...)
+ 3.     └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.       └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.         └─value[[3L]](cond)
+
+Warning ('test-compression-bootstrap.R:166:3'): byte frequency Monte Carlo test works correctly
+Error testing algorithm gzip : 'data' must be a numeric vector with at least 2 elements
+Backtrace:
+    ▆
+ 1. └─global run_compression_tests_bootstrap(suite, use_legacy = FALSE) at test-compression-bootstrap.R:166:3
+ 2.   └─base::tryCatch(...)
+ 3.     └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.       └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.         └─value[[3L]](cond)
+
+Warning ('test-compression-bootstrap.R:166:3'): byte frequency Monte Carlo test works correctly
+Error testing algorithm bzip2 : 'data' must be a numeric vector with at least 2 elements
+Backtrace:
+    ▆
+ 1. └─global run_compression_tests_bootstrap(suite, use_legacy = FALSE) at test-compression-bootstrap.R:166:3
+ 2.   └─base::tryCatch(...)
+ 3.     └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.       └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.         └─value[[3L]](cond)
+
+Warning ('test-compression-bootstrap.R:191:3'): multiple compression algorithms work correctly
+Error testing algorithm gzip : 'data' must be a numeric vector with at least 2 elements
+Backtrace:
+    ▆
+ 1. └─global run_compression_tests_bootstrap(suite, use_legacy = FALSE) at test-compression-bootstrap.R:191:3
+ 2.   └─base::tryCatch(...)
+ 3.     └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.       └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.         └─value[[3L]](cond)
+
+Warning ('test-compression-bootstrap.R:191:3'): multiple compression algorithms work correctly
+Error testing algorithm bzip2 : 'data' must be a numeric vector with at least 2 elements
+Backtrace:
+    ▆
+ 1. └─global run_compression_tests_bootstrap(suite, use_legacy = FALSE) at test-compression-bootstrap.R:191:3
+ 2.   └─base::tryCatch(...)
+ 3.     └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.       └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.         └─value[[3L]](cond)
+
+Warning ('test-compression-bootstrap.R:240:3'): KDE p-value calculation works correctly
+Error testing algorithm gzip : 'data' must be a numeric vector with at least 2 elements
+Backtrace:
+    ▆
+ 1. └─global run_compression_tests_bootstrap(suite, use_legacy = FALSE) at test-compression-bootstrap.R:240:3
+ 2.   └─base::tryCatch(...)
+ 3.     └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.       └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.         └─value[[3L]](cond)
+
+Warning ('test-compression-bootstrap.R:240:3'): KDE p-value calculation works correctly
+Error testing algorithm bzip2 : 'data' must be a numeric vector with at least 2 elements
+Backtrace:
+    ▆
+ 1. └─global run_compression_tests_bootstrap(suite, use_legacy = FALSE) at test-compression-bootstrap.R:240:3
+ 2.   └─base::tryCatch(...)
+ 3.     └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.       └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.         └─value[[3L]](cond)
+
+Warning ('test-compression-bootstrap.R:263:3'): bootstrap distributions are stored correctly
+Error testing algorithm gzip : 'data' must be a numeric vector with at least 2 elements
+Backtrace:
+    ▆
+ 1. └─global run_compression_tests_bootstrap(suite, use_legacy = FALSE) at test-compression-bootstrap.R:263:3
+ 2.   └─base::tryCatch(...)
+ 3.     └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.       └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.         └─value[[3L]](cond)
+
+Warning ('test-compression-bootstrap.R:263:3'): bootstrap distributions are stored correctly
+Error testing algorithm bzip2 : 'data' must be a numeric vector with at least 2 elements
+Backtrace:
+    ▆
+ 1. └─global run_compression_tests_bootstrap(suite, use_legacy = FALSE) at test-compression-bootstrap.R:263:3
+ 2.   └─base::tryCatch(...)
+ 3.     └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.       └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.         └─value[[3L]](cond)
+
+Warning ('test-compression-bootstrap.R:263:3'): bootstrap distributions are stored correctly
+Not enough data for Maurer's test with given parameters
+Backtrace:
+    ▆
+ 1. └─global run_compression_tests_bootstrap(suite, use_legacy = FALSE) at test-compression-bootstrap.R:263:3
+ 2.   └─maurers_universal_test(x)
+────────────────────────────────────────────────────────────────────────────────
+
+⠏ |          0 | config-manager
+⠙ |   1  1  20 | config-manager
+✔ |   1  1  23 | config-manager
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-config-manager.R:42:3'): Tool path resolution works
+Tool ent not found at path: ent
+Backtrace:
+    ▆
+ 1. └─global validate_tool_config("ent", config$external_tools) at test-config-manager.R:42:3
+ 2.   └─base::tryCatch(...)
+ 3.     └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.       └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.         └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+────────────────────────────────────────────────────────────────────────────────
+
+⠏ |          0 | config
+⠏ |          0 | Configuration tests                                            PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠹ |          3 | Configuration tests                                            PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠧ |         18 | Configuration tests                                            PRNG cleanup completed successfully
+
+✔ |         18 | Configuration tests
+
+⠏ |          0 | crypto-security                                                Testing Security Fixes in Crypto Mixing
+========================================
+
+Test 1: Crypto mixing with secure random
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+  PASSED: Different sequences without seed (properly randomized)
+
+Test 2: Warning when using deterministic seed with crypto
+  ERROR:  SECURITY ERROR: Using deterministic seed with crypto mixing defeats cryptographic security. Either disable crypto mixing or remove the seed.
+
+Test 3: Thread safety of crypto mixing
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+  Thread 1: SUCCESS (generated 100 values, mean=0.4543)
+  Thread 2: SUCCESS (generated 100 values, mean=0.5023)
+  Thread 3: SUCCESS (generated 100 values, mean=0.5120)
+  Thread 4: SUCCESS (generated 100 values, mean=0.4749)
+  All threads completed successfully
+
+Test 4: Libsodium initialization thread safety
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+  PASSED: All 8 threads initialized libsodium safely
+
+Test 5: Statistical randomness of crypto mixing
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+  PASSED: All sequences are different (properly randomized)
+  Mean: 0.4972 (expected ~0.5)
+  SD: 0.2877 (expected ~0.29)
+  Statistical properties look good
+
+========================================
+Security fix tests completed!
+WARNING: Some security tests did not pass as expected
+
+⠏ |          0 | data-structure-fixes
+⠇ |         19 | data-structure-fixes
+⠋ |   1     40 | data-structure-fixes
+⠦ |   2     75 | data-structure-fixes
+⠏ |   3     77 | data-structure-fixes
+✔ |   4     83 | data-structure-fixes [3.3s]
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-data-structure-fixes.R:95:3'): External tests use wrapper implementation
+no non-missing arguments to min; returning Inf
+Backtrace:
+    ▆
+ 1. └─global run_external_tests(suite) at test-data-structure-fixes.R:95:3
+ 2.   └─global run_external_wrapper_tests(...)
+ 3.     └─global run_cryptrndtest_suite(x, alpha = suite$config$significance_level)
+ 4.       └─base::tryCatch(...)
+ 5.         └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 6.           └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 7.             └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+
+Warning ('test-data-structure-fixes.R:95:3'): External tests use wrapper implementation
+no non-missing arguments to min; returning Inf
+Backtrace:
+    ▆
+ 1. └─global run_external_tests(suite) at test-data-structure-fixes.R:95:3
+ 2.   └─global run_external_wrapper_tests(...)
+ 3.     └─global run_cryptrndtest_suite(x, alpha = suite$config$significance_level)
+ 4.       ├─base::tryCatch(...)
+ 5.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 6.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 7.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 8.       └─base::ifelse(...)
+
+Warning ('test-data-structure-fixes.R:198:3'): External wrapper integration works correctly
+no non-missing arguments to min; returning Inf
+Backtrace:
+     ▆
+  1. ├─testthat::expect_no_error(suite <- run_external_tests(suite)) at test-data-structure-fixes.R:198:3
+  2. │ └─testthat:::expect_no_(...)
+  3. │   └─testthat:::quasi_capture(enquo(object), NULL, capture)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─rlang::try_fetch(...)
+  6. │     │   ├─base::tryCatch(...)
+  7. │     │   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8. │     │   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9. │     │   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10. │     │   └─base::withCallingHandlers(...)
+ 11. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 12. └─global run_external_tests(suite)
+ 13.   └─global run_external_wrapper_tests(...)
+ 14.     └─global run_cryptrndtest_suite(x, alpha = suite$config$significance_level)
+ 15.       └─base::tryCatch(...)
+ 16.         └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 17.           └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 18.             └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+
+Warning ('test-data-structure-fixes.R:198:3'): External wrapper integration works correctly
+no non-missing arguments to min; returning Inf
+Backtrace:
+     ▆
+  1. ├─testthat::expect_no_error(suite <- run_external_tests(suite)) at test-data-structure-fixes.R:198:3
+  2. │ └─testthat:::expect_no_(...)
+  3. │   └─testthat:::quasi_capture(enquo(object), NULL, capture)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─rlang::try_fetch(...)
+  6. │     │   ├─base::tryCatch(...)
+  7. │     │   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8. │     │   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9. │     │   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10. │     │   └─base::withCallingHandlers(...)
+ 11. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 12. └─global run_external_tests(suite)
+ 13.   └─global run_external_wrapper_tests(...)
+ 14.     └─global run_cryptrndtest_suite(x, alpha = suite$config$significance_level)
+ 15.       ├─base::tryCatch(...)
+ 16.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 17.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 18.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 19.       └─base::ifelse(...)
+────────────────────────────────────────────────────────────────────────────────
+
+⠏ |          0 | destructor-fix                                                 Test 1: Simple creation and destruction
+PRNG cleanup completed successfully
+  Iteration 1 completed
+PRNG cleanup completed successfully
+  Iteration 2 completed
+PRNG cleanup completed successfully
+  Iteration 3 completed
+PRNG cleanup completed successfully
+  Iteration 4 completed
+PRNG cleanup completed successfully
+  Iteration 5 completed
+PRNG cleanup completed successfully
+  Iteration 6 completed
+PRNG cleanup completed successfully
+  Iteration 7 completed
+PRNG cleanup completed successfully
+  Iteration 8 completed
+PRNG cleanup completed successfully
+  Iteration 9 completed
+PRNG cleanup completed successfully
+  Iteration 10 completed
+Test 1 PASSED
+
+Test 2: Concurrent generation and cleanup
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+Test 2 PASSED
+
+Test 3: Rapid creation/destruction cycles
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+  Cycle 1 completed (20 iterations each)
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+  Cycle 2 completed (20 iterations each)
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+  Cycle 3 completed (20 iterations each)
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+  Cycle 4 completed (20 iterations each)
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+  Cycle 5 completed (20 iterations each)
+Test 3 PASSED
+
+Test 4: Different distributions
+PRNG cleanup completed successfully
+  Distribution uniform_01 tested successfully
+PRNG cleanup completed successfully
+  Distribution normal tested successfully
+PRNG cleanup completed successfully
+  Distribution exponential tested successfully
+PRNG cleanup completed successfully
+  Distribution gamma tested successfully
+PRNG cleanup completed successfully
+  Distribution beta tested successfully
+Test 4 PASSED
+
+All tests completed successfully!
+No segfaults or race conditions detected.
+
+⠏ |          0 | deterministic-mode                                             PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠙ |          2 | deterministic-mode                                             PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠸ | 1        3 | deterministic-mode                                             PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠧ | 1        7 | deterministic-mode                                             PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠋ | 1       10 | deterministic-mode                                             PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠧ | 1 1  1  15 | deterministic-mode                                             PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠙ | 1 1  1  19 | deterministic-mode                                             PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠼ | 1 1  1  22 | deterministic-mode
+✖ | 1 1  1  22 | deterministic-mode
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-deterministic-mode.R:51:3'): Deterministic mode works with jump-ahead
+`jump_seq` not equal to ref_seq[1001:2000].
+1000/1000 mismatches (average diff: 0.33)
+[1] 0.248 - 0.8098 == -0.561
+[2] 0.279 - 0.0952 ==  0.183
+[3] 0.297 - 0.9439 == -0.646
+[4] 0.585 - 0.8662 == -0.281
+[5] 0.766 - 0.3860 ==  0.380
+[6] 0.610 - 0.5458 ==  0.064
+[7] 0.477 - 0.6227 == -0.146
+[8] 0.861 - 0.2105 ==  0.650
+[9] 0.520 - 0.9922 == -0.472
+...
+
+Warning ('test-deterministic-mode.R:140:3'): Invalid seed values are rejected
+NAs introduced by coercion
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-deterministic-mode.R:140:3
+ 2. │ └─testthat:::quasi_capture(...)
+ 3. │   ├─testthat (local) .capture(...)
+ 4. │   │ └─base::withCallingHandlers(...)
+ 5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 6. └─qiprng::createPRNG(list(seed = "not_a_number", use_crypto_mixing = FALSE))
+────────────────────────────────────────────────────────────────────────────────
+
+⠏ |          0 | distributions
+⠏ |          0 | Distribution Tests                                             PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+✔ |         20 | Distribution Tests
+
+⠏ |          0 | external-wrappers
+⠙ |   1  1   0 | external-wrappers
+⠼ |   3  1  21 | external-wrappers
+✔ |   4  1  30 | external-wrappers
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-external-wrappers.R:50:3'): CryptRndTest wrapper functions work correctly
+no non-missing arguments to min; returning Inf
+Backtrace:
+    ▆
+ 1. └─global run_cryptrndtest_suite(x, test_type = "all") at test-external-wrappers.R:50:3
+ 2.   └─base::tryCatch(...)
+ 3.     └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.       └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.         └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+
+Warning ('test-external-wrappers.R:50:3'): CryptRndTest wrapper functions work correctly
+no non-missing arguments to min; returning Inf
+Backtrace:
+    ▆
+ 1. └─global run_cryptrndtest_suite(x, test_type = "all") at test-external-wrappers.R:50:3
+ 2.   ├─base::tryCatch(...)
+ 3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 6.   └─base::ifelse(...)
+
+Warning ('test-external-wrappers.R:132:3'): external wrapper integration function works correctly
+no non-missing arguments to min; returning Inf
+Backtrace:
+    ▆
+ 1. └─global run_external_wrapper_tests(...) at test-external-wrappers.R:132:3
+ 2.   └─global run_cryptrndtest_suite(x, alpha = suite$config$significance_level)
+ 3.     └─base::tryCatch(...)
+ 4.       └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 5.         └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 6.           └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+
+Warning ('test-external-wrappers.R:132:3'): external wrapper integration function works correctly
+no non-missing arguments to min; returning Inf
+Backtrace:
+    ▆
+ 1. └─global run_external_wrapper_tests(...) at test-external-wrappers.R:132:3
+ 2.   └─global run_cryptrndtest_suite(x, alpha = suite$config$significance_level)
+ 3.     ├─base::tryCatch(...)
+ 4.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 5.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 6.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 7.     └─base::ifelse(...)
+────────────────────────────────────────────────────────────────────────────────
+
+⠏ |          0 | jump-ahead-performance
+⠏ |          0 | Jump-Ahead Performance Tests                                   PRNG cleanup completed successfully
+
+⠼ |   1      4 | Jump-Ahead Performance Tests                                   PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+Jump-ahead performance scaling:
+1,000 steps: 0.36 ms
+10,000 steps: 0.34 ms ( 1 x)
+100,000 steps: 0.35 ms ( 1 x)
+
+⠴ |   1      5 | Jump-Ahead Performance Tests                                   PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+✔ |   1  1  12 | Jump-Ahead Performance Tests
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-jump-ahead-performance.R:60:5'): Jump-ahead performance scales better than O(n)
+less accurate nanosecond times to avoid potential integer overflows
+Backtrace:
+    ▆
+ 1. └─microbenchmark::microbenchmark(...) at test-jump-ahead-performance.R:60:5
+────────────────────────────────────────────────────────────────────────────────
+
+⠏ |          0 | jump-algorithms
+⠏ |          0 | Jump-Ahead Algorithm Tests
+⠧ |   4      4 | Jump-Ahead Algorithm Tests
+⠇ |   4      5 | Jump-Ahead Algorithm Tests                                     PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠦ |   4     23 | Jump-Ahead Algorithm Tests                                     PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+Jump-ahead algorithm performance (1e+05 steps):
+MPFR_MATRIX: 25.67 ms
+MODULAR_MERSENNE: 21.18 ms
+
+⠋ |   4     27 | Jump-Ahead Algorithm Tests                                     PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+✔ |   4     35 | Jump-Ahead Algorithm Tests [1.0s]
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-jump-algorithms.R:51:5'): All jump-ahead algorithms work correctly
+Matrix overflow in jump-ahead, using step-by-step: Matrix multiplication overflow in jump-ahead operation
+Backtrace:
+    ▆
+ 1. └─qiprng::jumpAheadPRNG(10000) at test-jump-algorithms.R:51:5
+ 2.   └─qiprng:::.jumpAheadPRNG_(as.numeric(n)) at qiprng/R/prng_interface.R:575:3
+
+Warning ('test-jump-algorithms.R:51:5'): All jump-ahead algorithms work correctly
+Matrix overflow in jump-ahead, using step-by-step: Matrix multiplication overflow in jump-ahead operation
+Backtrace:
+    ▆
+ 1. └─qiprng::jumpAheadPRNG(10000) at test-jump-algorithms.R:51:5
+ 2.   └─qiprng:::.jumpAheadPRNG_(as.numeric(n)) at qiprng/R/prng_interface.R:575:3
+
+Warning ('test-jump-algorithms.R:64:9'): All jump-ahead algorithms work correctly
+Matrix overflow in jump-ahead, using step-by-step: Matrix multiplication overflow in jump-ahead operation
+Backtrace:
+    ▆
+ 1. ├─base::tryCatch(...) at test-jump-algorithms.R:62:5
+ 2. │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 3. │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 4. │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 5. └─qiprng::jumpAheadPRNG(1e+06) at test-jump-algorithms.R:64:9
+ 6.   └─qiprng:::.jumpAheadPRNG_(as.numeric(n)) at qiprng/R/prng_interface.R:575:3
+
+Warning ('test-jump-algorithms.R:64:9'): All jump-ahead algorithms work correctly
+Matrix overflow in jump-ahead, using step-by-step: Matrix multiplication overflow in jump-ahead operation
+Backtrace:
+    ▆
+ 1. ├─base::tryCatch(...) at test-jump-algorithms.R:62:5
+ 2. │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 3. │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 4. │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 5. └─qiprng::jumpAheadPRNG(1e+06) at test-jump-algorithms.R:64:9
+ 6.   └─qiprng:::.jumpAheadPRNG_(as.numeric(n)) at qiprng/R/prng_interface.R:575:3
+────────────────────────────────────────────────────────────────────────────────
+
+⠏ |          0 | multidim-tests
+⠏ |          0 | Multidimensional Statistical Tests
+⠸ |   2     62 | Multidimensional Statistical Tests
+⠼ |   5  1  79 | Multidimensional Statistical Tests
+=== Running 2D Tests ===
+Running bootstrap for grid_uniformity test...
+Running bootstrap for nearest_neighbor test...
+
+⠋ |   7  1  83 | Multidimensional Statistical Tests                             Multi-dimensional test fixes applied successfully.
+Fixed tests:
+- ripleys_k_test (2D and 3D)
+- scatter_test_3d
+- nearest_neighbor_test (3D only)
+- minimum_distance_test (3D only)
+Original multi-dimensional tests restored.
+
+✔ |   7  2 104 | Multidimensional Statistical Tests
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-multidim-tests.R:154:3'): uniformity_test_2d performs 2D specific tests
+NaNs produced
+Backtrace:
+    ▆
+ 1. └─global uniformity_test_2d(points, grid_size = 8) at test-multidim-tests.R:154:3
+ 2.   └─global calculate_morans_i_2d(cell_counts, grid_size)
+
+Warning ('test-multidim-tests.R:198:3'): minimum_distance_test analyzes minimum distances
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. └─global minimum_distance_test(points, theoretical_dist = "poisson") at test-multidim-tests.R:198:3
+ 2.   ├─stats::ks.test(min_distances, expected_cdf)
+ 3.   └─stats:::ks.test.default(min_distances, expected_cdf)
+
+Warning ('test-multidim-tests.R:272:3'): run_specific_multidim_tests adds specific tests
+NaNs produced
+Backtrace:
+    ▆
+ 1. └─global run_specific_multidim_tests(suite, dimensions = 2) at test-multidim-tests.R:272:3
+ 2.   └─global uniformity_test_2d(points)
+ 3.     └─global calculate_morans_i_2d(cell_counts, grid_size)
+
+Warning ('test-multidim-tests.R:272:3'): run_specific_multidim_tests adds specific tests
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. └─global run_specific_multidim_tests(suite, dimensions = 2) at test-multidim-tests.R:272:3
+ 2.   └─global minimum_distance_test(points)
+ 3.     ├─stats::ks.test(min_distances, expected_cdf)
+ 4.     └─stats:::ks.test.default(min_distances, expected_cdf)
+
+Warning ('test-multidim-tests.R:280:3'): run_specific_multidim_tests adds specific tests
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. └─global run_specific_multidim_tests(suite, dimensions = 3) at test-multidim-tests.R:280:3
+ 2.   └─global minimum_distance_test(points)
+ 3.     ├─stats::ks.test(min_distances, expected_cdf)
+ 4.     └─stats:::ks.test.default(min_distances, expected_cdf)
+
+Warning ('test-multidim-tests.R:290:3'): run_multidimensional_tests wrapper works correctly
+NaNs produced
+Backtrace:
+    ▆
+ 1. └─global run_multidimensional_tests(...) at test-multidim-tests.R:290:3
+ 2.   └─global run_specific_multidim_tests(suite, dimensions = d)
+ 3.     └─global uniformity_test_2d(points)
+ 4.       └─global calculate_morans_i_2d(cell_counts, grid_size)
+
+Warning ('test-multidim-tests.R:290:3'): run_multidimensional_tests wrapper works correctly
+ties should not be present for the one-sample Kolmogorov-Smirnov test
+Backtrace:
+    ▆
+ 1. └─global run_multidimensional_tests(...) at test-multidim-tests.R:290:3
+ 2.   └─global run_specific_multidim_tests(suite, dimensions = d)
+ 3.     └─global minimum_distance_test(points)
+ 4.       ├─stats::ks.test(min_distances, expected_cdf)
+ 5.       └─stats:::ks.test.default(min_distances, expected_cdf)
+────────────────────────────────────────────────────────────────────────────────
+
+⠏ |          0 | new-distributions
+⠏ |          0 | New Distribution Tests                                         PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠏ |   1      9 | New Distribution Tests                                         PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠏ |   1     19 | New Distribution Tests                                         PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠇ |   1     28 | New Distribution Tests                                         PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+✔ |   1     33 | New Distribution Tests
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-new-distributions.R:66:3'): Binomial distribution properties
+p-value will be approximate in the presence of ties
+Backtrace:
+    ▆
+ 1. ├─stats::ks.test(nums, r_binom) at test-new-distributions.R:66:3
+ 2. └─stats:::ks.test.default(nums, r_binom)
+────────────────────────────────────────────────────────────────────────────────
+
+⠏ |          0 | overflow-safety                                                Testing Integer Overflow Protection in Discriminant Calculations
+================================================================
+
+Test 1: Normal values
+PRNG cleanup completed successfully
+  Case 1 (a=2, b=5, c=-2): PASSED
+PRNG cleanup completed successfully
+  Case 2 (a=1, b=3, c=-1): PASSED
+PRNG cleanup completed successfully
+  Case 3 (a=3, b=7, c=-4): PASSED
+PRNG cleanup completed successfully
+  Case 4 (a=5, b=11, c=-6): PASSED
+
+Test 2: Large values (potential overflow on 32-bit)
+PRNG cleanup completed successfully
+  Case 1 (a=100000, b=200000, c=-50000): PASSED
+PRNG cleanup completed successfully
+  Case 2 (a=500000, b=1000000, c=-100000): PASSED
+PRNG cleanup completed successfully
+  Case 3 (a=1000000, b=2000000, c=-500000): PASSED
+
+Test 3: Near INT_MAX values (should trigger overflow protection)
+PRNG cleanup completed successfully
+  Case 1: PROTECTED - Overflow handled gracefully
+  Case 2: ERROR - Invalid quadratic parameters: discriminant must be positive
+PRNG cleanup completed successfully
+  Case 3: PROTECTED - Overflow handled gracefully
+
+Test 4: Invalid discriminant (should be rejected)
+  Case 1 (a=1, b=2, c=2): CORRECTLY REJECTED
+  Case 2 (a=2, b=2, c=1): CORRECTLY REJECTED
+  Case 3 (a=1, b=0, c=1): CORRECTLY REJECTED
+
+Test 5: Edge cases
+PRNG cleanup completed successfully
+  Case 1 (a=1, b=1, c=-1, disc=5): PASSED
+PRNG cleanup completed successfully
+  Case 2 (a=-1, b=3, c=2, disc=17): PASSED
+PRNG cleanup completed successfully
+  Case 3 (a=2, b=-5, c=-3, disc=49): PASSED
+PRNG cleanup completed successfully
+  Case 4 (a=-2, b=-5, c=3, disc=49): PASSED
+
+Test 6: Concurrent discriminant calculations
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+  Thread 1: SUCCESS (generated 100 values)
+  Thread 2: SUCCESS (generated 100 values)
+  Thread 3: SUCCESS (generated 100 values)
+  Thread 4: SUCCESS (generated 100 values)
+  All threads handled correctly
+
+================================================================
+Overflow protection tests completed!
+The safe_calculate_discriminant function is working correctly.
+
+⠏ |          0 | p-value-adjustment
+✔ |         19 | p-value-adjustment
+
+⠏ |          0 | parallel-buffer
+⠏ |          0 | Parallel Buffer Filling Tests                                  PRNG cleanup completed successfully
+
+⠼ |      1   4 | Parallel Buffer Filling Tests                                  PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠇ |      1  18 | Parallel Buffer Filling Tests
+✔ |      1  22 | Parallel Buffer Filling Tests
+
+⠏ |          0 | parallel-thread-safety-stress
+⠙ |      1   1 | parallel-thread-safety-stress
+⠼ |      2   3 | parallel-thread-safety-stress
+⠴ |      2   4 | parallel-thread-safety-stress
+=== Parallel Thread Safety Stress Tests Complete ===
+All stress tests passed. The parallel execution framework appears to be thread-safe.
+Recommendations:
+- Continue monitoring for race conditions in production use
+- Consider implementing thread-safe logging for debugging
+- Review cache file locking mechanisms for high-concurrency scenarios
+
+✔ |      2   5 | parallel-thread-safety-stress [2.8s]
+
+⠏ |          0 | persistent-thread-pool
+⠏ |          0 | Persistent Thread Pool Tests                                   Batch 1: 0.2926 seconds (mean=0.0015, sd=1.0119)
+Batch 2: 0.2742 seconds (mean=-0.0114, sd=1.0007)
+Batch 3: 0.2609 seconds (mean=-0.0146, sd=0.9889)
+Batch 4: 0.2486 seconds (mean=-0.0137, sd=0.9983)
+Batch 5: 0.2786 seconds (mean=-0.0040, sd=1.0019)
+
+Time comparison:
+First batch: 0.2926 seconds
+Average of subsequent batches: 0.2656 seconds
+Thread pool persistence provides 1.10x speedup
+
+⠋ |          1 | Persistent Thread Pool Tests                                   PRNG cleanup completed successfully
+Correlation between pre-reseed and post-reseed: 0.0003
+
+⠋ |         11 | Persistent Thread Pool Tests                                   PRNG cleanup completed successfully
+
+✔ |         15 | Persistent Thread Pool Tests [2.5s]
+
+⠏ |          0 | prng
+⠏ |          0 | PRNG functionality
+⠏ |         10 | PRNG functionality
+✔ |         15 | PRNG functionality
+
+⠏ |          0 | qiprng
+⠋ |         11 | qiprng
+✔ |         14 | qiprng
+
+⠏ |          0 | reporter
+⠏ |          0 | thread-pool-efficiency
+⠏ |          0 | Thread Pool Efficiency Tests                                   PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+No threading:          0.0265 seconds (mean=-0.0076, sd=0.9990)
+Threading only:        0.0270 seconds (mean=0.0067, sd=0.9994)
+Threading + parallel:  1.2684 seconds (mean=0.0069, sd=0.9972)
+
+Performance comparison:
+- Thread optimization doesn't improve performance in this test
+- Parallel filling doesn't improve performance in this test
+
+⠋ |          1 | Thread Pool Efficiency Tests                                   PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+Ziggurat method:   0.0267 seconds (mean=0.0001, sd=1.0036)
+Box-Muller method: 0.0374 seconds (mean=0.0011, sd=1.0049)
+
+Ziggurat is 1.40x faster than Box-Muller in threaded mode
+
+⠦ |          7 | Thread Pool Efficiency Tests
+✔ |         10 | Thread Pool Efficiency Tests [1.6s]
+
+⠏ |          0 | threading
+⠏ |          0 | Threading tests
+⠋ |          1 | Threading tests
+✔ |          6 | Threading tests
+
+⠏ |          0 | tls-cleanup                                                    Testing Thread-Local Storage Cleanup
+=====================================
+
+Test 1: Normal distribution with TLS
+PRNG cleanup completed successfully
+  Iteration 1 completed
+PRNG cleanup completed successfully
+  Iteration 2 completed
+PRNG cleanup completed successfully
+  Iteration 3 completed
+PRNG cleanup completed successfully
+  Iteration 4 completed
+PRNG cleanup completed successfully
+  Iteration 5 completed
+Test 1 PASSED
+
+Test 2: Parallel thread operations
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+  Thread 1 OK: generated 1000 values
+  Thread 2 OK: generated 1000 values
+  Thread 3 OK: generated 1000 values
+  Thread 4 OK: generated 1000 values
+  Thread 5 OK: generated 1000 values
+  Thread 6 OK: generated 1000 values
+  Thread 7 OK: generated 1000 values
+  Thread 8 OK: generated 1000 values
+Test 2 PASSED
+
+Test 3: Rapid TLS creation/destruction cycles
+  Cycle 1 ...
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+    Completed 50 iterations
+  Cycle 2 ...
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+    Completed 50 iterations
+  Cycle 3 ...
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+    Completed 50 iterations
+Test 3 PASSED
+
+Test 4: Mixed distributions with TLS
+PRNG cleanup completed successfully
+  Distribution normal PASSED (generated 1000 values)
+PRNG cleanup completed successfully
+  Distribution uniform_01 PASSED (generated 1000 values)
+PRNG cleanup completed successfully
+  Distribution exponential PASSED (generated 1000 values)
+Test 4 PASSED
+
+Test 5: Thread exit cleanup simulation
+  Subprocess 1 OK
+  Subprocess 2 OK
+  Subprocess 3 OK
+  Subprocess 4 OK
+  Subprocess 5 OK
+  Subprocess 6 OK
+  Subprocess 7 OK
+  Subprocess 8 OK
+  Subprocess 9 OK
+  Subprocess 10 OK
+Test 5 PASSED
+
+
+=====================================
+All TLS cleanup tests completed successfully!
+No use-after-free or TLS issues detected.
+
+⠏ |          0 | v0_5_0_features
+⠏ |          0 | v0.5.0 Feature Tests                                           PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠋ |         11 | v0.5.0 Feature Tests                                           PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠴ |         26 | v0.5.0 Feature Tests                                           PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠴ |         36 | v0.5.0 Feature Tests                                           PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠹ |         43 | v0.5.0 Feature Tests                                           PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠦ |         47 | v0.5.0 Feature Tests                                           PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠹ |         53 | v0.5.0 Feature Tests                                           PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠏ |         60 | v0.5.0 Feature Tests                                           PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠼ |         65 | v0.5.0 Feature Tests                                           PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+✔ |         69 | v0.5.0 Feature Tests [1.0s]
+
+⠏ |          0 | validation-suite
+  |
+  |                                                                      |   0%
+  |
+  |=                                                                     |   2%
+  |
+  |===                                                                   |   4%
+  |
+  |====                                                                  |   6%
+  |
+  |======                                                                |   8%
+  |
+  |=======                                                               |  10%
+  |
+  |========                                                              |  12%
+  |
+  |==========                                                            |  14%
+  |
+  |===========                                                           |  16%
+  |
+  |=============                                                         |  18%
+  |
+  |==============                                                        |  20%
+  |
+  |===============                                                       |  22%
+  |
+  |=================                                                     |  24%
+  |
+  |==================                                                    |  26%
+  |
+  |====================                                                  |  28%
+  |
+  |=====================                                                 |  30%
+  |
+  |======================                                                |  32%
+  |
+  |========================                                              |  34%
+  |
+  |=========================                                             |  36%
+  |
+  |===========================                                           |  38%
+  |
+  |============================                                          |  40%
+  |
+  |=============================                                         |  42%
+  |
+  |===============================                                       |  44%
+  |
+  |================================                                      |  46%
+  |
+  |==================================                                    |  48%
+  |
+  |===================================                                   |  50%
+  |
+  |====================================                                  |  52%
+  |
+  |======================================                                |  54%
+  |
+  |=======================================                               |  56%
+  |
+  |=========================================                             |  58%
+  |
+  |==========================================                            |  60%
+  |
+  |===========================================                           |  62%
+  |
+  |=============================================                         |  64%
+  |
+  |==============================================                        |  66%
+  |
+  |================================================                      |  68%
+  |
+  |=================================================                     |  70%
+  |
+  |==================================================                    |  72%
+  |
+  |====================================================                  |  74%
+  |
+  |=====================================================                 |  76%
+  |
+  |=======================================================               |  78%
+  |
+  |========================================================              |  80%
+  |
+  |=========================================================             |  82%
+  |
+  |===========================================================           |  84%
+  |
+  |============================================================          |  86%
+  |
+  |==============================================================        |  88%
+  |
+  |===============================================================       |  90%
+  |
+  |================================================================      |  92%
+  |
+  |==================================================================    |  94%
+  |
+  |===================================================================   |  96%
+  |
+  |===================================================================== |  98%
+  |
+  |======================================================================| 100%
+
+  |
+  |                                                                      |   0%
+  |
+  |=                                                                     |   2%
+  |
+  |===                                                                   |   4%
+  |
+  |====                                                                  |   6%
+  |
+  |======                                                                |   8%
+  |
+  |=======                                                               |  10%
+  |
+  |========                                                              |  12%
+  |
+  |==========                                                            |  14%
+  |
+  |===========                                                           |  16%
+  |
+  |=============                                                         |  18%
+  |
+  |==============                                                        |  20%
+  |
+  |===============                                                       |  22%
+  |
+  |=================                                                     |  24%
+  |
+  |==================                                                    |  26%
+  |
+  |====================                                                  |  28%
+  |
+  |=====================                                                 |  30%
+  |
+  |======================                                                |  32%
+  |
+  |========================                                              |  34%
+  |
+  |=========================                                             |  36%
+  |
+  |===========================                                           |  38%
+  |
+  |============================                                          |  40%
+  |
+  |=============================                                         |  42%
+  |
+  |===============================                                       |  44%
+  |
+  |================================                                      |  46%
+  |
+  |==================================                                    |  48%
+  |
+  |===================================                                   |  50%
+  |
+  |====================================                                  |  52%
+  |
+  |======================================                                |  54%
+  |
+  |=======================================                               |  56%
+  |
+  |=========================================                             |  58%
+  |
+  |==========================================                            |  60%
+  |
+  |===========================================                           |  62%
+  |
+  |=============================================                         |  64%
+  |
+  |==============================================                        |  66%
+  |
+  |================================================                      |  68%
+  |
+  |=================================================                     |  70%
+  |
+  |==================================================                    |  72%
+  |
+  |====================================================                  |  74%
+  |
+  |=====================================================                 |  76%
+  |
+  |=======================================================               |  78%
+  |
+  |========================================================              |  80%
+  |
+  |=========================================================             |  82%
+  |
+  |===========================================================           |  84%
+  |
+  |============================================================          |  86%
+  |
+  |==============================================================        |  88%
+  |
+  |===============================================================       |  90%
+  |
+  |================================================================      |  92%
+  |
+  |==================================================================    |  94%
+  |
+  |===================================================================   |  96%
+  |
+  |===================================================================== |  98%
+  |
+  |======================================================================| 100%
+Multi-dimensional test fixes applied successfully.
+Fixed tests:
+- ripleys_k_test (2D and 3D)
+- scatter_test_3d
+- nearest_neighbor_test (3D only)
+- minimum_distance_test (3D only)
+
+=== Running 2D Tests ===
+Multi-dimensional test fixes applied successfully.
+Fixed tests:
+- ripleys_k_test (2D and 3D)
+- scatter_test_3d
+- nearest_neighbor_test (3D only)
+- minimum_distance_test (3D only)
+
+=== Running 2D Tests ===
+Multi-dimensional test fixes applied successfully.
+Fixed tests:
+- ripleys_k_test (2D and 3D)
+- scatter_test_3d
+- nearest_neighbor_test (3D only)
+- minimum_distance_test (3D only)
+
+=== Running 3D Tests ===
+Original multi-dimensional tests restored.
+Multi-dimensional test fixes applied successfully.
+Fixed tests:
+- ripleys_k_test (2D and 3D)
+- scatter_test_3d
+- nearest_neighbor_test (3D only)
+- minimum_distance_test (3D only)
+
+=== Running 3D Tests ===
+Original multi-dimensional tests restored.
+
+⠼ |          5 | validation-suite
+⠼ |         35 | validation-suite
+✔ |      1  35 | validation-suite [31.9s]
+
+⠏ |          0 | ziggurat-thread-safety-fix                                     PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+PRNG cleanup completed successfully
+
+⠴ |          6 | ziggurat-thread-safety-fix                                     PRNG cleanup completed successfully
+
+✔ |          6 | ziggurat-thread-safety-fix
+
+⠏ |          0 | ziggurat-thread-safety
+⠏ |          0 | Ziggurat Thread Safety Tests                                   EnhancedPRNG Configuration:
+  a: 2
+  b: 5
+  c: -2
+  mpfr_precision: 53
+  buffer_size: 1024
+  distribution: normal
+  normal_method: ziggurat
+  range_min: 0
+  range_max: 1
+  normal_mean: 0
+  normal_sd: 1
+  exponential_lambda: 1
+  poisson_lambda: 1
+  gamma_shape: 1
+  gamma_scale: 1
+  beta_alpha: 1
+  beta_beta: 1
+  use_crypto_mixing: true
+  adhoc_corrections: false
+  use_tie_breaking: true
+  reseed_interval: 1000
+  use_csv_discriminants: true
+  use_parallel_filling: false
+  offset: 0
+  debug: true
+  seed: 0
+  has_seed: false
+  deterministic: false
+
+PRNG cleanup completed successfully
+EnhancedPRNG Configuration:
+  a: 2
+  b: 5
+  c: -2
+  mpfr_precision: 53
+  buffer_size: 1024
+  distribution: normal
+  normal_method: box_muller
+  range_min: 0
+  range_max: 1
+  normal_mean: 0
+  normal_sd: 1
+  exponential_lambda: 1
+  poisson_lambda: 1
+  gamma_shape: 1
+  gamma_scale: 1
+  beta_alpha: 1
+  beta_beta: 1
+  use_crypto_mixing: true
+  adhoc_corrections: false
+  use_tie_breaking: true
+  reseed_interval: 1000
+  use_csv_discriminants: true
+  use_parallel_filling: false
+  offset: 0
+  debug: true
+  seed: 0
+  has_seed: false
+  deterministic: false
+
+
+⠴ |          6 | Ziggurat Thread Safety Tests                                   PRNG cleanup completed successfully
+EnhancedPRNG Configuration:
+  a: 2
+  b: 5
+  c: -2
+  mpfr_precision: 53
+  buffer_size: 1024
+  distribution: normal
+  normal_method: ziggurat
+  range_min: 0
+  range_max: 1
+  normal_mean: 0
+  normal_sd: 1
+  exponential_lambda: 1
+  poisson_lambda: 1
+  gamma_shape: 1
+  gamma_scale: 1
+  beta_alpha: 1
+  beta_beta: 1
+  use_crypto_mixing: true
+  adhoc_corrections: false
+  use_tie_breaking: true
+  reseed_interval: 1000
+  use_csv_discriminants: true
+  use_parallel_filling: true
+  offset: 0
+  debug: true
+  seed: 0
+  has_seed: false
+  deterministic: false
+
+Creating thread resources for 8 threads
+
+⠏ |   1      9 | Ziggurat Thread Safety Tests                                   Creating thread resources for 8 threads
+PRNG cleanup completed successfully
+
+⠋ |   1     10 | Ziggurat Thread Safety Tests
+✔ |   1     11 | Ziggurat Thread Safety Tests
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-ziggurat-thread-safety.R:230:7'): Ziggurat automatically falls back to Box-Muller with parallel filling
+Ziggurat method is not used with parallel filling for stability. Using Box-Muller instead.
+Backtrace:
+    ▆
+ 1. ├─base::tryCatch(...) at test-ziggurat-thread-safety.R:224:3
+ 2. │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 3. │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 4. │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 5. └─qiprng::generatePRNG(1000) at test-ziggurat-thread-safety.R:230:7
+ 6.   └─qiprng:::.generatePRNG_(as.integer(n)) at qiprng/R/prng_interface.R:371:3
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 81.6 s
+
+── Skipped tests (13) ──────────────────────────────────────────────────────────
+• {geometry} is not installed (1): 'test-multidim-tests.R:216:3'
+• Comprehensive comparison not available in test environment (1):
+  'test-comprehensive-improvements.R:307:7'
+• empty test (3): 'test-compression-bootstrap.R:106:1',
+  'test-compression-bootstrap.R:234:1', 'test-external-wrappers.R:4:1'
+• ENT tool not configured or available (1): 'test-config-manager.R:47:5'
+• exists("cache_test_results") is not TRUE (1):
+  'test-parallel-thread-safety-stress.R:239:3'
+• nearest_neighbor_test_basic not available (1): 'test-multidim-tests.R:410:5'
+• Platform doesn't support long double (1): 'test-deterministic-mode.R:111:3'
+• Required file not found: R/statistical_testing.R (1):
+  'test-parallel-thread-safety-stress.R:72:7'
+• Skipping performance tests in non-interactive mode (1):
+  'test-parallel-buffer.R:51:3'
+• Skipping very large jump test (1): 'test-jump-ahead-performance.R:154:3'
+• Timeout test skipped - setTimeLimit behavior varies by system (1):
+  'test-validation-suite.R:313:3'
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-deterministic-mode.R:51:3'): Deterministic mode works with jump-ahead
+`jump_seq` not equal to ref_seq[1001:2000].
+1000/1000 mismatches (average diff: 0.33)
+[1] 0.248 - 0.8098 == -0.561
+[2] 0.279 - 0.0952 ==  0.183
+[3] 0.297 - 0.9439 == -0.646
+[4] 0.585 - 0.8662 == -0.281
+[5] 0.766 - 0.3860 ==  0.380
+[6] 0.610 - 0.5458 ==  0.064
+[7] 0.477 - 0.6227 == -0.146
+[8] 0.861 - 0.2105 ==  0.650
+[9] 0.520 - 0.9922 == -0.472
+...
+
+[ FAIL 1 | WARN 55 | SKIP 13 | PASS 795 ]
+Error: Test failures
+In addition: There were 50 or more warnings (use warnings() to see the first 50)
+Execution halted

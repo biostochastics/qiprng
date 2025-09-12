@@ -1,0 +1,28 @@
+---
+title: "MultiQI"
+description: "C++ class MultiQI"
+sidebarTitle: "MultiQI"
+---
+
+# MultiQI
+
+## Source
+
+Defined in `src/multi_qi.hpp`
+
+## Public Methods
+
+```cpp
+~MultiQI() = default;  // Unique_ptr handles cleanup
+double next();
+double next_mixed();  // Enhanced mixing-based generation
+void skip(uint64_t n);
+void jump_ahead(uint64_t n);
+size_t size() const;
+void fill(double* buffer, size_t fill_size);
+void fill_thread_safe(double* buffer, size_t fill_size);
+void fill_mixed(double* buffer, size_t fill_size);     // Batch with mixing
+void fill_parallel(double* buffer, size_t fill_size);  // v0.5.0: OpenMP parallel generation
+void set_mixing_strategy(MixingStrategy strategy);
+MixingStrategy get_mixing_strategy() const { return mixing_strategy_; }
+```

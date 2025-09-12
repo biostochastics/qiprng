@@ -60,6 +60,14 @@ class Matrix2x2_MPFR {
     // Assignment operator
     Matrix2x2_MPFR& operator=(const Matrix2x2_MPFR& other) {
         if (this != &other) {
+            // Sync precision and (re)allocate wrappers if necessary
+            if (precision_ != other.precision_) {
+                precision_ = other.precision_;
+                p_ = std::make_unique<MPFRWrapper>(precision_);
+                q_ = std::make_unique<MPFRWrapper>(precision_);
+                r_ = std::make_unique<MPFRWrapper>(precision_);
+                s_ = std::make_unique<MPFRWrapper>(precision_);
+            }
             mpfr_set(*p_->get(), *other.p_->get(), MPFR_RNDN);
             mpfr_set(*q_->get(), *other.q_->get(), MPFR_RNDN);
             mpfr_set(*r_->get(), *other.r_->get(), MPFR_RNDN);

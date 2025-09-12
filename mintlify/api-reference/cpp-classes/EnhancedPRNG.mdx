@@ -1,0 +1,35 @@
+---
+title: "EnhancedPRNG"
+description: "C++ class EnhancedPRNG"
+sidebarTitle: "EnhancedPRNG"
+---
+
+# EnhancedPRNG
+
+## Source
+
+Defined in `src/enhanced_prng.hpp`
+
+## Public Methods
+
+```cpp
+* @param abc_list List of (a,b,c) coefficient tuples for quadratic irrationals
+EnhancedPRNG(const PRNGConfig& cfg, const std::vector<std::tuple<long, long, long>>& abc_list);
+~EnhancedPRNG() noexcept;
+const PRNGConfig& getConfig() const;
+size_t getQICount() const;
+void updateConfig(const PRNGConfig& new_config);
+* Complexity: O(1) amortized (may trigger buffer refill)
+double next();
+* More efficient than repeated next() calls for large n
+* Complexity: O(n)
+void generate_n(Rcpp::NumericVector& output_vec);
+* Uses O(log n) jump-ahead algorithm for efficiency
+void skip(uint64_t n);
+void reseed();
+void dumpConfig() const;
+void prepareForCleanup();
+void performCleanup();
+bool isBeingDestroyed() const;
+static void cleanupAllThreadResources();
+```

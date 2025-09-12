@@ -1,0 +1,21 @@
+---
+title: "CryptoMixer"
+description: "C++ class CryptoMixer"
+sidebarTitle: "CryptoMixer"
+---
+
+# CryptoMixer
+
+## Source
+
+Defined in `src/crypto_mixer.hpp`
+
+## Public Methods
+
+```cpp
+CryptoMixer(bool adhoc_corrections, bool use_tie_breaking);
+~CryptoMixer();  // SecureBuffer handles its own cleanup
+void reseed();
+bool is_initialized() const;
+bool mix(unsigned char* data, size_t len);  // data is interpreted as array of doubles
+```
