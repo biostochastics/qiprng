@@ -1,7 +1,19 @@
 # Test suite for deterministic mode functionality
 library(qiprng)
 
+# Helper function to ensure clean state for each test
+ensure_clean_state <- function() {
+  # Try to clean up any existing PRNG
+  tryCatch(cleanupPRNG(), error = function(e) {})
+
+  # Clear any jump algorithm environment variable
+  if (Sys.getenv("QIPRNG_JUMP_ALGORITHM") != "") {
+    Sys.unsetenv("QIPRNG_JUMP_ALGORITHM")
+  }
+}
+
 test_that("Same seed produces identical sequences", {
+  ensure_clean_state()
   # Test 1: Basic reproducibility
   cfg1 <- list(seed = 12345, use_crypto_mixing = FALSE)
   createPRNG(cfg1)
@@ -16,6 +28,7 @@ test_that("Same seed produces identical sequences", {
 })
 
 test_that("Different seeds produce different sequences", {
+  ensure_clean_state()
   cfg1 <- list(seed = 12345, use_crypto_mixing = FALSE)
   cfg2 <- list(seed = 54321, use_crypto_mixing = FALSE)
 
@@ -31,6 +44,24 @@ test_that("Different seeds produce different sequences", {
 })
 
 test_that("Deterministic mode works with jump-ahead", {
+  # Save original environment variable if it exists
+  original_algo <- Sys.getenv("QIPRNG_JUMP_ALGORITHM", unset = NA)
+
+  # Ensure clean state before test
+  on.exit(
+    {
+      # Restore original environment variable state
+      if (is.na(original_algo)) {
+        Sys.unsetenv("QIPRNG_JUMP_ALGORITHM")
+      } else {
+        Sys.setenv(QIPRNG_JUMP_ALGORITHM = original_algo)
+      }
+      # Ensure PRNG is cleaned up
+      tryCatch(cleanupPRNG(), error = function(e) {})
+    },
+    add = TRUE
+  )
+
   # Use MODULAR_MERSENNE algorithm which is the default and most reliable
   Sys.setenv(QIPRNG_JUMP_ALGORITHM = "2")
 
@@ -49,12 +80,10 @@ test_that("Deterministic mode works with jump-ahead", {
 
   # Should match the second half of reference
   expect_equal(jump_seq, ref_seq[1001:2000])
-
-  # Clean up environment variable
-  Sys.unsetenv("QIPRNG_JUMP_ALGORITHM")
 })
 
 test_that("Same seed works across different R sessions", {
+  ensure_clean_state()
   # This test verifies that the seed produces the same sequence
   # even after restarting R (simulated by cleanup and recreate)
   cfg <- list(seed = 98765, use_crypto_mixing = FALSE)
@@ -76,6 +105,7 @@ test_that("Same seed works across different R sessions", {
 })
 
 test_that("Deterministic mode works with all distributions", {
+  ensure_clean_state()
   base_cfg <- list(seed = 11111, use_crypto_mixing = FALSE)
 
   distributions <- list(
@@ -108,6 +138,7 @@ test_that("Deterministic mode works with all distributions", {
 })
 
 test_that("Thread-safe deterministic mode", {
+  ensure_clean_state()
   skip_if_not(capabilities("long.double"), "Platform doesn't support long double")
 
   cfg <- list(seed = 22222, use_threading = TRUE, use_crypto_mixing = FALSE)
