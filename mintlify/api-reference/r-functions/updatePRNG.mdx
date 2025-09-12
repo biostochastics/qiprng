@@ -1,0 +1,55 @@
+---
+title: 'updatePRNG'
+description: 'Update PRNG configuration'
+sidebarTitle: 'updatePRNG'
+---
+
+# Update PRNG configuration
+
+
+ Updates the configuration of the global PRNG instance with new parameters.
+ This allows changing the distribution type, parameters, or other settings
+ of an existing PRNG without recreating it.
+
+
+## Usage
+
+```r
+
+ updatePRNG(config)
+
+```
+
+## Parameters
+
+<ParamField body="config" type="any">
+  List of new configuration parameters to update. Only specified
+ parameters will be changed; others retain their current values.
+</ParamField>
+
+## Returns
+
+
+ Invisibly returns NULL
+ #' @examplesCreate default PRNG
+
+ createPRNG()Generate some uniform numbers
+
+ uniform_values <- generatePRNG(10)Switch to normal distribution
+
+ updatePRNG(list(
+ distribution = "normal",
+ normal_mean = 5,
+ normal_sd = 2
+ ))Generate normal values
+
+ normal_values <- generatePRNG(10)
+
+
+## Details
+
+
+ Thread safety: This function is fully thread-safe and will block until mutex
+ is acquired. When switching between distributions (e.g., uniform to normal),
+ the implementation ensures a clean transition with proper buffer management
+ and reseeding.

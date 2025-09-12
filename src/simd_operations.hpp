@@ -86,7 +86,7 @@ inline void xor_mix_batch(double* dest, const double* src1, const double* src2, 
 
 #elif defined(QIPRNG_NEON)
     size_t simd_count = count / 2;
-    size_t remainder = count % 2;
+    // Remainder handled by scalar loop below
 
     for (size_t i = 0; i < simd_count; ++i) {
         uint64x2_t v1 = vld1q_u64(reinterpret_cast<const uint64_t*>(src1 + i * 2));

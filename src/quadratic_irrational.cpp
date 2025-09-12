@@ -264,8 +264,8 @@ void QuadraticIrrational::step_once() {
 
 QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t prec, uint64_t seed,
                                          bool has_seed)
-    : a_(a), b_(b), c_(c), discriminant_(0), cfe_period_length_(0), cfe_computed_(false), P_n_(0),
-      Q_n_(1) {
+    : a_(a), b_(b), c_(c), discriminant_(0), mpfr_prec_(prec), cfe_period_length_(0),
+      cfe_computed_(false), P_n_(0), Q_n_(1) {
     // Validate parameters more comprehensively
     if (a == 0) {
         throw std::invalid_argument("QuadraticIrrational: 'a' parameter cannot be zero");
@@ -431,7 +431,7 @@ double QuadraticIrrational::next() {
 }
 
 void QuadraticIrrational::skip(uint64_t n) {
-    jump_ahead_optimized(n);
+    jump_ahead_optimized_v2(n);
 }
 
 void QuadraticIrrational::jump_ahead(uint64_t n) {
@@ -488,6 +488,12 @@ void QuadraticIrrational::jump_ahead(uint64_t n) {
  * @param n The number of steps to jump ahead.
  */
 void QuadraticIrrational::jump_ahead_optimized(uint64_t n) {
+    // This function is deprecated, use jump_ahead_optimized_v2 instead
+    // which has multiple algorithm options and better overflow handling
+    jump_ahead_optimized_v2(n);
+    return;
+
+    // Old implementation below (kept for reference but not used)
     if (n == 0) {
         return;
     }
@@ -586,6 +592,40 @@ size_t QuadraticIrrational::size() const {
 void QuadraticIrrational::fill(double* buffer, size_t count) {
     for (size_t i = 0; i < count; i++) {
         buffer[i] = next();
+    }
+}
+
+// Reseed method implementation
+void QuadraticIrrational::reseed() {
+    // Reset to initial state with new random starting point
+    step_ = 0;
+
+    // If we have a seed, regenerate using a new seed
+    if (has_seed_) {
+        // Generate new seed from current state
+        std::random_device rd;
+        seed_ = rd();
+
+        // Reinitialize random engine
+        if (rd_engine_) {
+            rd_engine_->seed(seed_);
+        }
+
+        // Skip to a new random position
+        std::uniform_int_distribution<uint64_t> dist(1000, 10000);
+        uint64_t skip_amount = dist(*rd_engine_);
+        skip(skip_amount);
+    } else {
+        // Without seed, just reset to initial state
+        mpfr_set_d(*state_->x.get(), 0.5, MPFR_RNDN);
+        mpfr_set_d(*state_->x_prev.get(), 0.25, MPFR_RNDN);
+    }
+
+    // Clear CFE cache if computed
+    if (cfe_computed_) {
+        cfe_coefficients_.clear();
+        cfe_period_length_ = 0;
+        cfe_computed_ = false;
     }
 }
 

@@ -9,6 +9,40 @@
 
 #include "prng_utils.hpp"  // For getThreadLocalEngine and sodium_initialized extern
 
+#ifdef QIPRNG_NO_CRYPTO
+// Provide stub implementations when libsodium is not available
+namespace qiprng {
+
+CryptoMixer::CryptoMixer(bool adhoc_corrections, bool use_tie_breaking)
+    : adhoc_corrections_(adhoc_corrections), use_tie_breaking_(use_tie_breaking),
+      initialized_(false) {
+    Rcpp::warning("CryptoMixer: Built without libsodium support. Crypto features disabled.");
+}
+
+CryptoMixer::~CryptoMixer() {}
+
+void CryptoMixer::secure_random(unsigned char* buf, size_t len) {
+    throw std::runtime_error(
+        "CryptoMixer: libsodium not available. Cannot generate secure random bytes.");
+}
+
+void CryptoMixer::reseed() {
+    throw std::runtime_error("CryptoMixer: libsodium not available. Cannot reseed.");
+}
+
+bool CryptoMixer::is_initialized() const {
+    return false;  // Never initialized without crypto
+}
+
+bool CryptoMixer::mix(unsigned char* data, size_t len) {
+    // No mixing without crypto - return false to indicate no mixing occurred
+    return false;
+}
+
+}  // namespace qiprng
+
+#else  // QIPRNG_NO_CRYPTO not defined - normal implementation
+
 namespace qiprng {
 
 // Definition for the extern declared in crypto_mixer.hpp (and prng_utils.hpp)
@@ -117,31 +151,37 @@ bool CryptoMixer::mix(unsigned char* data, size_t len) {
         size_t num_doubles = len / sizeof(double);
         double* doubles = reinterpret_cast<double*>(data);
 
-        SecureBuffer<unsigned char> random_bytes_buf(len);  // Corrected name
-        secure_random(random_bytes_buf.data(),
-                      len);  // Use the member function that checks sodium_initialized
+        // Generate ChaCha20 stream cipher output
+        SecureBuffer<unsigned char> chacha_stream(len);
 
-        double prev_val = (num_doubles > 0) ? doubles[0] : 0.0;  // Initialize reasonably
+        // Use crypto_stream_chacha20 to generate deterministic stream from key and nonce
+        if (crypto_stream_chacha20(chacha_stream.data(), len, nonce_.data(), key_.data()) != 0) {
+            Rcpp::warning("CryptoMixer: ChaCha20 stream generation failed");
+            return false;
+        }
 
-        if (!adhoc_corrections_) {  // partial modular addition
+        // Increment nonce for next call to ensure unique stream
+        sodium_increment(nonce_.data(), crypto_stream_chacha20_NONCEBYTES);
+
+        double prev_val = (num_doubles > 0) ? doubles[0] : 0.0;
+
+        if (!adhoc_corrections_) {  // XOR mixing with ChaCha20 stream
             for (size_t i = 0; i < num_doubles; i++) {
-                if (i * sizeof(double) + sizeof(uint64_t) >
-                    random_bytes_buf.size()) {  // Check against random_bytes_buf
-                    Rcpp::warning("CryptoMixer: Random buffer access out of bounds in modular "
-                                  "addition path.");
-                    return false;
-                }
-                uint64_t crypto_bits_val = 0;  // Renamed variable
-                std::memcpy(&crypto_bits_val, &random_bytes_buf[i * sizeof(double)],
-                            sizeof(uint64_t));
-                crypto_bits_val = (crypto_bits_val & MANTISSA_MASK) | ONE_BITS;
-                double crypto_uniform;
-                std::memcpy(&crypto_uniform, &crypto_bits_val,
-                            sizeof(double));  // Safe reinterpret_cast alternative
-                crypto_uniform -= 1.0;
+                // XOR the double's bits with ChaCha20 stream
+                uint64_t prng_bits;
+                std::memcpy(&prng_bits, &doubles[i], sizeof(uint64_t));
 
-                // Simplified normalization to [0,1) range
-                double mixed_val = doubles[i] + crypto_uniform;
+                uint64_t chacha_bits;
+                std::memcpy(&chacha_bits, &chacha_stream[i * sizeof(double)], sizeof(uint64_t));
+
+                // XOR mixing preserves uniform distribution
+                uint64_t mixed_bits = prng_bits ^ chacha_bits;
+
+                // Ensure result is in [0, 1) by fixing mantissa
+                mixed_bits = (mixed_bits & MANTISSA_MASK) | ONE_BITS;
+                double mixed_val;
+                std::memcpy(&mixed_val, &mixed_bits, sizeof(double));
+                mixed_val -= 1.0;
 
                 // Normalize to [0,1) range using a single approach
                 mixed_val = mixed_val - std::floor(mixed_val);
@@ -186,29 +226,28 @@ bool CryptoMixer::mix(unsigned char* data, size_t len) {
                 }
                 prev_val = doubles[i];
             }
-        } else {  // partial averaging approach
+        } else {  // Modular addition with ChaCha20 stream
             for (size_t i = 0; i < num_doubles; i++) {
-                if (i * sizeof(double) + sizeof(uint64_t) >
-                    random_bytes_buf.size()) {  // Check against random_bytes_buf
-                    Rcpp::warning(
-                        "CryptoMixer: Random buffer access out of bounds in averaging path.");
-                    return false;
-                }
-                uint64_t random_bits_val = 0;  // Renamed variable
-                std::memcpy(&random_bits_val, &random_bytes_buf[i * sizeof(double)],
-                            sizeof(uint64_t));
-                uint64_t bits_val =
-                    (random_bits_val & MANTISSA_MASK) | ONE_BITS;  // Renamed variable
+                // Get ChaCha20 stream value as uniform double
+                uint64_t chacha_bits;
+                std::memcpy(&chacha_bits, &chacha_stream[i * sizeof(double)], sizeof(uint64_t));
+                chacha_bits = (chacha_bits & MANTISSA_MASK) | ONE_BITS;
                 double crypto_uniform;
-                std::memcpy(&crypto_uniform, &bits_val,
-                            sizeof(double));  // Safe reinterpret_cast alternative
+                std::memcpy(&crypto_uniform, &chacha_bits, sizeof(double));
                 crypto_uniform -= 1.0;
 
                 if (std::isnan(crypto_uniform) || std::isnan(doubles[i])) {
-                    Rcpp::warning("CryptoMixer: NaN detected in averaging, using fallback 0.5");
+                    Rcpp::warning("CryptoMixer: NaN detected in mixing, using fallback 0.5");
                     doubles[i] = 0.5;
                 } else {
-                    doubles[i] = 0.5 * doubles[i] + 0.5 * crypto_uniform;
+                    // Modular addition mixing
+                    double mixed_val = doubles[i] + crypto_uniform;
+                    mixed_val = mixed_val - std::floor(mixed_val);  // Normalize to [0,1)
+                    if (mixed_val < 0.0)
+                        mixed_val += 1.0;
+                    if (mixed_val >= 1.0)
+                        mixed_val = std::nextafter(1.0, 0.0);
+                    doubles[i] = mixed_val;
                 }
 
                 if (use_tie_breaking_ && i > 0 && doubles[i] == prev_val) {
@@ -238,3 +277,5 @@ bool CryptoMixer::mix(unsigned char* data, size_t len) {
 }
 
 }  // namespace qiprng
+
+#endif  // QIPRNG_NO_CRYPTO

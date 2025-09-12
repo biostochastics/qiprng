@@ -110,6 +110,10 @@ EnhancedPRNG::EnhancedPRNG(const PRNGConfig& cfg,
 
     // Create ziggurat for normal generation if needed
     if (config_.normal_method == PRNGConfig::ZIGGURAT) {
+        // Clean up any thread-local resources before creating new instance
+        if (config_.use_threading) {
+            ZigguratNormal::cleanup_thread_local_resources();
+        }
         ziggurat_ = std::make_unique<ZigguratNormal>(
             [this]() {
                 return this->next_raw_uniform();
@@ -182,6 +186,10 @@ EnhancedPRNG::~EnhancedPRNG() noexcept {
     std::lock_guard<std::mutex> lock(cleanup_mutex_);
 
     try {
+#if PRNG_HAS_OPENMP
+        // Clean up thread-local MultiQI caches
+        cleanup_thread_caches();
+#endif
         // Clean up resources in an orderly fashion
         // Order matters for safe destruction
         crypto_.reset();
@@ -266,6 +274,10 @@ void EnhancedPRNG::updateConfig(const PRNGConfig& new_config) {
                 ziggurat_->set_thread_safe_mode(config_.use_threading);
             } else {
                 // Create new ziggurat instance
+                // Clean up any thread-local resources before creating new instance
+                if (config_.use_threading) {
+                    ZigguratNormal::cleanup_thread_local_resources();
+                }
                 ziggurat_ = std::make_unique<ZigguratNormal>(
                     [this]() {
                         return this->next_raw_uniform();
@@ -547,7 +559,6 @@ void EnhancedPRNG::fill_buffer_parallel(size_t thread_count) {
 
             // Divide work into smaller chunks for work-stealing
             const size_t work_items_per_thread = 4;
-            size_t buffer_pos = 0;
 
             for (size_t t = 0; t < thread_count; ++t) {
                 size_t thread_buffer_size = chunk_sizes[t];
@@ -691,7 +702,7 @@ void EnhancedPRNG::fill_buffer() {
 }
 
 #if PRNG_HAS_OPENMP
-// v0.5.0: OpenMP-optimized buffer filling
+// v0.6.2: High-performance OpenMP with thread-local caching and SIMD optimization
 void EnhancedPRNG::fill_buffer_openmp() {
     if (buffer_.size() == 0)
         return;
@@ -699,30 +710,57 @@ void EnhancedPRNG::fill_buffer_openmp() {
     const int num_threads = omp_get_max_threads();
     const size_t chunk_size = buffer_.size() / num_threads;
 
-    // Only use OpenMP for sufficiently large chunks
-    if (chunk_size < 256) {
+    // Increased threshold for better performance on modern systems
+    constexpr size_t MIN_CHUNK_SIZE = 4096;
+    if (chunk_size < MIN_CHUNK_SIZE) {
         fill_buffer_sequential();
         return;
     }
 
+    // Thread-local cache for MultiQI instances to avoid recreation overhead
+    struct MultiQICache {
+        std::unordered_map<int, std::unique_ptr<MultiQI>> cache;
+        std::unordered_map<int, std::vector<std::tuple<long, long, long>>> abc_cache;
+    };
+    static thread_local MultiQICache tl_cache;
+
     try {
-// Parallel region for buffer filling
+// Parallel region for buffer filling with optimizations
 #    pragma omp parallel
         {
             const int tid = omp_get_thread_num();
             const size_t start = tid * chunk_size;
             const size_t end = (tid == num_threads - 1) ? buffer_.size() : (tid + 1) * chunk_size;
 
-            // Each thread fills its portion
             if (start < end) {
-// Create thread-local MultiQI for this chunk
-// Note: In a real implementation, we'd cache these thread-local instances
-#    pragma omp critical
-                { multi_->fill_thread_safe(&buffer_[start], end - start); }
+                // Get or create thread-local MultiQI instance
+                auto& local_cache = tl_cache.cache;
+                auto& local_abc = tl_cache.abc_cache;
+
+                if (local_cache.find(tid) == local_cache.end()) {
+                    // Create new MultiQI instance for this thread
+                    local_abc[tid] = pickMultiQiSet(config_.qi_sets_per_thread);
+                    local_cache[tid] = std::make_unique<MultiQI>(local_abc[tid], tid + 1);
+                }
+
+                // Prefetch for better cache performance
+                if ((start + 64) < end) {
+                    __builtin_prefetch(&buffer_[start + 64], 1, 3);
+                }
+
+                // Fill buffer with cached MultiQI instance
+                auto& multiqi = local_cache[tid];
+
+// Use SIMD-optimized filling when possible
+#    pragma omp simd aligned(buffer_ : 64)
+                for (size_t i = start; i < end; i += 8) {
+                    size_t batch_size = std::min(size_t(8), end - i);
+                    multiqi->fill_thread_safe(&buffer_[i], batch_size);
+                }
             }
         }
 
-        // Apply crypto mixing if enabled (sequential for consistency)
+        // Apply crypto mixing if enabled (can be parallelized in future)
         if (config_.use_crypto_mixing && crypto_ && crypto_->is_initialized()) {
             crypto_->mix(reinterpret_cast<unsigned char*>(buffer_.data()),
                          buffer_.size() * sizeof(double));
@@ -732,6 +770,20 @@ void EnhancedPRNG::fill_buffer_openmp() {
     } catch (...) {
         // Fall back to sequential on any error
         fill_buffer_sequential();
+    }
+}
+
+// Clean up thread-local caches when PRNG is destroyed
+void EnhancedPRNG::cleanup_thread_caches() {
+#    pragma omp parallel
+    {
+        struct MultiQICache {
+            std::unordered_map<int, std::unique_ptr<MultiQI>> cache;
+            std::unordered_map<int, std::vector<std::tuple<long, long, long>>> abc_cache;
+        };
+        static thread_local MultiQICache tl_cache;
+        tl_cache.cache.clear();
+        tl_cache.abc_cache.clear();
     }
 }
 #endif

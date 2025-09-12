@@ -792,7 +792,6 @@ std::tuple<long, long, long> qiprng::makeABCfromDelta(long long Delta) {
                             continue;  // Skip if multiplication would overflow
                         }
 
-                        long long four_ac = four_a * c_ll;
                         // Use safe discriminant calculation for verification
                         long long disc;
                         std::string error_msg;

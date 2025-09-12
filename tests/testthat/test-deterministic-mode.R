@@ -31,6 +31,9 @@ test_that("Different seeds produce different sequences", {
 })
 
 test_that("Deterministic mode works with jump-ahead", {
+  # Use MODULAR_MERSENNE algorithm which is the default and most reliable
+  Sys.setenv(QIPRNG_JUMP_ALGORITHM = "2")
+
   cfg <- list(seed = 12345, use_crypto_mixing = FALSE)
 
   # Generate reference sequence
@@ -46,6 +49,9 @@ test_that("Deterministic mode works with jump-ahead", {
 
   # Should match the second half of reference
   expect_equal(jump_seq, ref_seq[1001:2000])
+
+  # Clean up environment variable
+  Sys.unsetenv("QIPRNG_JUMP_ALGORITHM")
 })
 
 test_that("Same seed works across different R sessions", {

@@ -1,3 +1,120 @@
+# qiprng 0.6.2
+
+## Critical Algorithm Improvements
+
+### Advanced Jump-Ahead Algorithms
+
+* **Multiple algorithm options**: New `jump_ahead_optimized_v2()` with four selectable algorithms
+  * `ORIGINAL_128BIT`: Original implementation (may overflow for large jumps)
+  * `MPFR_MATRIX`: High-precision MPFR-based matrix operations (no overflow)
+  * `MODULAR_MERSENNE`: Fast modular arithmetic with Mersenne prime 2^61-1 (default)
+  * `DIRECT_CFE`: Direct continued fraction manipulation
+* **Environment variable control**: Set `QIPRNG_JUMP_ALGORITHM` to select algorithm (0-3)
+* **Overflow prevention**: Fixed critical matrix multiplication overflow in jump-ahead operations
+* **Efficient modular arithmetic**: Optimized mulmod() using 128-bit arithmetic for O(1) performance
+* **Automatic fallback**: Graceful degradation when CFE computation fails
+
+## Package Infrastructure & Code Quality
+
+### Caching Framework Enhancements
+
+* **Pattern-based cache clearing**: `clear_qiprng_cache()` now supports regex patterns for selective cache management
+* **Cache export/import functionality**: New `export_cached_results()` and `import_cached_results()` functions for cache archival and sharing
+* **Improved cache metadata**: Export includes timestamps, R version, and package version for better reproducibility
+
+### Test Code Isolation
+
+* **Separated test code from production**: Moved all C++ test files to `tests/cpp/` directory
+* **Reduced package size**: Test code excluded from production builds via `.Rbuildignore`
+* **Added QIPRNG_TESTING guards**: Conditional compilation ensures test utilities don't affect production
+* **Created test infrastructure**: Dedicated Makefile and test helpers for standalone C++ testing
+
+### Code Standardization
+
+* **R naming conventions**: All R functions now consistently use snake_case naming
+* **Improved code organization**: Better separation of concerns between production and test code
+
+# qiprng 0.6.1
+
+## Performance Optimizations
+
+### OpenMP Parallelization Enhancements (v0.6.2)
+
+* **Thread-Local Caching**: Eliminated MultiQI instance recreation overhead
+  * Implemented static thread_local cache for MultiQI instances
+  * Instances persist across buffer fills, created once per thread
+  * Added cleanup mechanism in destructor for proper resource management
+  * Reduces parallel overhead by ~20-30%
+
+* **SIMD Vectorization Integration**: Combined SIMD with OpenMP for compound speedup
+  * Added `#pragma omp simd` directives for vectorized operations
+  * Batch processing in chunks of 8 doubles for better throughput
+  * Memory alignment optimizations for SIMD efficiency
+  * Cache prefetching with `__builtin_prefetch` for improved memory access
+
+* **Buffer Size Optimization**: Improved thresholds for modern systems
+  * Increased minimum chunk size from 256 to 4096 elements
+  * Dynamic sizing based on thread count and cache line size
+  * Better cache locality for large-scale generation
+
+* **Code Quality Improvements**: Fixed all compilation warnings
+  * Removed unused `using_pool_` field from MPFRWrapper
+  * Removed unused `remainder` variable from SIMD operations
+  * Removed unused `buffer_pos` variable from parallel filling
+  * Fixed unused `four_ac` variable in prng_utils
+  * Fixed MPFR_PREC_MAX comparison warnings with unsigned int
+
+## Critical Bug Fixes & Improvements
+
+### Overflow Protection Enhancement
+
+* **Matrix Arithmetic Safety**: Implemented comprehensive overflow protection in `Matrix2x2::operator*()`
+  * Added 128-bit arithmetic path using `__int128` for systems with support
+  * Fallback to `__builtin_smull_overflow` for overflow detection on other systems
+  * Prevents integer overflow in jump-ahead operations with large values
+  * Safely handles jumps up to 2^63 without overflow
+
+### Cryptographic Implementation Fix
+
+* **True ChaCha20 Stream Cipher**: Replaced entropy injection with proper ChaCha20 implementation
+  * Migrated from `randombytes_buf` to `crypto_stream_chacha20` for deterministic mixing
+  * Implemented XOR mixing path for uniform distribution preservation
+  * Added modular addition path for enhanced entropy mixing
+  * Uses incremental nonce to ensure unique stream for each mixing operation
+  * Provides true cryptographic-grade deterministic randomness
+
+### Cross-Platform Build Improvements
+
+* **Windows Build Support**: Enhanced Windows configuration for better compatibility
+  * Updated `configure.win` to use C++17 standard (matching Unix builds)
+  * Added libsodium detection with graceful fallback
+  * Implemented `QIPRNG_NO_CRYPTO` flag for builds without libsodium
+  * Provides stub implementations when crypto features unavailable
+
+### Architecture Improvements
+
+* **Modular Component Design**: Refactored EnhancedPRNG for better maintainability
+  * Created `distribution_generator.hpp` with polymorphic distribution classes
+  * Implemented `buffer_manager.hpp` with pluggable filling strategies
+  * Separated statistics tracking into dedicated component
+  * Applied Strategy Pattern for runtime-configurable buffer filling
+  * Used Factory Pattern for extensible distribution creation
+  * Enhanced separation of concerns with single responsibility principle
+
+* **Enhanced Class Infrastructure**: Added missing functionality to core classes
+  * Implemented `clone()` method in MultiQI for parallel operations
+  * Added `reseed()` method to MultiQI and QuadraticIrrational
+  * Created accessor methods (getA, getB, getC, getMPFRPrecision) in QuadraticIrrational
+  * Fixed member initialization for proper MPFR precision tracking
+
+### Repository Maintenance
+
+* **CRAN Compliance**: Cleaned repository for package submission
+  * Removed all binary artifacts (*.o,*.so files) from repository
+  * Enhanced `.Rbuildignore` patterns for cleaner source packages
+  * Added proper ignore patterns for node_modules, .DS_Store, and build artifacts
+  * Ensures clean `R CMD build` and `R CMD check` execution
+
 # qiprng 0.6.0
 
 ## Critical Security & Stability Fixes
@@ -189,7 +306,7 @@
 * **Fix**: Made mutex `mutable` for proper const-correctness
 * **Impact**: Eliminated data races detected by ThreadSanitizer
 
-## Performance Optimizations
+## Performance Enhancements (v0.5.1)
 
 ### Lock Contention Elimination
 

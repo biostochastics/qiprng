@@ -1,0 +1,48 @@
+---
+title: 'cached_test_result'
+description: 'Memoized test result wrapper'
+sidebarTitle: 'cached_test_result'
+---
+
+# Memoized test result wrapper
+
+
+ Caches entire test results with category-specific TTL support.
+ This function wraps test execution to provide transparent caching
+ of test results, significantly improving performance for repeated
+ test runs on the same data.
+
+
+## Usage
+
+```r
+
+ cached_test_result(test_func, test_name, test_category, data, config, ...)
+
+```
+
+## Parameters
+
+<ParamField body="test_func" type="any">
+  Function that performs the test
+</ParamField>
+<ParamField body="test_name" type="any">
+  Name of the specific test
+</ParamField>
+<ParamField body="test_category" type="any">
+  Category of the test (e.g., "basic", "correlation")
+</ParamField>
+<ParamField body="data" type="any">
+  The data to test
+</ParamField>
+<ParamField body="config" type="any">
+  Test configuration
+</ParamField>
+<ParamField body="..." type="any">
+  Additional arguments passed to test_func
+</ParamField>
+
+## Returns
+
+
+ Test result (from cache or freshly computed)

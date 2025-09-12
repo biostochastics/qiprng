@@ -1,0 +1,128 @@
+---
+title: 'visualize_prng_tests'
+description: 'Visualize PRNG test results'
+sidebarTitle: 'visualize_prng_tests'
+---
+
+# Visualize PRNG test results
+
+
+ This function generates comprehensive visualizations for statistical test results
+ from the PRNG test suite. It creates plots for each test category and can optionally
+ generate an HTML report summarizing all results.
+
+
+## Usage
+
+```r
+
+ visualize_prng_tests(suite, create_report = TRUE)
+
+```
+
+## Parameters
+
+<ParamField body="suite" type="any">
+  Test suite object returned by run_prng_test_suite
+</ParamField>
+<ParamField body="create_report" type="any">
+  Logical, whether to create an HTML report (default: TRUE)
+</ParamField>
+
+## Returns
+
+
+ The updated test suite object with visualization paths and report path (if generated)
+
+
+## Details
+
+
+ The visualizations include:
+
+ Basic Distribution Tests :
+
+       Histogram of generated random numbers
+       QQ plot against theoretical uniform distribution
+       Empirical vs. theoretical CDF plot
+       Chi-square residuals plot
+
+
+ Runs and Independence Tests :
+
+       Sequence plot showing values over the sequence
+       Lagged scatter plot (x[i] vs x[i+1])
+       Runs length distribution
+       Gap distribution plots
+
+
+ Correlation Tests :
+
+       Autocorrelation function (ACF) plot
+       Partial autocorrelation function (PACF) plot
+       Spectrum analysis plot
+
+
+ Binary and Bitwise Tests :
+
+       Bit frequency by position bar chart
+       Runs of bits distribution
+       Bit pattern frequency heatmap
+
+
+ Classical Tests :
+
+       Poker hand frequency distribution
+       Coupon collection time distribution
+       Birthday spacing distribution
+
+
+ Compression Tests :
+
+       Compression ratio comparison
+       Entropy estimation plot
+
+
+ External Tests :
+
+       P-value summary for external package tests
+       QQ plot of transformed data
+
+
+ All visualizations are saved in the output directory specified in the test suite configuration,
+ organized in subdirectories by test category.
+
+
+## Examples
+
+```r
+
+
+ # Run the test suite
+ results <- run_prng_test_suite(
+   prng_func = function(n) generatePRNG(n),
+   config = list(
+     output_dir = "qiprng_test_results"
+   )
+ )
+
+ # Generate visualizations
+ results <- visualize_prng_tests(results, create_report = TRUE)
+
+ # Access the report
+ if (!is.null(results$report)) {
+   browseURL(results$report)
+ }
+
+```
+
+## See Also
+
+<CardGroup cols={2}>
+  <Card title="run_prng_test_suite" href="/api-reference/r-functions/run_prng_test_suite">
+    Related function: run_prng_test_suite
+  </Card>
+  <Card title="test_qiprng" href="/api-reference/r-functions/test_qiprng">
+    Related function: test_qiprng
+  </Card>
+</CardGroup>

@@ -1,0 +1,269 @@
+---
+title: 'Quick Start'
+description: 'Get up and running with qiprng in 5 minutes'
+---
+
+## Installation
+
+<Tabs>
+  <Tab title="From GitHub">
+    ```r
+    # Install from GitHub (recommended)
+    if (!require("remotes")) {
+      install.packages("remotes")
+    }
+    remotes::install_github("biostochastics/qiprng")
+    ```
+  </Tab>
+
+  <Tab title="From Source">
+    ```bash
+    # Clone the repository
+    git clone https://github.com/biostochastics/qiprng.git
+    cd qiprng
+
+    # Install in R
+    R CMD INSTALL .
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  Make sure you have the required system libraries installed. See the [Installation Guide](/installation) for platform-specific instructions.
+</Note>
+
+## Basic Usage
+
+### 1. Create and Use the Generator
+
+```r
+library(qiprng)
+
+# Create a PRNG with default settings
+createPRNG()
+
+# Generate 1000 uniform random numbers
+random_values <- generatePRNG(1000)
+
+# Check the distribution
+hist(random_values, breaks = 50,
+     main = "qiprng Uniform Distribution",
+     col = "skyblue")
+```
+
+### 2. Use Different Distributions
+
+<CodeGroup>
+```r Normal
+# Normal distribution
+createPRNG(list(
+  distribution = "normal",
+  normal_mean = 0,
+  normal_sd = 1
+))
+normal_samples <- generatePRNG(1000)
+```
+
+```r Exponential
+# Exponential distribution
+createPRNG(list(
+  distribution = "exponential",
+  exponential_lambda = 0.5
+))
+exp_samples <- generatePRNG(1000)
+```
+
+```r Poisson
+# Poisson distribution
+createPRNG(list(
+  distribution = "poisson",
+  poisson_lambda = 3.5
+))
+pois_samples <- generatePRNG(1000)
+```
+
+```r Gamma
+# Gamma distribution
+createPRNG(list(
+  distribution = "gamma",
+  gamma_shape = 2,
+  gamma_scale = 0.5
+))
+gamma_samples <- generatePRNG(1000)
+```
+</CodeGroup>
+
+### 3. Reproducible Random Numbers
+
+```r
+# Set a seed for reproducibility
+cfg <- list(
+  seed = 12345,
+  a = 2L,
+  b = 5L,
+  c = -2L,
+  use_crypto_mixing = FALSE  # Disable for full determinism
+)
+
+# First sequence
+createPRNG(cfg)
+seq1 <- generatePRNG(100)
+
+# Recreate with same seed
+cleanup_prng()
+createPRNG(cfg)
+seq2 <- generatePRNG(100)
+
+# Verify they're identical
+all(seq1 == seq2)  # TRUE
+```
+
+<Warning>
+  When using seeds, disable `use_crypto_mixing` for full determinism. Cryptographic mixing adds entropy that makes sequences non-reproducible even with the same seed.
+</Warning>
+
+## Common Use Cases
+
+### Monte Carlo Simulation
+
+```r
+# Configure for high-quality Monte Carlo
+createPRNG(list(
+  mpfr_precision = 128L,        # Higher precision
+  buffer_size = 10000L,         # Large buffer for efficiency
+  use_parallel_filling = TRUE,  # Enable parallel generation
+  mixing_strategy = "cascade_mix" # Maximum entropy
+))
+
+# Run simulation
+n_simulations <- 1000000
+results <- generatePRNG(n_simulations)
+
+# Example: Estimate π using Monte Carlo
+x <- generatePRNG(n_simulations)
+y <- generatePRNG(n_simulations)
+inside_circle <- sum(x^2 + y^2 <= 1)
+pi_estimate <- 4 * inside_circle / n_simulations
+print(paste("π estimate:", pi_estimate))
+```
+
+### Parallel Processing
+
+```r
+library(parallel)
+
+# Configure for thread-safe parallel use
+createPRNG(list(
+  use_threading = TRUE,          # Enable thread safety
+  use_parallel_filling = FALSE,  # Disable for stability
+  buffer_size = 10000            # Large buffer
+))
+
+# Use with parallel package
+cl <- makeCluster(4)
+clusterEvalQ(cl, library(qiprng))
+
+# Each worker safely generates from shared PRNG
+results <- parSapply(cl, 1:4, function(i) {
+  values <- generatePRNG(5000)
+  c(mean = mean(values), sd = sd(values))
+})
+
+stopCluster(cl)
+```
+
+### Advanced Configuration
+
+```r
+# High-performance configuration
+high_perf_config <- list(
+  # Multiple quadratic irrationals
+  a = c(2L, 3L, 5L),
+  b = c(7L, 11L, 13L),
+  c = c(-3L, -5L, -7L),
+
+  # Performance settings
+  mpfr_precision = 256L,
+  buffer_size = 100000L,
+  use_parallel_filling = TRUE,
+
+  # Quality settings
+  use_excellent_only = TRUE,
+  quality_threshold = 0.005,
+
+  # Security
+  use_crypto_mixing = TRUE,
+  mixing_strategy = "cascade_mix",
+  reseed_interval = 10000L
+)
+
+createPRNG(high_perf_config)
+```
+
+## Quick Tips
+
+<AccordionGroup>
+  <Accordion title="Choose the Right Distribution">
+    Select the distribution that matches your use case:
+    - `uniform_01`: Default, values in [0,1)
+    - `normal`: Gaussian distribution with mean and SD
+    - `exponential`: Waiting times, decay processes
+    - `poisson`: Count data, rare events
+    - `gamma`: Waiting times for multiple events
+    - `beta`: Probabilities, proportions
+  </Accordion>
+
+  <Accordion title="Optimize for Performance">
+    - Increase `buffer_size` for batch generation
+    - Enable `use_parallel_filling` for multi-core systems
+    - Use `use_excellent_only = FALSE` for speed over quality
+    - Choose `mixing_strategy = "round_robin"` for fastest mixing
+  </Accordion>
+
+  <Accordion title="Ensure Thread Safety">
+    For parallel workloads:
+    - Set `use_threading = TRUE`
+    - Consider separate PRNG instances per thread
+    - Use jump-ahead for independent streams
+  </Accordion>
+
+  <Accordion title="Debug Issues">
+    Enable debug output to troubleshoot:
+    ```r
+    createPRNG(list(debug = TRUE))
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Explore Distributions"
+    icon="chart-mixed"
+    href="/guides/distributions"
+  >
+    Learn about all supported distributions
+  </Card>
+  <Card
+    title="Performance Tuning"
+    icon="gauge-high"
+    href="/guides/performance-tuning"
+  >
+    Optimize for your specific use case
+  </Card>
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api-reference/r-functions/createPRNG"
+  >
+    Dive deep into the API
+  </Card>
+  <Card
+    title="Mathematical Theory"
+    icon="square-root-variable"
+    href="/concepts/quadratic-irrationals"
+  >
+    Understand the mathematics
+  </Card>
+</CardGroup>

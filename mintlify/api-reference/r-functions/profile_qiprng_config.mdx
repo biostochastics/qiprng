@@ -1,0 +1,86 @@
+---
+title: 'profile_qiprng_config'
+description: 'Profile different QIPRNG configurations'
+sidebarTitle: 'profile_qiprng_config'
+---
+
+# Profile different QIPRNG configurations
+
+
+ This function profiles the performance of different QIPRNG configurations
+ to help users identify the optimal settings for their specific use case.
+
+
+## Usage
+
+```r
+
+ profile_qiprng_config(
+   config_list = list(
+     "default" = list(),
+     "crypto" = list(use_crypto_mixing = TRUE),
+     "high_precision" = list(mpfr_precision = 128),
+     "normal" = list(distribution = "normal")
+   ),
+   n = 10000,
+   repetitions = 10
+ )
+
+```
+
+## Parameters
+
+<ParamField body="config_list" type="any">
+  List of named configurations to test
+</ParamField>
+<ParamField body="n" type="any">
+  Number of random numbers to generate for each test
+</ParamField>
+<ParamField body="repetitions" type="any">
+  Number of benchmark repetitions
+</ParamField>
+
+## Returns
+
+
+ A data frame with benchmark results for each configuration, including:
+
+       config: Configuration name
+       mean_time: Mean execution time in milliseconds
+       median_time: Median execution time in milliseconds
+       relative_speed: Performance relative to the default configuration
+
+
+
+## Examples
+
+```r
+
+
+ # Profile several QIPRNG configurations
+ profiles <- profile_qiprng_config(
+   config_list = list(
+     "default" = list(),
+     "crypto" = list(use_crypto_mixing = TRUE),
+     "high_precision" = list(mpfr_precision = 128),
+     "large_buffer" = list(buffer_size = 10000)
+   ),
+   n = 5000,
+   repetitions = 3
+ )
+
+ # View the results
+ print(profiles)
+
+```
+
+## See Also
+
+<CardGroup cols={2}>
+  <Card title="benchmark_qiprng" href="/api-reference/r-functions/benchmark_qiprng">
+    Related function: benchmark_qiprng
+  </Card>
+  <Card title="benchmark_large_generation" href="/api-reference/r-functions/benchmark_large_generation">
+    Related function: benchmark_large_generation
+  </Card>
+</CardGroup>

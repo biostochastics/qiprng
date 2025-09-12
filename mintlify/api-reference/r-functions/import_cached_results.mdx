@@ -1,0 +1,33 @@
+---
+title: 'import_cached_results'
+description: 'Import cached test results'
+sidebarTitle: 'import_cached_results'
+---
+
+# Import cached test results
+
+
+ Imports previously exported cache results back into the cache system.
+
+
+## Usage
+
+```r
+
+ import_cached_results(file, overwrite = FALSE)
+
+```
+
+## Parameters
+
+<ParamField body="file" type="any">
+  Path to import file (RDS format)
+</ParamField>
+<ParamField body="overwrite" type="any">
+  Whether to overwrite existing cache entries
+</ParamField>
+
+## Returns
+
+
+ Invisible TRUE on success

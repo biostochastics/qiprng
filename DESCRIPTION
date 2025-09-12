@@ -1,7 +1,7 @@
 Package: qiprng
 Type: Package
 Title: Quadratic Irrational PRNG
-Version: 0.6.0
+Version: 0.6.1
 Authors@R: person("Sergey", "Kornilov", email = "sergey.kornilov@biostochastics.com", role = c("aut", "cre"))
 Author: Sergey Kornilov [aut, cre]
 Maintainer: Sergey Kornilov <sergey.kornilov@biostochastics.com>
@@ -28,10 +28,34 @@ Imports:
     dqrng,
     scales,
     knitr,
-    jsonlite
+    jsonlite,
+    reshape2,
+    R6,
+    yaml,
+    rmarkdown,
+    microbenchmark,
+    stringr,
+    R.utils,
+    cli
 Suggests:
     styler,
-    testthat (>= 3.1.0)
+    testthat (>= 3.1.0),
+    CryptRndTest,
+    refTools,
+    ggradar,
+    random,
+    quarto,
+    viridis,
+    plotly,
+    scatterplot3d,
+    htmlwidgets,
+    kableExtra,
+    tseries,
+    randtoolbox,
+    lawstat,
+    profvis,
+    FNN,
+    geometry
 LinkingTo:
     Rcpp
 SystemRequirements:

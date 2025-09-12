@@ -2,7 +2,7 @@
 
 <img src="images/qiprng_logo.png" alt="QIPRNG Logo" width="300"/>
 
-[![Version](https://img.shields.io/badge/Version-0.6.0-blue)](https://github.com/biostochastics/qiprng)
+[![Version](https://img.shields.io/badge/Version-0.6.2-blue)](https://github.com/biostochastics/qiprng)
 [![ThreadSafe](https://img.shields.io/badge/Thread%20Safe-Yes-brightgreen)](https://github.com/biostochastics/qiprng)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen)](https://github.com/biostochastics/qiprng)
@@ -24,17 +24,17 @@ x <- generatePRNG(10000)
 hist(x, breaks = 50, main = "qiprng uniform distribution", col = "skyblue")
 ```
 
-## What's New in v0.6.0
+## What's New in v0.6.2
 
-This release addresses critical security vulnerabilities and thread safety issues.
-Key improvements include integer overflow protection in discriminant validation,
-mandatory exception throwing for deterministic seeds with cryptographic mixing, and
-comprehensive thread safety fixes using `std::once_flag` and memory barriers. The
-error handling has been unified to use exceptions consistently instead of warnings,
-ensuring failures are properly propagated. Numerical stability has been enhanced with
-matrix overflow protection and precision loss mitigation in MPFR conversions. All code
-has been formatted to standards and pre-commit hooks have been configured for ongoing
-code quality.
+This release focuses on package infrastructure improvements and code quality enhancements.
+The caching framework now supports pattern-based cache clearing with regex patterns and
+includes new export/import functionality for cache archival and sharing. Test code has been
+completely isolated from production builds by moving all C++ test files to a dedicated
+`tests/cpp/` directory with conditional compilation guards, reducing package size. All R
+functions now use consistent snake_case naming conventions. The previous v0.6.1 release
+delivered critical bug fixes including comprehensive overflow protection using 128-bit
+arithmetic, true ChaCha20 cryptographic implementation, Windows build improvements, and
+modular architecture refactoring.
 
 For complete version history and migration guides, see [CHANGELOG.md](CHANGELOG.md).
 
@@ -44,14 +44,21 @@ The package offers high-precision computation using the MPFR library with config
 precision from 24 to 10,000 bits, supporting over 14 statistical distributions including
 standard continuous and discrete distributions as well as extended distributions like
 Levy stable, Pareto, and multivariate normal. Hardware acceleration is provided through
-SIMD vectorization with AVX2/NEON support and OpenMP parallelization with work-stealing
-queues for optimal load balancing. The cryptographic security layer uses ChaCha20 cipher
-for mixing with multiple strategies including XOR, averaging, modular, and cascade mixing
-for enhanced entropy. Thread safety is guaranteed through proper synchronization
-primitives and thread-local resources, while deterministic mode with seed support enables
-reproducible sequences for research and testing. The implementation has been validated
-with over 70 statistical tests and uses 370 discriminants rated as excellent through
-comprehensive testing.
+SIMD vectorization with AVX2/NEON support and enhanced OpenMP parallelization with
+thread-local caching, SIMD integration, and optimized buffer management for improved
+performance on modern multi-core systems.
+
+Advanced jump-ahead capabilities enable efficient parallel simulations with multiple
+algorithm options including MPFR-based high-precision matrix operations, fast modular
+arithmetic using Mersenne primes, and direct continued fraction manipulation, all with
+automatic overflow prevention for jumps of arbitrary size. The cryptographic security
+layer uses ChaCha20 stream cipher for deterministic cryptographic mixing, with XOR mixing
+for preserving uniformity or modular addition for enhanced entropy, providing
+cryptographic-grade unpredictability. Thread safety is guaranteed through proper
+synchronization primitives and thread-local resources, while deterministic mode with seed
+support enables reproducible sequences for research and testing. The implementation has
+been validated with over 70 statistical tests and uses 370 discriminants rated as
+excellent through comprehensive testing.
 
 ## Quick Start
 
@@ -402,6 +409,46 @@ worthwhile for applications requiring cryptographic security, precise statistica
 reproducible research results, or validated random number quality. For general Monte Carlo
 simulations where speed is paramount and cryptographic security is not required, standard
 generators like Mersenne Twister may be more appropriate.
+
+## Caching Framework
+
+The package includes a powerful caching system to optimize performance for repeated operations:
+
+### Cache Management
+
+```r
+# Enable/disable caching
+set_cache_enabled(TRUE)
+is_cache_enabled()  # Check status
+
+# Clear cache entries
+clear_qiprng_cache()  # Clear all
+clear_qiprng_cache("acf")  # Clear by pattern (regex supported)
+
+# Export and import cache
+export_cached_results("cache_backup.rds")
+import_cached_results("cache_backup.rds", overwrite = FALSE)
+
+# Cache statistics
+qiprng_cache_stats()  # Overall cache info
+test_cache_stats()    # Test-specific cache stats
+```
+
+### Cached Functions
+
+The framework provides cached versions of expensive computations:
+
+```r
+# Cached statistical functions
+cached_acf(x, lag.max = 50)     # Autocorrelation
+cached_pacf(x, lag.max = 50)    # Partial autocorrelation
+cached_spectrum(x)               # Spectral density
+cached_compress(x, type = "gzip")  # Compression
+
+# Test result caching
+cached_test_result(test_func, test_name, test_category,
+                  data, config, ...)
+```
 
 ## API Reference
 

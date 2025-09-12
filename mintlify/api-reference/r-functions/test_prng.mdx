@@ -1,0 +1,44 @@
+---
+title: 'test_prng'
+description: 'Run statistical tests on the current PRNG configuration'
+sidebarTitle: 'test_prng'
+---
+
+# Run statistical tests on the current PRNG configuration
+
+
+ Run statistical tests on the current PRNG configuration
+
+
+## Usage
+
+```r
+
+ test_prng(
+   sample_size = 1e+06,
+   config = default_test_config,
+   categories = names(QPRNG_TEST_CATEGORIES),
+   report_file = NULL
+ )
+
+```
+
+## Parameters
+
+<ParamField body="sample_size" type="any">
+  Number of random numbers to generate for testing
+</ParamField>
+<ParamField body="config" type="any">
+  Test configuration (see default_test_config)
+</ParamField>
+<ParamField body="categories" type="any">
+  Test categories to include
+</ParamField>
+<ParamField body="report_file" type="any">
+  Optional filename for the test report
+</ParamField>
+
+## Returns
+
+
+ A test suite object with results

@@ -52,9 +52,65 @@ clear_qiprng_cache <- function(pattern = NULL) {
     R.cache::clearCache(dirs = "qiprng")
   } else {
     # Clear specific entries matching pattern
-    # This is more complex and would require listing cache entries
-    warning("Pattern-based cache clearing not yet implemented. Clearing all cache.")
-    R.cache::clearCache(dirs = "qiprng")
+    cache_dir <- R.cache::getCacheRootPath()
+    qiprng_cache_dir <- file.path(cache_dir, "qiprng")
+
+    if (!dir.exists(qiprng_cache_dir)) {
+      message("No cache entries found.")
+      return(invisible(NULL))
+    }
+
+    # Find all cache files
+    cache_files <- list.files(qiprng_cache_dir,
+      pattern = "\\.Rcache$",
+      full.names = TRUE,
+      recursive = TRUE
+    )
+
+    if (length(cache_files) == 0) {
+      message("No cache entries found.")
+      return(invisible(NULL))
+    }
+
+    # Filter files based on pattern
+    files_to_remove <- character(0)
+
+    for (file in cache_files) {
+      tryCatch(
+        {
+          # Load cache metadata to check if it matches pattern
+          cache_obj <- R.cache::loadCache(pathname = file)
+          cache_key <- attr(cache_obj, "key")
+
+          # Check if any part of the key matches the pattern
+          if (!is.null(cache_key)) {
+            key_str <- paste(capture.output(str(cache_key)), collapse = " ")
+            if (grepl(pattern, key_str, ignore.case = TRUE)) {
+              files_to_remove <- c(files_to_remove, file)
+            }
+          }
+        },
+        error = function(e) {
+          # If we can't read the cache file, check filename
+          if (grepl(pattern, basename(file), ignore.case = TRUE)) {
+            files_to_remove <- c(files_to_remove, file)
+          }
+        }
+      )
+    }
+
+    # Remove matching files
+    if (length(files_to_remove) > 0) {
+      for (file in files_to_remove) {
+        file.remove(file)
+      }
+      message(sprintf(
+        "Cleared %d cache entries matching pattern '%s'.",
+        length(files_to_remove), pattern
+      ))
+    } else {
+      message(sprintf("No cache entries found matching pattern '%s'.", pattern))
+    }
   }
   invisible(NULL)
 }
@@ -462,8 +518,174 @@ test_cache_stats <- function() {
 #' @return Invisible TRUE on success
 #' @export
 export_cached_results <- function(file, category = NULL) {
-  # This is a placeholder - actual implementation would need to
-  # traverse cache and reconstruct results
-  warning("export_cached_results not yet implemented")
-  invisible(FALSE)
+  # Get cache directory
+  cache_dir <- R.cache::getCacheRootPath()
+  base_path <- file.path(cache_dir, "qiprng")
+
+  if (!dir.exists(base_path)) {
+    warning("No cache entries found to export.")
+    return(invisible(FALSE))
+  }
+
+  # Determine which directories to export
+  if (!is.null(category)) {
+    export_dirs <- file.path(base_path, "test_results", category)
+    if (!dir.exists(export_dirs)) {
+      warning(sprintf("No cache entries found for category '%s'.", category))
+      return(invisible(FALSE))
+    }
+  } else {
+    export_dirs <- base_path
+  }
+
+  # Collect all cache files
+  cache_files <- list.files(export_dirs,
+    pattern = "\\.Rcache$",
+    full.names = TRUE,
+    recursive = TRUE
+  )
+
+  if (length(cache_files) == 0) {
+    warning("No cache entries found to export.")
+    return(invisible(FALSE))
+  }
+
+  # Load and organize cache entries
+  exported_data <- list(
+    metadata = list(
+      export_date = Sys.time(),
+      cache_dir = cache_dir,
+      category = category,
+      num_entries = length(cache_files),
+      R_version = R.version.string,
+      package_version = packageVersion("qiprng")
+    ),
+    cache_entries = list()
+  )
+
+  # Load each cache file
+  for (i in seq_along(cache_files)) {
+    cache_file <- cache_files[i]
+    rel_path <- sub(paste0("^", base_path, "/"), "", cache_file)
+
+    tryCatch(
+      {
+        # Load the cached object
+        cache_obj <- R.cache::loadCache(pathname = cache_file)
+
+        # Get cache metadata if available
+        cache_key <- attr(cache_obj, "key")
+        cache_timestamp <- file.info(cache_file)$mtime
+
+        # Store in exported data
+        exported_data$cache_entries[[rel_path]] <- list(
+          data = cache_obj,
+          key = cache_key,
+          timestamp = cache_timestamp,
+          file_size = file.info(cache_file)$size
+        )
+      },
+      error = function(e) {
+        warning(sprintf("Could not load cache file: %s", rel_path))
+      }
+    )
+  }
+
+  # Save to RDS file
+  tryCatch(
+    {
+      saveRDS(exported_data, file = file, compress = TRUE)
+      message(sprintf(
+        "Successfully exported %d cache entries to '%s'.",
+        length(exported_data$cache_entries), file
+      ))
+      return(invisible(TRUE))
+    },
+    error = function(e) {
+      warning(sprintf("Failed to save export file: %s", e$message))
+      return(invisible(FALSE))
+    }
+  )
+}
+
+#' Import cached test results
+#'
+#' Imports previously exported cache results back into the cache system.
+#'
+#' @param file Path to import file (RDS format)
+#' @param overwrite Whether to overwrite existing cache entries
+#' @return Invisible TRUE on success
+#' @keywords internal
+#' @export
+import_cached_results <- function(file, overwrite = FALSE) {
+  if (!file.exists(file)) {
+    stop(sprintf("Import file not found: %s", file))
+  }
+
+  # Load exported data
+  tryCatch(
+    {
+      exported_data <- readRDS(file)
+    },
+    error = function(e) {
+      stop(sprintf("Failed to read import file: %s", e$message))
+    }
+  )
+
+  # Validate structure
+  if (!is.list(exported_data) ||
+    !all(c("metadata", "cache_entries") %in% names(exported_data))) {
+    stop("Invalid export file format.")
+  }
+
+  # Get cache directory
+  cache_dir <- R.cache::getCacheRootPath()
+  base_path <- file.path(cache_dir, "qiprng")
+
+  # Create base directory if needed
+  if (!dir.exists(base_path)) {
+    dir.create(base_path, recursive = TRUE, showWarnings = FALSE)
+  }
+
+  imported_count <- 0
+  skipped_count <- 0
+
+  # Import each cache entry
+  for (rel_path in names(exported_data$cache_entries)) {
+    entry <- exported_data$cache_entries[[rel_path]]
+    target_path <- file.path(base_path, rel_path)
+
+    # Check if file exists and skip if needed
+    if (file.exists(target_path) && !overwrite) {
+      skipped_count <- skipped_count + 1
+      next
+    }
+
+    # Create directory if needed
+    target_dir <- dirname(target_path)
+    if (!dir.exists(target_dir)) {
+      dir.create(target_dir, recursive = TRUE, showWarnings = FALSE)
+    }
+
+    # Save cache entry
+    tryCatch(
+      {
+        R.cache::saveCache(entry$data,
+          pathname = target_path,
+          key = entry$key
+        )
+        imported_count <- imported_count + 1
+      },
+      error = function(e) {
+        warning(sprintf("Failed to import cache entry: %s", rel_path))
+      }
+    )
+  }
+
+  message(sprintf(
+    "Imported %d cache entries (skipped %d existing).",
+    imported_count, skipped_count
+  ))
+
+  invisible(TRUE)
 }

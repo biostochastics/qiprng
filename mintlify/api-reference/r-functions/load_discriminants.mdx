@@ -1,0 +1,65 @@
+---
+title: 'load_discriminants'
+description: 'Load discriminants from CSV file'
+sidebarTitle: 'load_discriminants'
+---
+
+# Load discriminants from CSV file
+
+
+ Loads discriminant parameters from a CSV file and validates their mathematical properties.
+ The function checks that discriminants are correctly calculated and that all parameters
+ meet the required constraints for the quadratic irrational PRNG.
+
+
+## Usage
+
+```r
+
+ load_discriminants(file_path = "discriminants.csv")
+
+```
+
+## Parameters
+
+<ParamField body="file_path" type="any">
+  Path to discriminants.csv file (default: "discriminants.csv")
+</ParamField>
+
+## Returns
+
+
+ A data frame containing discriminant parameters with columns:
+
+ a Quadratic coefficient (must be > 0)
+ b Linear coefficient
+ c Constant term (must be < 0)
+ Discriminant The discriminant value b² - 4ac (must be > 0)
+
+
+
+## Details
+
+
+ The function performs several validation checks:
+
+  Verifies that calculated discriminants match stored values
+  Checks that a > 0 (required for proper quadratic behavior)
+  Checks that c < 0 (required for the recurrence relation)
+  Checks that discriminant > 0 (required for irrational roots)
+
+
+
+## Examples
+
+```r
+
+
+ # Load default discriminants file
+ discriminants <- load_discriminants()
+
+ # Load from custom path
+ discriminants <- load_discriminants("custom_discriminants.csv")
+
+
+```

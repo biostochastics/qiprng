@@ -1,0 +1,59 @@
+---
+title: 'test_qiprng'
+description: 'Run statistical tests on the PRNG'
+sidebarTitle: 'test_qiprng'
+---
+
+# Run statistical tests on the PRNG
+
+
+ This function performs statistical tests on the PRNG output to verify
+ its quality.
+
+
+## Usage
+
+```r
+
+ test_qiprng(n = 10000, cfg = NULL)
+
+```
+
+## Parameters
+
+<ParamField body="n" type="any">
+  Number of samples to use in tests (default: 10000)
+</ParamField>
+<ParamField body="cfg" type="any">
+  Optional configuration to use for testing (default: NULL)
+</ParamField>
+
+## Returns
+
+
+ List containing test results:
+
+       ks_pvalue: p-value from Kolmogorov-Smirnov test for uniformity
+       runs_z_score: Z-score from runs test for independence
+       spectral_sd: Standard deviation of FFT components
+
+
+
+## Examples
+
+```r
+
+ # Run tests with default configuration
+ results <- test_qiprng()
+
+ # Run tests with custom configuration
+ cfg <- list(
+   a = 2L,
+   b = 0L,
+   c = -1L,
+   mpfr_precision = 53L,
+   use_crypto_mixing = TRUE,
+   buffer_size = 1024L
+ )
+ results <- test_qiprng(10000, cfg)
+```

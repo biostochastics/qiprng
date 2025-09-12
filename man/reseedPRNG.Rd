@@ -8,6 +8,15 @@ reseedPRNG()
 }
 \value{
 Invisibly returns NULL
+#' @examplesCreate default PRNG
+
+createPRNG()Generate some values
+
+generatePRNG(10)Force a reseed
+
+reseedPRNG()Generate more values (new sequence after reseed)
+
+generatePRNG(10)
 }
 \description{
 Forces a manual reseed of the global PRNG instance. This operation introduces
@@ -19,17 +28,4 @@ a simulation.
 Thread safety: This function is fully thread-safe and will block until mutex
 is acquired. The implementation ensures that all thread-local resources are
 properly handled during reseeding.
-}
-\examples{
-# Create default PRNG
-createPRNG()
-
-# Generate some values
-generatePRNG(10)
-
-# Force a reseed
-reseedPRNG()
-
-# Generate more values (new sequence after reseed)
-generatePRNG(10)
 }

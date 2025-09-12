@@ -1,0 +1,68 @@
+---
+title: 'generate_levy_stable'
+description: 'Generate Levy Stable Distribution'
+sidebarTitle: 'generate_levy_stable'
+---
+
+# Generate Levy Stable Distribution
+
+
+ Generates random numbers from a Levy stable distribution using the
+ Chambers-Mallows-Stuck method.
+
+
+## Usage
+
+```r
+
+ generate_levy_stable(n, alpha, beta = 0, mu = 0, sigma = 1)
+
+```
+
+## Parameters
+
+<ParamField body="n" type="any">
+  Number of random values to generate
+</ParamField>
+<ParamField body="alpha" type="any">
+  Stability parameter (0,2]. Alpha=2 gives normal distribution,
+ alpha=1 gives Cauchy distribution
+</ParamField>
+<ParamField body="beta" type="any">
+  Skewness parameter  -1,1 . Beta=0 gives symmetric distribution
+</ParamField>
+<ParamField body="mu" type="any">
+  Location parameter
+</ParamField>
+<ParamField body="sigma" type="any">
+  Scale parameter (must be positive)
+</ParamField>
+
+## Returns
+
+
+ Numeric vector of n random values from the Levy stable distribution
+
+
+## Details
+
+
+ The Levy stable distribution is a family of continuous probability
+ distributions parameterized by stability (alpha) and skewness (beta). It
+ includes normal (alpha=2), Cauchy (alpha=1), and Levy (alpha=0.5, beta=1)
+ distributions as special cases.
+
+
+## Examples
+
+```r
+
+
+ # Generate from symmetric stable distribution
+ x <- generate_levy_stable(1000, alpha = 1.5, beta = 0)
+
+ # Generate from skewed stable distribution
+ y <- generate_levy_stable(1000, alpha = 1.8, beta = 0.5, mu = 2, sigma = 1)
+
+
+```

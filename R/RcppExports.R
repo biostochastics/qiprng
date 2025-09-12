@@ -76,11 +76,3 @@ cpp_gaussian_copula <- function(n, correlation, marginal_params) {
 .cleanupPRNG_Final_ <- function() {
   .Call(`_qiprng_cleanupPRNG_Final_`)
 }
-
-test_choose_discriminant <- function(thread_count = 4L, iterations = 10L) {
-  .Call(`_qiprng_test_choose_discriminant`, thread_count, iterations)
-}
-
-check_discriminants_unique <- function(discriminant_lists) {
-  .Call(`_qiprng_check_discriminants_unique`, discriminant_lists)
-}

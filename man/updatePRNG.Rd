@@ -12,6 +12,19 @@ parameters will be changed; others retain their current values.}
 }
 \value{
 Invisibly returns NULL
+#' @examplesCreate default PRNG
+
+createPRNG()Generate some uniform numbers
+
+uniform_values <- generatePRNG(10)Switch to normal distribution
+
+updatePRNG(list(
+distribution = "normal",
+normal_mean = 5,
+normal_sd = 2
+))Generate normal values
+
+normal_values <- generatePRNG(10)
 }
 \description{
 Updates the configuration of the global PRNG instance with new parameters.
@@ -23,21 +36,4 @@ Thread safety: This function is fully thread-safe and will block until mutex
 is acquired. When switching between distributions (e.g., uniform to normal),
 the implementation ensures a clean transition with proper buffer management
 and reseeding.
-}
-\examples{
-# Create default PRNG
-createPRNG()
-
-# Generate some uniform numbers
-uniform_values <- generatePRNG(10)
-
-# Switch to normal distribution
-updatePRNG(list(
-  distribution = "normal",
-  normal_mean = 5,
-  normal_sd = 2
-))
-
-# Generate normal values
-normal_values <- generatePRNG(10)
 }
