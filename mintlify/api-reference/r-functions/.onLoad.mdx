@@ -1,0 +1,29 @@
+---
+title: '.onLoad'
+description: 'Package initialization function'
+sidebarTitle: '.onLoad'
+---
+
+# Package initialization function
+
+
+ Called when the package is loaded. Initializes the package environment,
+ sets up the cryptographic backend (libsodium), and registers cleanup handlers.
+
+
+## Usage
+
+```r
+
+ .onLoad(libname, pkgname)
+
+```
+
+## Parameters
+
+<ParamField body="libname" type="any">
+  The library path where the package is installed
+</ParamField>
+<ParamField body="pkgname" type="any">
+  The name of the package ("qiprng")
+</ParamField>

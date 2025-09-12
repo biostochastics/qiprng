@@ -1,0 +1,26 @@
+---
+title: '.onUnload'
+description: 'Package unload function'
+sidebarTitle: '.onUnload'
+---
+
+# Package unload function
+
+
+ Called when the package is unloaded. Cleans up package resources including
+ the PRNG instance to prevent memory leaks and ensure proper shutdown.
+
+
+## Usage
+
+```r
+
+ .onUnload(libpath)
+
+```
+
+## Parameters
+
+<ParamField body="libpath" type="any">
+  The library path where the package is installed
+</ParamField>

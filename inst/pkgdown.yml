@@ -3,7 +3,7 @@ pkgdown: 2.1.3
 pkgdown_sha: ~
 articles:
   mathematical_foundation: mathematical_foundation.html
-last_built: 2025-09-06T22:27Z
+last_built: 2025-09-11T23:10Z
 urls:
   reference: https://biostochastics.github.io/qiprng/reference
   article: https://biostochastics.github.io/qiprng/articles

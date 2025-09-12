@@ -37,39 +37,65 @@ deterministic seeding. Default NULL uses secure random initialization.}
 }
 \value{
 Invisibly returns NULL
+#' @examplesCreate PRNG with default settings
+
+createPRNG()Create PRNG with custom configuration
+
+createPRNG(list(
+a = 3L,
+b = 7L,
+c = -5L,
+distribution = "normal",
+normal_mean = 10,
+normal_sd = 2,
+use_threading = TRUE
+))Create PRNG with seed for reproducible sequences (crypto mixing disabled)
+
+createPRNG(list(seed = 12345, use_crypto_mixing = FALSE))
+seq1 <- generatePRNG(10)Same seed produces same sequence
+
+cleanup_prng()
+createPRNG(list(seed = 12345, use_crypto_mixing = FALSE))
+seq2 <- generatePRNG(10)
+identical(seq1, seq2) # TRUE
 }
 \description{
 Creates a new global PRNG instance with the specified configuration. This function
 initializes a new pseudo-random number generator based on quadratic irrationals with
 configurable parameters.
 }
-\details{
-Thread safety information: This package uses a global PRNG instance that is protected by a mutex.
+\section{Mathematical Foundation}{
+
+The generator implements the recurrence relation:
+\deqn{x_{n+1} = (a \cdot x_n^2 + b \cdot x_n + c) \mod 1}
+where the coefficients must satisfy \eqn{b^2 - 4ac > 0} and the discriminant
+must not be a perfect square. This ensures the quadratic irrational has a
+periodic continued fraction expansion with good statistical properties.
+}
+
+\section{Thread Safety}{
+
+This package uses a global PRNG instance that is protected by a mutex.
 While comprehensive thread safety is provided through mutex protection and thread-local storage,
 for heavy parallel workloads it is recommended to set \code{use_threading=TRUE} in the configuration.
+OpenMP parallel filling can be enabled with \code{use_parallel_filling=TRUE}.
 }
-\examples{
-# Create PRNG with default settings
-createPRNG()
 
-# Create PRNG with custom configuration
-createPRNG(list(
-  a = 3L,
-  b = 7L,
-  c = -5L,
-  distribution = "normal",
-  normal_mean = 10,
-  normal_sd = 2,
-  use_threading = TRUE
-))
+\section{Performance Characteristics}{
 
-# Create PRNG with seed for reproducible sequences
-createPRNG(list(seed = 12345))
-seq1 <- generatePRNG(10)
-
-# Same seed produces same sequence
-cleanup_prng()
-createPRNG(list(seed = 12345))
-seq2 <- generatePRNG(10)
-identical(seq1, seq2) # TRUE
+\itemize{
+\item Single-threaded: ~8.18 million values/second
+\item Near-linear scaling with multiple threads
+\item O(1) memory usage with buffering
+\item Sub-122ns latency per value
+\item O(log n) jump-ahead complexity
 }
+}
+
+\section{Security Features}{
+
+When \code{use_crypto_mixing=TRUE}, the generator applies ChaCha20 stream cipher
+for cryptographic mixing, providing unpredictability suitable for security
+applications. Multiple mixing strategies are available for ensemble generation.
+}
+

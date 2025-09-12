@@ -1,0 +1,30 @@
+---
+title: 'get_excellent_discriminants'
+description: 'Get the 422 excellent discriminants identified through comprehensive analysis'
+sidebarTitle: 'get_excellent_discriminants'
+---
+
+# Get the 422 excellent discriminants identified through comprehensive analysis
+
+
+ These discriminants were selected from comprehensive testing of 750 candidates
+ with 1,000,000 samples each. All excellent discriminants have:
+
+  max_abs_acf <= 0.010 (empirical autocorrelation threshold)
+  Enhanced autocorrelation testing (50 lags, 99% confidence)
+  Passed comprehensive statistical validation
+
+
+
+## Usage
+
+```r
+
+ get_excellent_discriminants()
+
+```
+
+## Returns
+
+
+ data.frame with columns: a, b, c, discriminant, overall_score, max_abs_acf, n_sig_lags

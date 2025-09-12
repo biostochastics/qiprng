@@ -1,0 +1,91 @@
+---
+title: 'test_poker'
+description: 'Poker test for randomness'
+sidebarTitle: 'test_poker'
+---
+
+# Poker test for randomness
+
+
+ Tests randomness by examining patterns in "hands" of digits, similar to
+ poker hands. The test converts continuous values to digits and checks if
+ the distribution of unique digits per hand matches theoretical expectations.
+
+
+## Usage
+
+```r
+
+ test_poker(samples, m = 5)
+
+```
+
+## Parameters
+
+<ParamField body="samples" type="any">
+  Numeric vector of random samples to test (values in  0,1 )
+</ParamField>
+<ParamField body="m" type="any">
+  Length of each hand in digits (default: 5)
+</ParamField>
+
+## Returns
+
+
+ A list containing poker test results:
+
+ test_name Name of the test
+ statistic Chi-squared test statistic
+ p_value P-value from chi-squared test
+ passed Logical; TRUE if p-value > 0.05
+ hands_analyzed Number of complete hands analyzed
+ interpretation Human-readable interpretation of results
+
+
+
+## Details
+
+
+ The poker test is inspired by the card game and examines patterns in
+ groups of digits:
+
+  Converts each sample to a digit (0-9) by multiplying by 10 and flooring
+  Groups consecutive digits into "hands" of size m
+  Counts unique digits in each hand
+  Compares observed distribution to theoretical probabilities
+
+
+ For m=5 (default), the theoretical probabilities are:
+
+  1 unique digit (five of a kind): 0.0001
+  2 unique digits: 0.0045
+  3 unique digits: 0.0270
+  4 unique digits: 0.1080
+  5 unique digits (all different): 0.3024
+
+
+ These probabilities are based on the multinomial distribution for
+ sampling with replacement from 10 digits.
+
+
+## Examples
+
+```r
+
+
+ # Standard poker test with 5-digit hands
+ samples <- runif(10000)
+ result <- test_poker(samples)
+ print(paste("Poker test p-value:", round(result$p_value, 4)))
+
+ # Test with 3-digit hands
+ result <- test_poker(samples, m = 3)
+
+
+```
+
+## References
+
+
+ Knuth, D. E. (1997). The Art of Computer Programming, Volume 2:
+ Seminumerical Algorithms (3rd ed.). Addison-Wesley.

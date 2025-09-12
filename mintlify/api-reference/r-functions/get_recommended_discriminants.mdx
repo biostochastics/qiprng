@@ -1,0 +1,100 @@
+---
+title: 'get_recommended_discriminants'
+description: 'Get recommended discriminant parameters for production use'
+sidebarTitle: 'get_recommended_discriminants'
+---
+
+# Get recommended discriminant parameters for production use
+
+
+ Selects a subset of excellent discriminants based on specified criteria.
+ Provides three selection strategies: highest scores, balanced test performance,
+ or diverse parameter ranges.
+
+
+## Usage
+
+```r
+
+ get_recommended_discriminants(
+   n = 10,
+   results_file = "discriminant_analysis_results/raw_results.rds",
+   criteria = "top_score"
+ )
+
+```
+
+## Parameters
+
+<ParamField body="n" type="any">
+  Number of discriminants to return (default: 10)
+</ParamField>
+<ParamField body="results_file" type="any">
+  Path to the analysis results RDS file
+ (default: "discriminant_analysis_results/raw_results.rds")
+</ParamField>
+<ParamField body="criteria" type="any">
+  Selection criteria, one of:
+
+ "top_score" Select discriminants with highest overall scores
+ "balanced" Select discriminants that pass all tests uniformly
+ "diverse" Select discriminants with diverse parameter ranges using k-means clustering
+
+</ParamField>
+
+## Returns
+
+
+ A data frame with recommended discriminant parameters containing:
+
+ a, b, c Discriminant parameters
+ discriminant The discriminant value b² - 4ac
+ overall_score Combined test score
+ Test results Individual test pass/fail status
+ balance_score For "balanced" criteria, the proportion of tests passed
+
+
+
+## Details
+
+
+ Selection strategies:
+
+   top_score : Simply returns the n highest-scoring discriminants
+   balanced : Prioritizes discriminants that pass all tests equally well,
+ then sorts by overall score
+   diverse : Uses k-means clustering on normalized (a,b,c) parameters
+ to ensure diverse parameter combinations, selecting the best from each cluster
+
+
+ If fewer excellent discriminants exist than requested, returns all available
+ with a warning.
+
+
+## Examples
+
+```r
+
+
+ # Get top 10 discriminants by score
+ top10 <- get_recommended_discriminants(n = 10, criteria = "top_score")
+
+ # Get discriminants with balanced test performance
+ balanced <- get_recommended_discriminants(n = 5, criteria = "balanced")
+
+ # Get diverse parameter combinations
+ diverse <- get_recommended_discriminants(n = 20, criteria = "diverse")
+
+
+```
+
+## See Also
+
+<CardGroup cols={2}>
+  <Card title="load_excellent_discriminants" href="/api-reference/r-functions/load_excellent_discriminants">
+    Related function: load_excellent_discriminants
+  </Card>
+  <Card title="create_excellent_prng_config" href="/api-reference/r-functions/create_excellent_prng_config">
+    Related function: create_excellent_prng_config
+  </Card>
+</CardGroup>

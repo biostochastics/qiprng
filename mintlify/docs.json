@@ -1,0 +1,100 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "qiprng",
+  "theme": "default",
+  "logo": {
+    "dark": "/images/qiprng_logo.png",
+    "light": "/images/qiprng_logo.png"
+  },
+  "favicon": "/images/favicon.png",
+  "colors": {
+    "primary": "#0D9373",
+    "light": "#07C983",
+    "dark": "#0D9373",
+    "anchors": {
+      "from": "#0D9373",
+      "to": "#07C983"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "GitHub",
+      "url": "https://github.com/biostochastics/qiprng"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Install Package",
+    "url": "https://github.com/biostochastics/qiprng#installation"
+  },
+  "navigation": [
+    {
+      "group": "Get Started",
+      "pages": [
+        "introduction",
+        "quickstart",
+        "installation"
+      ]
+    },
+    {
+      "group": "Concepts",
+      "pages": [
+        "concepts/mathematical-theory"
+      ]
+    },
+    {
+      "group": "Guides",
+      "pages": [
+        "guides/basic-usage"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        {
+          "group": "R Functions",
+          "pages": [
+            "api-reference/r-functions/createPRNG",
+            "api-reference/r-functions/generatePRNG",
+            "api-reference/r-functions/updatePRNG",
+            "api-reference/r-functions/jumpAheadPRNG",
+            "api-reference/r-functions/reseedPRNG",
+            "api-reference/r-functions/cleanup_prng"
+          ]
+        },
+        {
+          "group": "C++ Architecture",
+          "pages": [
+            "api-reference/cpp/architecture"
+          ]
+        }
+      ]
+    },
+    {
+      "group": "Reference",
+      "pages": [
+        "reference/migration-guide"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "github": "https://github.com/biostochastics",
+    "linkedin": "https://www.linkedin.com/company/biostochastics"
+  },
+  "feedback": {
+    "thumbsRating": true,
+    "suggestEdit": true,
+    "raiseIssue": true
+  },
+  "search": {
+    "prompt": "Search documentation..."
+  },
+  "modeToggle": {
+    "default": "light",
+    "isHidden": false
+  },
+  "analytics": {
+    "gtm": {
+      "tagId": "GTM-XXXXXXX"
+    }
+  }
+}

@@ -1,0 +1,74 @@
+---
+title: 'test_moments'
+description: 'Test statistical moments (mean, variance, skewness, kurtosis)'
+sidebarTitle: 'test_moments'
+---
+
+# Test statistical moments (mean, variance, skewness, kurtosis)
+
+
+ Analyzes the first four statistical moments of a sample and compares them
+ to the theoretical values expected for a uniform 0,1  distribution.
+
+
+## Usage
+
+```r
+
+ test_moments(samples)
+
+```
+
+## Parameters
+
+<ParamField body="samples" type="any">
+  Numeric vector of random samples to test
+</ParamField>
+
+## Returns
+
+
+ A list containing moment analysis results:
+
+ test_name Name of the test
+ sample_mean Calculated sample mean
+ sample_variance Calculated sample variance
+ sample_skewness Calculated sample skewness
+ sample_kurtosis Calculated sample kurtosis (non-excess)
+ expected_mean Expected mean for uniform 0,1  = 0.5
+ expected_variance Expected variance for uniform 0,1  = 1/12
+ expected_skewness Expected skewness for uniform 0,1  = 0
+ expected_kurtosis Expected kurtosis for uniform 0,1  = 1.8
+ mean_error Absolute deviation from expected mean
+ var_error Absolute deviation from expected variance
+ skew_error Absolute deviation from expected skewness
+ kurt_error Absolute deviation from expected kurtosis
+
+
+
+## Details
+
+
+ For a uniform distribution on  0,1 , the theoretical moments are:
+
+  Mean: μ = 0.5
+  Variance: σ² = 1/12 ≈ 0.0833
+  Skewness: γ₁ = 0 (symmetric distribution)
+  Kurtosis: γ₂ = 1.8 (platykurtic, flatter than normal)
+
+
+ The function uses non-excess kurtosis (where normal distribution = 3).
+
+
+## Examples
+
+```r
+
+
+ # Analyze moments of uniform random numbers
+ samples <- runif(10000)
+ moments <- test_moments(samples)
+ print(paste("Mean error:", round(moments$mean_error, 4)))
+
+
+```

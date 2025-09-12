@@ -3,8 +3,27 @@
 # Windows-specific configuration
 # Assumes Rtools is installed with OpenSSL and MPFR/GMP
 
+# Check for libsodium availability
+SODIUM_CFLAGS=""
+SODIUM_LIBS=""
+
+# Try to find libsodium using pkg-config or standard locations
+if pkg-config --exists libsodium 2>/dev/null; then
+    SODIUM_CFLAGS=$(pkg-config --cflags libsodium)
+    SODIUM_LIBS=$(pkg-config --libs libsodium)
+    echo "Found libsodium via pkg-config"
+elif [ -d "${SODIUM_PATH}" ]; then
+    SODIUM_CFLAGS="-I${SODIUM_PATH}/include"
+    SODIUM_LIBS="-L${SODIUM_PATH}/lib -lsodium"
+    echo "Found libsodium at SODIUM_PATH"
+else
+    echo "WARNING: libsodium not found. Crypto features will be disabled."
+    echo "To enable crypto features, install libsodium and set SODIUM_PATH environment variable."
+    SODIUM_CFLAGS="-DQIPRNG_NO_CRYPTO"
+fi
+
 cat << EOF > src/Makevars.win
-PKG_CPPFLAGS = -I\$(MPFR_PATH)/include -I\$(OPENSSL_PATH)/include
-PKG_LIBS = -L\$(MPFR_PATH)/lib -L\$(OPENSSL_PATH)/lib -lmpfr -lgmp -lssl -lcrypto
-CXX_STD = CXX11
+PKG_CPPFLAGS = -I\$(MPFR_PATH)/include -I\$(OPENSSL_PATH)/include ${SODIUM_CFLAGS}
+PKG_LIBS = -L\$(MPFR_PATH)/lib -L\$(OPENSSL_PATH)/lib ${SODIUM_LIBS} -lmpfr -lgmp -lssl -lcrypto
+CXX_STD = CXX17
 EOF

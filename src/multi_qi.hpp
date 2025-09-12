@@ -89,6 +89,13 @@ class MultiQI {
     // Statistics and monitoring
     uint64_t get_mix_counter() const { return mix_counter_; }
     double estimate_entropy() const;
+
+    // Cloning support for parallel operations
+    std::unique_ptr<MultiQI> clone() const;
+
+    // Accessor methods
+    size_t getSize() const { return qis_.size(); }
+    void reseed();
 };
 
 }  // namespace qiprng

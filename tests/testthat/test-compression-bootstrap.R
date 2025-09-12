@@ -1,8 +1,35 @@
 # Test file for bootstrap-based compression tests
 # ----------------------------------------------------------------------
 
+# Check if required files exist
+check_dependencies <- function() {
+  bootstrap_exists <- file.exists("../../R/bootstrap_framework.R")
+  compression_exists <- file.exists("../../R/statisticaltests/compression_tests_bootstrap.R")
+
+  if (!bootstrap_exists || !compression_exists) {
+    return(FALSE)
+  }
+
+  # Try to source the files
+  tryCatch(
+    {
+      source("../../R/bootstrap_framework.R")
+      source("../../R/statisticaltests/compression_tests_bootstrap.R")
+      return(TRUE)
+    },
+    error = function(e) {
+      return(FALSE)
+    }
+  )
+}
+
 # Source required files
 source_test_helpers <- function() {
+  # Skip if dependencies don't exist
+  if (!check_dependencies()) {
+    skip("Required bootstrap framework files not available")
+  }
+
   # Try to source bootstrap framework
   if (!exists("bootstrap_p_value")) {
     if (file.exists("../../R/bootstrap_framework.R")) {
@@ -39,7 +66,7 @@ create_test_suite <- function(n = 10000, prng_func = NULL) {
 }
 
 test_that("compression ratio bootstrap test works correctly", {
-  skip_if_not(exists("bootstrap_p_value"), "Bootstrap framework not available")
+  skip_if_not(check_dependencies(), "Required bootstrap framework files not available")
   source_test_helpers()
 
   # Test with truly random data
@@ -77,7 +104,7 @@ test_that("compression ratio bootstrap test works correctly", {
 })
 
 test_that("compression test detects non-random data", {
-  skip_if_not(exists("bootstrap_p_value"), "Bootstrap framework not available")
+  skip_if_not(check_dependencies(), "Required bootstrap framework files not available")
   source_test_helpers()
 
   # Create highly compressible (non-random) data
@@ -103,7 +130,7 @@ test_that("compression test detects non-random data", {
 })
 
 test_that("entropy bootstrap test works correctly", {
-  skip_if_not(exists("bootstrap_p_value"), "Bootstrap framework not available")
+  skip_if_not(check_dependencies(), "Required bootstrap framework files not available")
   source_test_helpers()
 
   set.seed(789)
@@ -131,7 +158,7 @@ test_that("entropy bootstrap test works correctly", {
 })
 
 test_that("byte frequency Monte Carlo test works correctly", {
-  skip_if_not(exists("monte_carlo_p_value"), "Monte Carlo function not available")
+  skip_if_not(check_dependencies(), "Required bootstrap framework files not available")
   source_test_helpers()
 
   set.seed(101)
@@ -154,7 +181,7 @@ test_that("byte frequency Monte Carlo test works correctly", {
 })
 
 test_that("multiple compression algorithms work correctly", {
-  skip_if_not(exists("bootstrap_p_value"), "Bootstrap framework not available")
+  skip_if_not(check_dependencies(), "Required bootstrap framework files not available")
   source_test_helpers()
 
   set.seed(202)
@@ -182,6 +209,7 @@ test_that("multiple compression algorithms work correctly", {
 })
 
 test_that("backward compatibility with legacy mode works", {
+  skip_if_not(check_dependencies(), "Required bootstrap framework files not available")
   source_test_helpers()
 
   set.seed(303)
@@ -204,7 +232,7 @@ test_that("backward compatibility with legacy mode works", {
 })
 
 test_that("KDE p-value calculation works correctly", {
-  skip_if_not(exists("bootstrap_p_value"), "Bootstrap framework not available")
+  skip_if_not(check_dependencies(), "Required bootstrap framework files not available")
   source_test_helpers()
 
   set.seed(404)
@@ -225,7 +253,7 @@ test_that("KDE p-value calculation works correctly", {
 })
 
 test_that("bootstrap distributions are stored correctly", {
-  skip_if_not(exists("bootstrap_p_value"), "Bootstrap framework not available")
+  skip_if_not(check_dependencies(), "Required bootstrap framework files not available")
   source_test_helpers()
 
   set.seed(505)

@@ -11,6 +11,15 @@ generatePRNG(n)
 }
 \value{
 Numeric vector of length n with values from the configured distribution
+#' @examplesCreate default PRNG (uniform 0-1)
+
+createPRNG()Generate 5 uniform random numbers
+
+generatePRNG(5)Switch to normal distribution
+
+updatePRNG(list(distribution = "normal", normal_mean = 0, normal_sd = 1))Generate 5 normally distributed random numbers
+
+generatePRNG(5)
 }
 \description{
 Generates random numbers using the current PRNG configuration. The distribution
@@ -21,17 +30,4 @@ type and parameters are determined by the current configuration set with
 Thread safety: This function is fully thread-safe and will block until mutex
 is acquired. When \code{use_threading=TRUE} is set in the configuration, it uses
 thread-local storage for improved performance in multi-threaded environments.
-}
-\examples{
-# Create default PRNG (uniform 0-1)
-createPRNG()
-
-# Generate 5 uniform random numbers
-generatePRNG(5)
-
-# Switch to normal distribution
-updatePRNG(list(distribution = "normal", normal_mean = 0, normal_sd = 1))
-
-# Generate 5 normally distributed random numbers
-generatePRNG(5)
 }

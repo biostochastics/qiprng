@@ -1,0 +1,79 @@
+# Makefile for qiprng documentation pipeline
+# Handles roxygen2 → pkgdown → Mintlify conversion
+
+.PHONY: all clean roxygen2 pkgdown mintlify serve-mintlify check-docs
+
+# Directories
+MAN_DIR = man
+DOCS_DIR = docs
+MINTLIFY_DIR = mintlify
+SCRIPTS_DIR = scripts
+
+# Default target: build all documentation
+all: roxygen2 pkgdown mintlify
+
+# Generate roxygen2 documentation
+roxygen2:
+	@echo "📝 Generating roxygen2 documentation..."
+	@Rscript -e "roxygen2::roxygenize()"
+	@echo "✅ roxygen2 documentation complete"
+
+# Build pkgdown site
+pkgdown: roxygen2
+	@echo "🌐 Building pkgdown site..."
+	@Rscript -e "pkgdown::build_site()"
+	@echo "✅ pkgdown site built in $(DOCS_DIR)/"
+
+# Convert roxygen2 to Mintlify
+mintlify: roxygen2
+	@echo "🔄 Converting roxygen2 to Mintlify..."
+	@mkdir -p $(MINTLIFY_DIR)/api-reference/r-functions
+	@Rscript $(SCRIPTS_DIR)/roxygen2_to_mintlify.R $(MAN_DIR) $(MINTLIFY_DIR)/api-reference/r-functions
+	@echo "✅ Mintlify documentation generated"
+
+# Serve Mintlify documentation locally
+serve-mintlify: mintlify
+	@echo "🚀 Starting Mintlify development server..."
+	@cd $(MINTLIFY_DIR) && npx mintlify dev
+
+# Check documentation for CRAN compliance
+check-docs:
+	@echo "🔍 Checking documentation..."
+	@Rscript -e "devtools::check_man()"
+	@echo "📊 Running R CMD check..."
+	@R CMD check . --as-cran --no-manual
+	@echo "✅ Documentation check complete"
+
+# Clean generated documentation
+clean:
+	@echo "🧹 Cleaning generated documentation..."
+	@rm -rf $(DOCS_DIR)
+	@rm -rf $(MINTLIFY_DIR)/api-reference/r-functions/*.mdx
+	@echo "✅ Clean complete"
+
+# Install documentation dependencies
+install-deps:
+	@echo "📦 Installing documentation dependencies..."
+	@Rscript -e "install.packages(c('roxygen2', 'pkgdown', 'devtools'), repos='https://cran.r-project.org')"
+	@npm install -g mintlify
+	@echo "✅ Dependencies installed"
+
+# Generate and validate all documentation
+validate: all check-docs
+	@echo "✅ All documentation generated and validated"
+
+# Help target
+help:
+	@echo "qiprng Documentation Pipeline"
+	@echo ""
+	@echo "Available targets:"
+	@echo "  make all          - Generate all documentation (roxygen2, pkgdown, mintlify)"
+	@echo "  make roxygen2     - Generate R documentation with roxygen2"
+	@echo "  make pkgdown      - Build pkgdown website"
+	@echo "  make mintlify     - Convert roxygen2 to Mintlify format"
+	@echo "  make serve-mintlify - Start Mintlify dev server"
+	@echo "  make check-docs   - Check documentation for CRAN compliance"
+	@echo "  make clean        - Remove generated documentation"
+	@echo "  make install-deps - Install required dependencies"
+	@echo "  make validate     - Generate and validate all documentation"
+	@echo "  make help         - Show this help message"

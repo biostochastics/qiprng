@@ -5,7 +5,9 @@
 
 #include <Rcpp.h>  // For Rcpp::warning
 
-#include <sodium.h>  // For libsodium functions
+#ifndef QIPRNG_NO_CRYPTO
+#    include <sodium.h>  // For libsodium functions
+#endif
 
 #include <cstddef>     // For size_t
 #include <cstdint>     // For uint64_t
@@ -24,8 +26,10 @@ namespace qiprng {
 
 class CryptoMixer {
    private:
+#ifndef QIPRNG_NO_CRYPTO
     SecureBuffer<unsigned char> key_;
     SecureBuffer<unsigned char> nonce_;
+#endif
     bool adhoc_corrections_;
     bool use_tie_breaking_;
     bool initialized_;

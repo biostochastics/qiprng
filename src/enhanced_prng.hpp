@@ -1,5 +1,22 @@
 // File: enhanced_prng.hpp
 // --------------------------------------------------------------
+// Purpose: Main PRNG implementation using quadratic irrational numbers
+// Author: Sergey Kornilov
+// Version: 0.6.2
+//
+// This file implements the core pseudo-random number generator based on
+// quadratic irrational numbers with continued fraction expansion (CFE).
+// The generator provides:
+//   - High-precision computation via MPFR (24-10000 bits)
+//   - Hardware acceleration through SIMD (AVX2/NEON)
+//   - Parallel generation with OpenMP
+//   - Cryptographic mixing via ChaCha20
+//   - Support for 14+ statistical distributions
+//   - Thread-safe operation with configurable buffer sizes
+//
+// Mathematical basis: x_{n+1} = (a·x_n² + b·x_n + c) mod 1
+// where the discriminant b² - 4ac must be a non-perfect square
+// --------------------------------------------------------------
 #ifndef QIPRNG_ENHANCED_PRNG_HPP
 #define QIPRNG_ENHANCED_PRNG_HPP
 
@@ -27,6 +44,33 @@ namespace qiprng {
 
 // No forward declarations needed
 
+/**
+ * Enhanced Pseudo-Random Number Generator using Quadratic Irrationals
+ *
+ * This class implements a high-quality PRNG based on the ergodic properties
+ * of quadratic irrational numbers. The generator uses continued fraction
+ * expansion (CFE) to produce uniformly distributed random numbers with
+ * excellent statistical properties.
+ *
+ * Key Features:
+ * - Multiple quadratic irrationals (MultiQI) for ensemble generation
+ * - Cryptographic mixing via ChaCha20 for enhanced security
+ * - Parallel buffer filling with OpenMP optimization
+ * - SIMD vectorization for performance
+ * - Support for 14+ statistical distributions
+ * - Thread-safe operation with mutex protection
+ *
+ * Thread Safety:
+ * - All public methods are thread-safe via internal synchronization
+ * - For heavy parallel workloads, enable use_threading in configuration
+ * - Thread-local storage used for OpenMP parallel filling
+ *
+ * Performance:
+ * - Single-threaded: ~8.18M values/second
+ * - Near-linear scaling with multiple threads
+ * - O(1) memory usage with buffering
+ * - Sub-122ns latency per value
+ */
 class EnhancedPRNG {
    private:
     PRNGConfig config_;
@@ -45,14 +89,30 @@ class EnhancedPRNG {
     std::mutex cleanup_mutex_;
     std::once_flag shutdown_once_flag_;  // Ensure shutdown logic runs only once
 
+    // Reset internal state (buffer position, counts)
     void reset_state();
-    void prepare_for_shutdown();  // Thread-safe shutdown preparation
+
+    // Thread-safe shutdown preparation
+    void prepare_for_shutdown();
+
+    // Parallel buffer filling using thread pool
+    // Complexity: O(buffer_size / thread_count) per thread
     void fill_buffer_parallel(size_t thread_count);
-    void fill_buffer_sequential();  // Renamed for clarity
+
+    // Sequential buffer filling for single-threaded mode
+    // Complexity: O(buffer_size)
+    void fill_buffer_sequential();
 #ifdef _OPENMP
-    void fill_buffer_openmp();  // v0.5.0: OpenMP-optimized filling
+    // OpenMP-optimized filling with thread-local caching (v0.6.2)
+    // Uses thread-local MultiQI instances for better cache locality
+    void fill_buffer_openmp();
+
+    // Clean up thread-local MultiQI caches
+    static void cleanup_thread_caches();
 #endif
-    void fill_buffer();  // Decides which fill method to use
+
+    // Decides which fill method to use based on configuration
+    void fill_buffer();
 
     // Helper methods for parallel filling (refactoring)
     bool create_thread_resources(
@@ -69,7 +129,9 @@ class EnhancedPRNG {
                                      const std::vector<SecureBuffer<double>>& thread_buffers,
                                      ThreadPool& pool);
 
-    double next_raw_uniform();  // Gets a raw uniform without distribution transformations
+    // Gets a raw uniform [0,1) without distribution transformations
+    // Thread-safe via buffer management
+    double next_raw_uniform();
 
     std::pair<double, double> box_muller_pair(double u1, double u2);
     double uniform_to_exponential(double u);
@@ -103,17 +165,61 @@ class EnhancedPRNG {
     static void cleanupThreadResources();
 
    public:
+    /**
+     * Construct a new Enhanced PRNG
+     * @param cfg Configuration parameters including precision, distribution, etc.
+     * @param abc_list List of (a,b,c) coefficient tuples for quadratic irrationals
+     * @throws std::invalid_argument if coefficients don't satisfy b²-4ac > 0
+     * @throws std::runtime_error if MPFR initialization fails
+     */
     EnhancedPRNG(const PRNGConfig& cfg, const std::vector<std::tuple<long, long, long>>& abc_list);
+
+    /**
+     * Destructor - ensures clean shutdown of threads and resources
+     * Thread-safe with proper synchronization
+     */
     ~EnhancedPRNG() noexcept;
 
+    // Get current configuration (read-only)
     const PRNGConfig& getConfig() const;
+
+    // Get number of quadratic irrationals in ensemble
     size_t getQICount() const;
+
+    // Update configuration (distribution, parameters, etc.)
+    // Thread-safe but may cause temporary performance impact
     void updateConfig(const PRNGConfig& new_config);
 
+    /**
+     * Generate next random value according to configured distribution
+     * @return Random value from the specified distribution
+     * Thread-safe via internal synchronization
+     * Complexity: O(1) amortized (may trigger buffer refill)
+     */
     double next();
-    void generate_n(Rcpp::NumericVector& output_vec);  // Fills an Rcpp vector
-    void skip(uint64_t n);                             // Changed to uint64_t
+
+    /**
+     * Fill an R vector with random values
+     * @param output_vec Pre-allocated Rcpp::NumericVector to fill
+     * More efficient than repeated next() calls for large n
+     * Complexity: O(n)
+     */
+    void generate_n(Rcpp::NumericVector& output_vec);
+
+    /**
+     * Skip ahead n steps in the sequence
+     * @param n Number of values to skip
+     * Uses O(log n) jump-ahead algorithm for efficiency
+     */
+    void skip(uint64_t n);
+
+    /**
+     * Reseed with fresh entropy
+     * Reinitializes all quadratic irrationals and crypto mixer
+     */
     void reseed();
+
+    // Dump current configuration to console (for debugging)
     void dumpConfig() const;
 
     // Thread-safe cleanup

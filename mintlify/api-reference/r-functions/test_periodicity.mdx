@@ -1,0 +1,76 @@
+---
+title: 'test_periodicity'
+description: 'Enhanced periodicity testing using multiple spectral methods'
+sidebarTitle: 'test_periodicity'
+---
+
+# Enhanced periodicity testing using multiple spectral methods
+
+
+ Performs comprehensive periodicity and pattern detection using multiple
+ statistical tests including Fisher's g-test, Bartels rank test, Cox-Stuart
+ test, turning points test, and Ljung-Box test.
+
+
+## Usage
+
+```r
+
+ test_periodicity(samples)
+
+```
+
+## Parameters
+
+<ParamField body="samples" type="any">
+  Numeric vector of random samples to test
+</ParamField>
+
+## Returns
+
+
+ A list containing comprehensive periodicity test results:
+
+ test_name Name of the test suite
+ fisher_g_stat Fisher's g-statistic for hidden periodicities
+ fisher_p_value P-value from Fisher's g-test
+ bartels_p_value P-value from Bartels rank test
+ cox_stuart_p_value P-value from Cox-Stuart trend test
+ turning_points_p_value P-value from turning points test
+ ljung_box_p_value P-value from Ljung-Box test
+ combined_p_value Mean of all valid p-values
+ passed Logical; TRUE if majority of tests pass
+ tests_passed String showing number of tests passed
+ interpretation Human-readable interpretation
+
+
+
+## Details
+
+
+ The function combines multiple tests to detect various types of patterns:
+
+   Fisher's g-test : Detects hidden periodicities in the frequency domain
+   Bartels rank test : Tests for randomness using rank-based methods
+   Cox-Stuart test : Detects monotonic trends
+   Turning points test : Analyzes local extrema patterns
+   Ljung-Box test : Tests for serial correlation up to lag 20
+
+
+ The overall assessment passes if the majority of individual tests pass
+ (p-value > 0.05). This ensemble approach provides robust detection of
+ various non-random patterns.
+
+
+## Examples
+
+```r
+
+
+ # Test for periodicity
+ samples <- runif(5000)
+ result <- test_periodicity(samples)
+ print(result$interpretation)
+
+
+```

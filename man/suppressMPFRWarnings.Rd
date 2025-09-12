@@ -11,23 +11,19 @@ suppressMPFRWarnings(suppress = TRUE)
 }
 \value{
 The previous setting (invisibly)
+#' @examplesSuppress MPFR warnings
+
+suppressMPFRWarnings(TRUE)Create PRNG with high precision
+
+createPRNG(list(mpfr_precision = 256L))Generate values without warnings
+
+values <- generatePRNG(10)Re-enable warnings if needed
+
+suppressMPFRWarnings(FALSE)
 }
 \description{
 Enables or disables warnings about inexact results in MPFR operations.
 Some inexact results are normal and expected in MPFR operations, especially
 for irrational numbers and square roots. This function lets you control
 whether these warnings are shown.
-}
-\examples{
-# Suppress MPFR warnings
-suppressMPFRWarnings(TRUE)
-
-# Create PRNG with high precision
-createPRNG(list(mpfr_precision = 256L))
-
-# Generate values without warnings
-values <- generatePRNG(10)
-
-# Re-enable warnings if needed
-suppressMPFRWarnings(FALSE)
 }

@@ -269,7 +269,6 @@ class MPFRWrapper {
     mpfr_t value;
     bool initialized_;
     mpfr_prec_t cached_precision_;  // Cache precision to avoid repeated calls
-    bool using_pool_;               // Track if allocated from pool
 
    public:
     // Default precision for high-accuracy computations (256 bits as per v0.5.0 spec)

@@ -768,4 +768,48 @@ double MultiQI::estimate_entropy() const {
     return base_entropy * strategy_factor + period_entropy;
 }
 
+// Clone method for creating independent copies for parallel operations
+std::unique_ptr<MultiQI> MultiQI::clone() const {
+    std::lock_guard<std::mutex> lock(const_cast<std::mutex&>(mutex_));
+
+    // Extract coefficients from existing QIs
+    std::vector<std::tuple<long, long, long>> abc_list;
+    for (const auto& qi : qis_) {
+        // Assuming QuadraticIrrational has getters for a, b, c
+        // This needs to be implemented in QuadraticIrrational if not present
+        abc_list.push_back(std::make_tuple(qi->getA(), qi->getB(), qi->getC()));
+    }
+
+    // Create a new MultiQI with the same configuration
+    auto cloned = std::make_unique<MultiQI>(
+        abc_list,
+        qis_[0]->getMPFRPrecision(),  // Assuming all QIs have same precision
+        0, false,                     // Don't use seed for clone
+        mixing_strategy_);
+
+    // Copy weights if using averaging strategy
+    if (!weights_.empty()) {
+        cloned->set_weights(weights_);
+    }
+
+    return cloned;
+}
+
+// Reseed method for refreshing random state
+void MultiQI::reseed() {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    // Clear cache
+    tl_cache.clear();
+    tl_cache_pos = 0;
+
+    // Reseed each QI
+    for (auto& qi : qis_) {
+        qi->reseed();  // Assuming QuadraticIrrational has a reseed method
+    }
+
+    // Reset mixing counter
+    mix_counter_ = 0;
+}
+
 }  // namespace qiprng

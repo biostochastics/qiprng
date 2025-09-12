@@ -1,0 +1,173 @@
+---
+title: 'Installation'
+description: 'How to install and set up qiprng'
+sidebarTitle: 'Installation'
+---
+
+# Installation
+
+The qiprng package can be installed from GitHub or CRAN (when available).
+
+## From GitHub (Development Version)
+
+<CodeGroup>
+```r R
+# Install devtools if not already installed
+if (!requireNamespace("devtools", quietly = TRUE)) {
+  install.packages("devtools")
+}
+
+# Install qiprng from GitHub
+devtools::install_github("biostochastics/qiprng")
+```
+
+```bash Command Line
+# Clone and install locally
+git clone https://github.com/biostochastics/qiprng.git
+cd qiprng
+R CMD INSTALL .
+```
+</CodeGroup>
+
+## From CRAN (Stable Version)
+
+<Note>
+The package is pending CRAN submission. Once available, you can install it using:
+</Note>
+
+```r
+install.packages("qiprng")
+```
+
+## System Requirements
+
+### Required Dependencies
+
+- **R** ≥ 4.0.0
+- **C++ Compiler** with C++17 support
+- **MPFR Library** for high-precision arithmetic
+- **Rcpp** for R/C++ integration
+
+### Optional Dependencies
+
+For enhanced performance:
+- **OpenMP** for parallel processing
+- **AVX2/NEON** support for SIMD operations
+
+### Platform-Specific Installation
+
+<Accordion title="macOS">
+Install dependencies using Homebrew:
+
+```bash
+brew install mpfr gmp
+brew install libomp  # For OpenMP support
+```
+
+Then install the R package:
+```r
+devtools::install_github("biostochastics/qiprng")
+```
+</Accordion>
+
+<Accordion title="Linux">
+Install system dependencies:
+
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install libmpfr-dev libgmp-dev
+
+# Fedora/RHEL
+sudo dnf install mpfr-devel gmp-devel
+
+# Arch Linux
+sudo pacman -S mpfr gmp
+```
+
+Then install the R package:
+```r
+devtools::install_github("biostochastics/qiprng")
+```
+</Accordion>
+
+<Accordion title="Windows">
+Windows users need Rtools for compilation:
+
+1. Install [Rtools](https://cran.r-project.org/bin/windows/Rtools/)
+2. Install the package:
+
+```r
+devtools::install_github("biostochastics/qiprng")
+```
+
+MPFR is included with Rtools.
+</Accordion>
+
+## Verify Installation
+
+After installation, verify everything is working:
+
+```r
+library(qiprng)
+
+# Create a PRNG instance
+createPRNG()
+
+# Generate some random numbers
+values <- generatePRNG(10)
+print(values)
+
+# Clean up
+cleanup_prng()
+```
+
+## Troubleshooting
+
+### Common Issues
+
+<Warning>
+If you encounter compilation errors, ensure your compiler supports C++17:
+</Warning>
+
+```r
+# Check compiler version
+Sys.getenv("CXX")
+system("g++ --version")
+```
+
+### MPFR Not Found
+
+If MPFR is not found during compilation:
+
+1. **macOS**: Ensure Homebrew's include path is set:
+   ```bash
+   export PKG_CONFIG_PATH="/opt/homebrew/opt/mpfr/lib/pkgconfig:$PKG_CONFIG_PATH"
+   ```
+
+2. **Linux**: Install development headers:
+   ```bash
+   sudo apt-get install libmpfr-dev
+   ```
+
+3. **Windows**: Reinstall Rtools with all components
+
+### Performance Issues
+
+For optimal performance:
+
+```r
+# Enable all optimizations
+createPRNG(list(
+  use_threading = TRUE,
+  use_parallel_filling = TRUE,
+  buffer_size = 4096
+))
+```
+
+## Next Steps
+
+Once installed, proceed to:
+- [Quickstart Guide](/quickstart) - Get started quickly
+- [Basic Usage](/guides/basic-usage) - Learn fundamental operations
+- [API Reference](/api-reference/r-functions/createPRNG) - Detailed function documentation

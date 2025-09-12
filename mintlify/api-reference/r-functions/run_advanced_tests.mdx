@@ -1,0 +1,103 @@
+---
+title: 'run_advanced_tests'
+description: 'Comprehensive advanced test suite'
+sidebarTitle: 'run_advanced_tests'
+---
+
+# Comprehensive advanced test suite
+
+
+ Runs all advanced statistical tests on a set of random samples, including
+ entropy, gap, serial correlation, and poker tests. Each test evaluates
+ different aspects of randomness quality.
+
+
+## Usage
+
+```r
+
+ run_advanced_tests(samples)
+
+```
+
+## Parameters
+
+<ParamField body="samples" type="any">
+  Numeric vector of random samples to test (values in  0,1 )
+</ParamField>
+
+## Returns
+
+
+ A list containing results from all advanced tests:
+
+ entropy Results from Shannon entropy test
+ gaps Results from gap test
+ serial_correlation Results from serial correlation test
+ poker Results from poker test
+
+ Each test result includes test_name, passed status, and interpretation.
+ Failed tests include error messages in the interpretation field.
+
+
+## Details
+
+
+ This function serves as a comprehensive test battery for advanced
+ randomness evaluation. It runs the following tests:
+
+
+   Shannon Entropy Test : Measures information content and
+ unpredictability. High entropy indicates good randomness.
+   Gap Test : Analyzes spacing between values in a range.
+ Tests if gaps follow expected geometric distribution.
+   Serial Correlation Test : Checks for dependencies between
+ values at various lags. Low correlation indicates independence.
+   Poker Test : Examines digit patterns in groups.
+ Tests if patterns match theoretical probabilities.
+
+
+ All tests include error handling to ensure the suite completes even
+ if individual tests fail. Failed tests return an error message in the
+ interpretation field.
+
+
+## Examples
+
+```r
+
+
+ # Run all advanced tests on uniform random data
+ samples <- runif(50000)
+ results <- run_advanced_tests(samples)
+
+ # Check which tests passed
+ lapply(results, function(test) {
+   paste(test$test_name, "-", test$result)
+ })
+
+ # Run tests on PRNG output
+ library(qiprng)
+ createPRNG()
+ samples <- generatePRNG(50000)
+ results <- run_advanced_tests(samples)
+
+
+```
+
+## See Also
+
+<CardGroup cols={2}>
+  <Card title="test_entropy" href="/api-reference/r-functions/test_entropy">
+    Related function: test_entropy
+  </Card>
+  <Card title="test_gaps" href="/api-reference/r-functions/test_gaps">
+    Related function: test_gaps
+  </Card>
+  <Card title="test_serial_correlation" href="/api-reference/r-functions/test_serial_correlation">
+    Related function: test_serial_correlation
+  </Card>
+  <Card title="test_poker" href="/api-reference/r-functions/test_poker">
+    Related function: test_poker
+  </Card>
+</CardGroup>

@@ -1,0 +1,59 @@
+---
+title: 'generate_pareto'
+description: 'Generate Pareto Distribution'
+sidebarTitle: 'generate_pareto'
+---
+
+# Generate Pareto Distribution
+
+
+ Generates random numbers from a Pareto distribution.
+
+
+## Usage
+
+```r
+
+ generate_pareto(n, xm, alpha)
+
+```
+
+## Parameters
+
+<ParamField body="n" type="any">
+  Number of random values to generate
+</ParamField>
+<ParamField body="xm" type="any">
+  Scale parameter (minimum value, must be positive)
+</ParamField>
+<ParamField body="alpha" type="any">
+  Shape parameter (must be positive)
+</ParamField>
+
+## Returns
+
+
+ Numeric vector of n random values from the Pareto distribution
+
+
+## Details
+
+
+ The Pareto distribution is a heavy-tailed distribution often used
+ in economics and actuarial science. It follows the 80-20 rule and is useful
+ for modeling phenomena with power-law tails.
+
+
+## Examples
+
+```r
+
+
+ # Generate from Pareto distribution
+ x <- generate_pareto(1000, xm = 1, alpha = 2)
+
+ # Heavy-tailed distribution (smaller alpha = heavier tail)
+ y <- generate_pareto(1000, xm = 10, alpha = 1.5)
+
+
+```

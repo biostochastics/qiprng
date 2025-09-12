@@ -970,15 +970,17 @@ generate_recommendations <- function(report) {
   recommendations <- character()
 
   # Check overall pass rate
-  pass_rate <- report$summary$passed / report$summary$total_tests
-  if (pass_rate < 0.9) {
-    recommendations <- c(
-      recommendations,
-      sprintf(
-        "Overall pass rate is %.1f%%. Consider investigating failed tests.",
-        pass_rate * 100
+  if (!is.null(report$summary$total_tests) && report$summary$total_tests > 0) {
+    pass_rate <- report$summary$passed / report$summary$total_tests
+    if (!is.na(pass_rate) && pass_rate < 0.9) {
+      recommendations <- c(
+        recommendations,
+        sprintf(
+          "Overall pass rate is %.1f%%. Consider investigating failed tests.",
+          pass_rate * 100
+        )
       )
-    )
+    }
   }
 
   # Check for category-specific issues
@@ -1037,11 +1039,15 @@ print_validation_summary <- function(report) {
   cat("Execution time:", format(report$performance$execution_time), "\n")
   cat("\nTest Results:\n")
   cat(sprintf("  Total tests: %d\n", report$summary$total_tests))
-  cat(sprintf(
-    "  Passed: %d (%.1f%%)\n",
-    report$summary$passed,
-    100 * report$summary$passed / report$summary$total_tests
-  ))
+  if (!is.null(report$summary$total_tests) && report$summary$total_tests > 0) {
+    cat(sprintf(
+      "  Passed: %d (%.1f%%)\n",
+      report$summary$passed,
+      100 * report$summary$passed / report$summary$total_tests
+    ))
+  } else {
+    cat(sprintf("  Passed: %d\n", report$summary$passed))
+  }
   cat(sprintf("  Failed: %d\n", report$summary$failed))
   cat(sprintf("  Warnings: %d\n", report$summary$warnings))
 

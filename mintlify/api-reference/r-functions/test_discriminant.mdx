@@ -1,0 +1,100 @@
+---
+title: 'test_discriminant'
+description: 'Comprehensive test suite for a single discriminant'
+sidebarTitle: 'test_discriminant'
+---
+
+# Comprehensive test suite for a single discriminant
+
+
+ Runs a complete battery of statistical tests on random numbers generated
+ with specific discriminant parameters. Includes uniformity, independence,
+ autocorrelation, moment analysis, periodicity, and advanced tests.
+
+
+## Usage
+
+```r
+
+ test_discriminant(a, b, c, discriminant, n = 50000)
+
+```
+
+## Parameters
+
+<ParamField body="a" type="any">
+  Quadratic coefficient (must be > 0)
+</ParamField>
+<ParamField body="b" type="any">
+  Linear coefficient
+</ParamField>
+<ParamField body="c" type="any">
+  Constant term (must be < 0)
+</ParamField>
+<ParamField body="discriminant" type="any">
+  The discriminant value b² - 4ac
+</ParamField>
+<ParamField body="n" type="any">
+  Number of samples to generate (default: 50000)
+</ParamField>
+
+## Returns
+
+
+ A comprehensive list containing:
+
+ parameters List of input parameters (a, b, c, discriminant)
+ sample_size Number of samples generated
+ uniformity Results from uniformity tests
+ independence Results from independence test
+ autocorrelation Results from autocorrelation test
+ moments Results from moment analysis
+ periodicity Results from periodicity tests
+ advanced Results from advanced test suite
+ overall_score Weighted score (0-1) combining all tests
+ quality_rating Rating: "Excellent", "Very-Good", "Good", "Fair", "Poor", or "Error"
+
+
+
+## Details
+
+
+ The function calculates a weighted overall score using:
+
+  Uniformity: 20% weight
+  Independence: 20% weight
+  Autocorrelation: 25% weight (higher due to importance)
+  Periodicity: 20% weight
+  Advanced tests: 15% weight
+
+
+ Quality ratings are assigned based on overall score:
+
+  Excellent: score ≥ 0.85
+  Very-Good: 0.75 ≤ score < 0.85
+  Good: 0.60 ≤ score < 0.75
+  Fair: 0.45 ≤ score < 0.60
+  Poor: score < 0.45
+
+
+
+## Examples
+
+```r
+
+
+ # Test a specific discriminant
+ result <- test_discriminant(a = 2, b = 5, c = -2, discriminant = 41, n = 10000)
+ print(paste("Quality:", result$quality_rating))
+ print(paste("Score:", round(result$overall_score, 3)))
+
+
+```
+
+## See Also
+
+<CardGroup cols={2}>
+  <Card title="run_discriminant_analysis  for testing multiple discriminants" href="/api-reference/r-functions/run_discriminant_analysis  for testing multiple discriminants">
+    Related function: run_discriminant_analysis  for testing multiple discriminants
+  </Card>
+</CardGroup>

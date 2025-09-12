@@ -27,7 +27,7 @@
 
     <a class="navbar-brand me-2" href="index.html">qiprng</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.6.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -56,7 +56,7 @@
 <div class="page-header"><h1 id="qiprng-quadratic-irrational-pseudo-random-number-generator-for-r">qiprng: Quadratic Irrational Pseudo-Random Number Generator for R<a class="anchor" aria-label="anchor" href="#qiprng-quadratic-irrational-pseudo-random-number-generator-for-r"></a>
 </h1></div>
 <p><img src="images/qiprng_logo.png" alt="QIPRNG Logo" width="300"></p>
-<p><a href="https://github.com/biostochastics/qiprng" class="external-link"><img src="https://img.shields.io/badge/Version-0.6.0-blue" alt="Version"></a> <a href="https://github.com/biostochastics/qiprng" class="external-link"><img src="https://img.shields.io/badge/Thread%20Safe-Yes-brightgreen" alt="ThreadSafe"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"></a> <a href="https://github.com/biostochastics/qiprng" class="external-link"><img src="https://img.shields.io/badge/R--CMD--check-passing-brightgreen" alt="R-CMD-check"></a> <a href="https://www.r-project.org/" class="external-link"><img src="https://img.shields.io/badge/Language-R%2FC%2B%2B-blue.svg" alt="Language"></a> <a href="https://github.com/biostochastics/qiprng" class="external-link"><img src="https://img.shields.io/badge/Statistical%20Tests-70%2B-brightgreen" alt="Tests"></a> <a href="https://github.com/biostochastics/qiprng" class="external-link"><img src="https://img.shields.io/badge/SIMD-AVX2%2FNEON-orange" alt="SIMD"></a> <a href="https://github.com/biostochastics/qiprng" class="external-link"><img src="https://img.shields.io/badge/Parallel-OpenMP-green" alt="Parallel"></a></p>
+<p><a href="https://github.com/biostochastics/qiprng" class="external-link"><img src="https://img.shields.io/badge/Version-0.6.2-blue" alt="Version"></a> <a href="https://github.com/biostochastics/qiprng" class="external-link"><img src="https://img.shields.io/badge/Thread%20Safe-Yes-brightgreen" alt="ThreadSafe"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"></a> <a href="https://github.com/biostochastics/qiprng" class="external-link"><img src="https://img.shields.io/badge/R--CMD--check-passing-brightgreen" alt="R-CMD-check"></a> <a href="https://www.r-project.org/" class="external-link"><img src="https://img.shields.io/badge/Language-R%2FC%2B%2B-blue.svg" alt="Language"></a> <a href="https://github.com/biostochastics/qiprng" class="external-link"><img src="https://img.shields.io/badge/Statistical%20Tests-70%2B-brightgreen" alt="Tests"></a> <a href="https://github.com/biostochastics/qiprng" class="external-link"><img src="https://img.shields.io/badge/SIMD-AVX2%2FNEON-orange" alt="SIMD"></a> <a href="https://github.com/biostochastics/qiprng" class="external-link"><img src="https://img.shields.io/badge/Parallel-OpenMP-green" alt="Parallel"></a></p>
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
@@ -68,15 +68,15 @@
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/hist.html" class="external-link">hist</a></span><span class="op">(</span><span class="va">x</span>, breaks <span class="op">=</span> <span class="fl">50</span>, main <span class="op">=</span> <span class="st">"qiprng uniform distribution"</span>, col <span class="op">=</span> <span class="st">"skyblue"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="whats-new-in-v060">What’s New in v0.6.0<a class="anchor" aria-label="anchor" href="#whats-new-in-v060"></a>
+<h2 id="whats-new-in-v062">What’s New in v0.6.2<a class="anchor" aria-label="anchor" href="#whats-new-in-v062"></a>
 </h2>
-<p>This release addresses critical security vulnerabilities and thread safety issues. Key improvements include integer overflow protection in discriminant validation, mandatory exception throwing for deterministic seeds with cryptographic mixing, and comprehensive thread safety fixes using <code>std::once_flag</code> and memory barriers. The error handling has been unified to use exceptions consistently instead of warnings, ensuring failures are properly propagated. Numerical stability has been enhanced with matrix overflow protection and precision loss mitigation in MPFR conversions. All code has been formatted to standards and pre-commit hooks have been configured for ongoing code quality.</p>
+<p>This release focuses on package infrastructure improvements and code quality enhancements. The caching framework now supports pattern-based cache clearing with regex patterns and includes new export/import functionality for cache archival and sharing. Test code has been completely isolated from production builds by moving all C++ test files to a dedicated <code>tests/cpp/</code> directory with conditional compilation guards, reducing package size. All R functions now use consistent snake_case naming conventions. The previous v0.6.1 release delivered critical bug fixes including comprehensive overflow protection using 128-bit arithmetic, true ChaCha20 cryptographic implementation, Windows build improvements, and modular architecture refactoring.</p>
 <p>For complete version history and migration guides, see <a href="CHANGELOG.html">CHANGELOG.md</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="key-features">Key Features<a class="anchor" aria-label="anchor" href="#key-features"></a>
 </h2>
-<p>The package offers high-precision computation using the MPFR library with configurable precision from 24 to 10,000 bits, supporting over 14 statistical distributions including standard continuous and discrete distributions as well as extended distributions like Levy stable, Pareto, and multivariate normal. Hardware acceleration is provided through SIMD vectorization with AVX2/NEON support and OpenMP parallelization with work-stealing queues for optimal load balancing. The cryptographic security layer uses ChaCha20 cipher for mixing with multiple strategies including XOR, averaging, modular, and cascade mixing for enhanced entropy. Thread safety is guaranteed through proper synchronization primitives and thread-local resources, while deterministic mode with seed support enables reproducible sequences for research and testing. The implementation has been validated with over 70 statistical tests and uses 370 discriminants rated as excellent through comprehensive testing.</p>
+<p>The package offers high-precision computation using the MPFR library with configurable precision from 24 to 10,000 bits, supporting over 14 statistical distributions including standard continuous and discrete distributions as well as extended distributions like Levy stable, Pareto, and multivariate normal. Hardware acceleration is provided through SIMD vectorization with AVX2/NEON support and enhanced OpenMP parallelization with thread-local caching, SIMD integration, and optimized buffer management for improved performance on modern multi-core systems. The cryptographic security layer uses ChaCha20 stream cipher for deterministic cryptographic mixing, with XOR mixing for preserving uniformity or modular addition for enhanced entropy, providing cryptographic-grade unpredictability. Thread safety is guaranteed through proper synchronization primitives and thread-local resources, while deterministic mode with seed support enables reproducible sequences for research and testing. The implementation has been validated with over 70 statistical tests and uses 370 discriminants rated as excellent through comprehensive testing.</p>
 </div>
 <div class="section level2">
 <h2 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
@@ -391,6 +391,46 @@
 <p>The qiprng generator prioritizes cryptographic-quality randomness and mathematical rigor over raw speed. Using high-precision MPFR arithmetic and optional ChaCha20 cryptographic mixing, it runs approximately 50x slower than simple linear congruential generators but delivers superior statistical properties and security guarantees. The trade-off is worthwhile for applications requiring cryptographic security, precise statistical control, reproducible research results, or validated random number quality. For general Monte Carlo simulations where speed is paramount and cryptographic security is not required, standard generators like Mersenne Twister may be more appropriate.</p>
 </div>
 <div class="section level2">
+<h2 id="caching-framework">Caching Framework<a class="anchor" aria-label="anchor" href="#caching-framework"></a>
+</h2>
+<p>The package includes a powerful caching system to optimize performance for repeated operations:</p>
+<div class="section level3">
+<h3 id="cache-management">Cache Management<a class="anchor" aria-label="anchor" href="#cache-management"></a>
+</h3>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Enable/disable caching</span></span>
+<span><span class="fu"><a href="reference/set_cache_enabled.html">set_cache_enabled</a></span><span class="op">(</span><span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/is_cache_enabled.html">is_cache_enabled</a></span><span class="op">(</span><span class="op">)</span>  <span class="co"># Check status</span></span>
+<span></span>
+<span><span class="co"># Clear cache entries</span></span>
+<span><span class="fu"><a href="reference/clear_qiprng_cache.html">clear_qiprng_cache</a></span><span class="op">(</span><span class="op">)</span>  <span class="co"># Clear all</span></span>
+<span><span class="fu"><a href="reference/clear_qiprng_cache.html">clear_qiprng_cache</a></span><span class="op">(</span><span class="st">"acf"</span><span class="op">)</span>  <span class="co"># Clear by pattern (regex supported)</span></span>
+<span></span>
+<span><span class="co"># Export and import cache</span></span>
+<span><span class="fu"><a href="reference/export_cached_results.html">export_cached_results</a></span><span class="op">(</span><span class="st">"cache_backup.rds"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/import_cached_results.html">import_cached_results</a></span><span class="op">(</span><span class="st">"cache_backup.rds"</span>, overwrite <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Cache statistics</span></span>
+<span><span class="fu"><a href="reference/qiprng_cache_stats.html">qiprng_cache_stats</a></span><span class="op">(</span><span class="op">)</span>  <span class="co"># Overall cache info</span></span>
+<span><span class="fu"><a href="reference/test_cache_stats.html">test_cache_stats</a></span><span class="op">(</span><span class="op">)</span>    <span class="co"># Test-specific cache stats</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="cached-functions">Cached Functions<a class="anchor" aria-label="anchor" href="#cached-functions"></a>
+</h3>
+<p>The framework provides cached versions of expensive computations:</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Cached statistical functions</span></span>
+<span><span class="fu"><a href="reference/cached_acf.html">cached_acf</a></span><span class="op">(</span><span class="va">x</span>, lag.max <span class="op">=</span> <span class="fl">50</span><span class="op">)</span>     <span class="co"># Autocorrelation</span></span>
+<span><span class="fu"><a href="reference/cached_pacf.html">cached_pacf</a></span><span class="op">(</span><span class="va">x</span>, lag.max <span class="op">=</span> <span class="fl">50</span><span class="op">)</span>    <span class="co"># Partial autocorrelation</span></span>
+<span><span class="fu"><a href="reference/cached_spectrum.html">cached_spectrum</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span>               <span class="co"># Spectral density</span></span>
+<span><span class="fu"><a href="reference/cached_compress.html">cached_compress</a></span><span class="op">(</span><span class="va">x</span>, type <span class="op">=</span> <span class="st">"gzip"</span><span class="op">)</span>  <span class="co"># Compression</span></span>
+<span></span>
+<span><span class="co"># Test result caching</span></span>
+<span><span class="fu"><a href="reference/cached_test_result.html">cached_test_result</a></span><span class="op">(</span><span class="va">test_func</span>, <span class="va">test_name</span>, <span class="va">test_category</span>, </span>
+<span>                  <span class="va">data</span>, <span class="va">config</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
 <h2 id="api-reference">API Reference<a class="anchor" aria-label="anchor" href="#api-reference"></a>
 </h2>
 <div class="section level3">
@@ -449,13 +489,13 @@
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
 <p>If you use this package in your research, please cite:</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="va">@Manual</span>{<span class="ot">qiprng</span>,</span>
-<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>  <span class="dt">title</span> = {qiprng: Quadratic Irrational Pseudo-Random Number Generator for R},</span>
-<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>  <span class="dt">author</span> = {Sergey Kornilov},</span>
-<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a>  <span class="dt">year</span> = {2025},</span>
-<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a>  <span class="dt">note</span> = {R package version 0.5.0},</span>
-<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a>  <span class="dt">url</span> = {https://github.com/biostochastics/qiprng}</span>
-<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="cb20"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="va">@Manual</span>{<span class="ot">qiprng</span>,</span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a>  <span class="dt">title</span> = {qiprng: Quadratic Irrational Pseudo-Random Number Generator for R},</span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a>  <span class="dt">author</span> = {Sergey Kornilov},</span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a>  <span class="dt">year</span> = {2025},</span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a>  <span class="dt">note</span> = {R package version 0.5.0},</span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a>  <span class="dt">url</span> = {https://github.com/biostochastics/qiprng}</span>
+<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a>}</span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>

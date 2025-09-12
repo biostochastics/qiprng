@@ -1,0 +1,40 @@
+---
+title: 'generate_quarto_report'
+description: 'Generate and render comprehensive Quarto report'
+sidebarTitle: 'generate_quarto_report'
+---
+
+# Generate and render comprehensive Quarto report
+
+
+ Generate and render comprehensive Quarto report
+
+
+## Usage
+
+```r
+
+ generate_quarto_report(
+   results,
+   output_file = "discriminant_analysis_report",
+   validate_results = TRUE
+ )
+
+```
+
+## Parameters
+
+<ParamField body="results" type="any">
+  List of test results from run_discriminant_analysis
+</ParamField>
+<ParamField body="output_file" type="any">
+  Output filename (without extension)
+</ParamField>
+<ParamField body="validate_results" type="any">
+  Whether to perform validation checks
+</ParamField>
+
+## Returns
+
+
+ List with report status and validation results

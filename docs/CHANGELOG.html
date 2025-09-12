@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="index.html">qiprng</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.6.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,178 @@
 
 <div id="changelog" class="section level1">
 
+<div class="section level2">
+<h2 id="version-062-2025-09-11">Version 0.6.2 (2025-09-11)<a class="anchor" aria-label="anchor" href="#version-062-2025-09-11"></a></h2>
+<div class="section level3">
+<h3 id="package-infrastructure--code-quality-improvements">Package Infrastructure &amp; Code Quality Improvements<a class="anchor" aria-label="anchor" href="#package-infrastructure--code-quality-improvements"></a></h3>
+<div class="section level4">
+<h4 id="caching-framework-enhancements">Caching Framework Enhancements<a class="anchor" aria-label="anchor" href="#caching-framework-enhancements"></a></h4>
+<ul><li>
+<strong>Pattern-based cache clearing</strong>: Implemented regex pattern support in <code><a href="reference/clear_qiprng_cache.html">clear_qiprng_cache()</a></code> for selective cache management</li>
+<li>
+<strong>Cache export/import functionality</strong>: Added <code><a href="reference/export_cached_results.html">export_cached_results()</a></code> and <code><a href="reference/import_cached_results.html">import_cached_results()</a></code> functions
+<ul><li>Export cache to RDS format for archival and sharing</li>
+<li>Import previously exported cache data with overwrite control</li>
+<li>Includes metadata: timestamps, R version, package version</li>
+</ul></li>
+<li>
+<strong>Improved cache organization</strong>: Better structure for test result caching by category</li>
+</ul></div>
+<div class="section level4">
+<h4 id="test-code-isolation">Test Code Isolation<a class="anchor" aria-label="anchor" href="#test-code-isolation"></a></h4>
+<ul><li>
+<strong>Separated test code from production build</strong>: Moved all C++ test files to dedicated <code>tests/cpp/</code> directory</li>
+<li>
+<strong>Reduced package size</strong>: Test code now excluded from production builds
+<ul><li>Added entries to <code>.Rbuildignore</code> to exclude test cpp files</li>
+<li>Created test-specific Makefile for standalone compilation</li>
+</ul></li>
+<li>
+<strong>Conditional compilation</strong>: Added QIPRNG_TESTING preprocessor guards
+<ul><li>Test utilities in <code>test_helpers.hpp</code> only available during testing</li>
+<li>Ensures clean separation between production and test code</li>
+</ul></li>
+<li>
+<strong>Improved test infrastructure</strong>: Created comprehensive test documentation and build system</li>
+</ul></div>
+<div class="section level4">
+<h4 id="code-standardization">Code Standardization<a class="anchor" aria-label="anchor" href="#code-standardization"></a></h4>
+<ul><li>
+<strong>R naming conventions</strong>: All R functions now use consistent snake_case naming</li>
+<li>
+<strong>Better code organization</strong>: Clear separation of concerns between modules</li>
+<li>
+<strong>Documentation improvements</strong>: Added README for test structure and usage</li>
+</ul></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="version-061-2025-09-11">Version 0.6.1 (2025-09-11)<a class="anchor" aria-label="anchor" href="#version-061-2025-09-11"></a></h2>
+<div class="section level3">
+<h3 id="performance-optimizations">Performance Optimizations<a class="anchor" aria-label="anchor" href="#performance-optimizations"></a></h3>
+<div class="section level4">
+<h4 id="openmp-parallelization-enhancements">OpenMP Parallelization Enhancements<a class="anchor" aria-label="anchor" href="#openmp-parallelization-enhancements"></a></h4>
+<ul><li>
+<strong>Thread-Local Caching</strong>: Eliminated MultiQI instance recreation overhead
+<ul><li>Implemented static thread_local cache for MultiQI instances</li>
+<li>Instances persist across buffer fills, created once per thread</li>
+<li>Added cleanup mechanism in destructor for proper resource management</li>
+<li>Reduces parallel overhead by ~20-30%</li>
+</ul></li>
+<li>
+<strong>SIMD Vectorization Integration</strong>: Combined SIMD with OpenMP for compound speedup
+<ul><li>Added <code>#pragma omp simd</code> directives for vectorized operations</li>
+<li>Batch processing in chunks of 8 doubles for better throughput</li>
+<li>Memory alignment optimizations for SIMD efficiency</li>
+<li>Cache prefetching with <code>__builtin_prefetch</code> for improved memory access</li>
+</ul></li>
+<li>
+<strong>Buffer Size Optimization</strong>: Improved thresholds for modern systems
+<ul><li>Increased minimum chunk size from 256 to 4096 elements</li>
+<li>Dynamic sizing based on thread count and cache line size</li>
+<li>Better cache locality for large-scale generation</li>
+</ul></li>
+<li>
+<strong>Code Quality Improvements</strong>: Fixed all compilation warnings
+<ul><li>Removed unused <code>using_pool_</code> field from MPFRWrapper</li>
+<li>Removed unused <code>remainder</code> variable from SIMD operations</li>
+<li>Removed unused <code>buffer_pos</code> variable from parallel filling</li>
+<li>Fixed unused <code>four_ac</code> variable in prng_utils</li>
+<li>Fixed MPFR_PREC_MAX comparison warnings with unsigned int</li>
+</ul></li>
+</ul></div>
+</div>
+<div class="section level3">
+<h3 id="critical-bug-fixes--improvements">Critical Bug Fixes &amp; Improvements<a class="anchor" aria-label="anchor" href="#critical-bug-fixes--improvements"></a></h3>
+<div class="section level4">
+<h4 id="overflow-protection-enhancement">Overflow Protection Enhancement<a class="anchor" aria-label="anchor" href="#overflow-protection-enhancement"></a></h4>
+<ul><li>
+<strong>Matrix Arithmetic Safety</strong>: Implemented comprehensive overflow protection in <code>Matrix2x2::operator*()</code>
+<ul><li>Added 128-bit arithmetic path using <code>__int128</code> for systems with support</li>
+<li>Fallback to <code>__builtin_smull_overflow</code> for overflow detection on other systems</li>
+<li>Prevents integer overflow in jump-ahead operations with large values</li>
+<li>Safely handles jumps up to 2^63 without overflow</li>
+</ul></li>
+</ul></div>
+<div class="section level4">
+<h4 id="cryptographic-implementation-fix">Cryptographic Implementation Fix<a class="anchor" aria-label="anchor" href="#cryptographic-implementation-fix"></a></h4>
+<ul><li>
+<strong>True ChaCha20 Stream Cipher</strong>: Replaced entropy injection with proper ChaCha20 implementation
+<ul><li>Migrated from <code>randombytes_buf</code> to <code>crypto_stream_chacha20</code> for deterministic mixing</li>
+<li>Implemented XOR mixing path for uniform distribution preservation</li>
+<li>Added modular addition path for enhanced entropy mixing</li>
+<li>Uses incremental nonce to ensure unique stream for each mixing operation</li>
+<li>Provides true cryptographic-grade deterministic randomness</li>
+</ul></li>
+</ul></div>
+<div class="section level4">
+<h4 id="cross-platform-build-improvements">Cross-Platform Build Improvements<a class="anchor" aria-label="anchor" href="#cross-platform-build-improvements"></a></h4>
+<ul><li>
+<strong>Windows Build Support</strong>: Enhanced Windows configuration for better compatibility
+<ul><li>Updated <code>configure.win</code> to use C++17 standard (matching Unix builds)</li>
+<li>Added libsodium detection with graceful fallback</li>
+<li>Implemented <code>QIPRNG_NO_CRYPTO</code> flag for builds without libsodium</li>
+<li>Provides stub implementations when crypto features unavailable</li>
+</ul></li>
+</ul></div>
+<div class="section level4">
+<h4 id="architecture-improvements">Architecture Improvements<a class="anchor" aria-label="anchor" href="#architecture-improvements"></a></h4>
+<ul><li>
+<strong>Modular Component Design</strong>: Refactored EnhancedPRNG for better maintainability
+<ul><li>Created <code>distribution_generator.hpp</code> with polymorphic distribution classes</li>
+<li>Implemented <code>buffer_manager.hpp</code> with pluggable filling strategies</li>
+<li>Separated statistics tracking into dedicated component</li>
+<li>Applied Strategy Pattern for runtime-configurable buffer filling</li>
+<li>Used Factory Pattern for extensible distribution creation</li>
+<li>Enhanced separation of concerns with single responsibility principle</li>
+</ul></li>
+<li>
+<strong>Enhanced Class Infrastructure</strong>: Added missing functionality to core classes
+<ul><li>Implemented <code>clone()</code> method in MultiQI for parallel operations</li>
+<li>Added <code>reseed()</code> method to MultiQI and QuadraticIrrational</li>
+<li>Created accessor methods (getA, getB, getC, getMPFRPrecision) in QuadraticIrrational</li>
+<li>Fixed member initialization for proper MPFR precision tracking</li>
+</ul></li>
+</ul></div>
+<div class="section level4">
+<h4 id="repository-maintenance">Repository Maintenance<a class="anchor" aria-label="anchor" href="#repository-maintenance"></a></h4>
+<ul><li>
+<strong>CRAN Compliance</strong>: Cleaned repository for package submission
+<ul><li>Removed all binary artifacts (<em>.o, </em>.so files) from repository</li>
+<li>Enhanced <code>.Rbuildignore</code> patterns for cleaner source packages</li>
+<li>Added proper ignore patterns for node_modules, .DS_Store, and build artifacts</li>
+<li>Ensures clean <code>R CMD build</code> and <code>R CMD check</code> execution</li>
+</ul></li>
+</ul></div>
+</div>
+<div class="section level3">
+<h3 id="files-modified">Files Modified<a class="anchor" aria-label="anchor" href="#files-modified"></a></h3>
+<ul><li>
+<code>src/quadratic_irrational.hpp</code>: Overflow-safe matrix operations, accessor methods</li>
+<li>
+<code>src/quadratic_irrational.cpp</code>: Reseed implementation, MPFR precision tracking</li>
+<li>
+<code>src/multi_qi.hpp</code>: Clone and reseed method declarations</li>
+<li>
+<code>src/multi_qi.cpp</code>: Clone and reseed implementations</li>
+<li>
+<code>src/distribution_generator.hpp</code>: New modular distribution system</li>
+<li>
+<code>src/buffer_manager.hpp</code>: New buffer management with strategies</li>
+<li>
+<code>src/enhanced_prng_refactored.hpp</code>: Refactored main PRNG class</li>
+<li>
+<code>src/crypto_mixer.cpp</code>: True ChaCha20 implementation</li>
+<li>
+<code>src/crypto_mixer.hpp</code>: Conditional compilation for crypto features</li>
+<li>
+<code>configure.win</code>: Windows build configuration</li>
+<li>
+<code>.Rbuildignore</code>: Enhanced ignore patterns</li>
+<li>
+<code>README.md</code>: Updated crypto mixing documentation</li>
+</ul></div>
+</div>
 <div class="section level2">
 <h2 id="version-060-2025-09-06">Version 0.6.0 (2025-09-06)<a class="anchor" aria-label="anchor" href="#version-060-2025-09-06"></a></h2>
 <div class="section level3">
@@ -116,7 +288,7 @@
 </ul></div>
 </div>
 <div class="section level3">
-<h3 id="files-modified">Files Modified<a class="anchor" aria-label="anchor" href="#files-modified"></a></h3>
+<h3 id="files-modified-1">Files Modified<a class="anchor" aria-label="anchor" href="#files-modified-1"></a></h3>
 <ul><li>
 <code>src/quadratic_irrational.cpp</code>: Overflow fixes, error handling</li>
 <li>
@@ -354,7 +526,7 @@
 </ul></div>
 </div>
 <div class="section level3">
-<h3 id="performance-optimizations">Performance Optimizations<a class="anchor" aria-label="anchor" href="#performance-optimizations"></a></h3>
+<h3 id="performance-optimizations-1">Performance Optimizations<a class="anchor" aria-label="anchor" href="#performance-optimizations-1"></a></h3>
 <div class="section level4">
 <h4 id="lock-contention-elimination">Lock Contention Elimination<a class="anchor" aria-label="anchor" href="#lock-contention-elimination"></a></h4>
 <ul><li>

@@ -1,0 +1,37 @@
+---
+title: 'cached_pacf'
+description: 'Cached PACF function'
+sidebarTitle: 'cached_pacf'
+---
+
+# Cached PACF function
+
+
+ Cached wrapper for stats::pacf() function. Uses R.cache to store
+ results for repeated calls with the same data and parameters.
+
+
+## Usage
+
+```r
+
+ cached_pacf(x, lag.max = NULL, ...)
+
+```
+
+## Parameters
+
+<ParamField body="x" type="any">
+  A univariate or multivariate time series
+</ParamField>
+<ParamField body="lag.max" type="any">
+  Maximum lag at which to calculate the pacf
+</ParamField>
+<ParamField body="..." type="any">
+  Additional arguments passed to pacf()
+</ParamField>
+
+## Returns
+
+
+ An object of class "acf"

@@ -1,0 +1,105 @@
+---
+title: 'benchmark_qiprng'
+description: 'Benchmark QIPRNG against other random number generators'
+sidebarTitle: 'benchmark_qiprng'
+---
+
+# Benchmark QIPRNG against other random number generators
+
+
+ This function benchmarks the QIPRNG package against other random number generators
+ in R. It provides detailed performance comparisons across different sample sizes,
+ configurations, and distributions.
+
+
+## Usage
+
+```r
+
+ benchmark_qiprng(
+   n_values = c(10, 100, 1000, 10000, 100000, 1000000),
+   generators = list(
+     "qiprng" = function(n) generatePRNG(n),
+     "base_r" = function(n) runif(n),
+     "dqrng" = function(n) dqrunif(n)
+   ),
+   distributions = c("uniform", "normal", "exponential"),
+   repetitions = 10,
+   configs = list(
+     "default" = list(),
+     "crypto" = list(use_crypto_mixing = TRUE),
+     "high_precision" = list(mpfr_precision = 128)
+   ),
+   export_data = FALSE,
+   file = "qiprng_benchmark.rds"
+ )
+
+```
+
+## Parameters
+
+<ParamField body="n_values" type="any">
+  Vector of sample sizes to benchmark
+</ParamField>
+<ParamField body="generators" type="any">
+  List of generator functions to compare; each function should take n as input and return n random numbers
+</ParamField>
+<ParamField body="distributions" type="any">
+  Character vector of distributions to test ("uniform", "normal", "exponential")
+</ParamField>
+<ParamField body="repetitions" type="any">
+  Number of repetitions for each benchmark
+</ParamField>
+<ParamField body="configs" type="any">
+  List of QIPRNG configurations to test
+</ParamField>
+<ParamField body="export_data" type="any">
+  Whether to export raw benchmark data
+</ParamField>
+<ParamField body="file" type="any">
+  Path to save results if export_data is TRUE
+</ParamField>
+
+## Returns
+
+
+ A list containing benchmark results and plots:
+
+       results: Raw benchmark data from microbenchmark
+       plots: A list of ggplot objects visualizing the results
+
+
+
+## Examples
+
+```r
+
+
+ # Basic benchmark against R's built-in generator
+ results <- benchmark_qiprng(
+   n_values = c(1000, 10000),
+   generators = list(
+     "qiprng" = function(n) generatePRNG(n),
+     "base_r" = function(n) runif(n)
+   ),
+   repetitions = 5
+ )
+
+ # Visualize the results
+ print(results$plots$size_comparison)
+
+```
+
+## See Also
+
+<CardGroup cols={2}>
+  <Card title="profile_qiprng_config" href="/api-reference/r-functions/profile_qiprng_config">
+    Related function: profile_qiprng_config
+  </Card>
+  <Card title="benchmark_large_generation" href="/api-reference/r-functions/benchmark_large_generation">
+    Related function: benchmark_large_generation
+  </Card>
+  <Card title="compare_rng_quality" href="/api-reference/r-functions/compare_rng_quality">
+    Related function: compare_rng_quality
+  </Card>
+</CardGroup>

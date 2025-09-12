@@ -1,0 +1,57 @@
+---
+title: 'bootstrap_conf_interval'
+description: 'Bootstrap confidence interval'
+sidebarTitle: 'bootstrap_conf_interval'
+---
+
+# Bootstrap confidence interval
+
+
+ Calculates bootstrap confidence intervals using the percentile method.
+ This function is a utility that can be used alongside p-value calculations.
+
+
+## Usage
+
+```r
+
+ bootstrap_conf_interval(
+   data,
+   statistic,
+   n_bootstraps = 10000,
+   conf_level = 0.95,
+   progress = TRUE,
+   seed = NULL
+ )
+
+```
+
+## Parameters
+
+<ParamField body="data" type="any">
+  Numeric vector of observations
+</ParamField>
+<ParamField body="statistic" type="any">
+  Function that computes the statistic of interest
+</ParamField>
+<ParamField body="n_bootstraps" type="any">
+  Number of bootstrap samples (default: 10000)
+</ParamField>
+<ParamField body="conf_level" type="any">
+  Confidence level (default: 0.95)
+</ParamField>
+<ParamField body="progress" type="any">
+  Logical; show progress bar (default: TRUE)
+</ParamField>
+<ParamField body="seed" type="any">
+  Random seed for reproducibility (default: NULL)
+</ParamField>
+
+## Returns
+
+
+ A list containing:
+ estimate Point estimate of the statistic
+ conf_int Confidence interval as a numeric vector of length 2
+ conf_level The confidence level used
+ bootstrap_distribution Vector of bootstrap statistics
