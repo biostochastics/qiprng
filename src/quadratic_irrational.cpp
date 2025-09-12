@@ -552,13 +552,35 @@ void QuadraticIrrational::jump_ahead_optimized(uint64_t n) {
         // where p, q, r, s are the matrix elements
 
         // Numerator: p * value + q * next
-        mpfr_mul_si(*temp_val->get(), *value_->get(), result.p, MPFR_RNDN);
-        mpfr_mul_si(*new_value->get(), *next_->get(), result.q, MPFR_RNDN);
+        // Use mpfr_t intermediates to avoid precision loss on platforms where long != int64_t
+        MPFRWrapper p_mpfr(value_->get_precision()), q_mpfr(value_->get_precision()),
+            r_mpfr(value_->get_precision()), s_mpfr(value_->get_precision());
+        mpfr_set_si(*p_mpfr.get(), static_cast<long>(result.p), MPFR_RNDN);
+        mpfr_set_si(*q_mpfr.get(), static_cast<long>(result.q), MPFR_RNDN);
+        mpfr_set_si(*r_mpfr.get(), static_cast<long>(result.r), MPFR_RNDN);
+        mpfr_set_si(*s_mpfr.get(), static_cast<long>(result.s), MPFR_RNDN);
+
+        // If values exceed long range, use string conversion for exact representation
+        if (result.p != static_cast<long>(result.p)) {
+            mpfr_set_str(*p_mpfr.get(), std::to_string(result.p).c_str(), 10, MPFR_RNDN);
+        }
+        if (result.q != static_cast<long>(result.q)) {
+            mpfr_set_str(*q_mpfr.get(), std::to_string(result.q).c_str(), 10, MPFR_RNDN);
+        }
+        if (result.r != static_cast<long>(result.r)) {
+            mpfr_set_str(*r_mpfr.get(), std::to_string(result.r).c_str(), 10, MPFR_RNDN);
+        }
+        if (result.s != static_cast<long>(result.s)) {
+            mpfr_set_str(*s_mpfr.get(), std::to_string(result.s).c_str(), 10, MPFR_RNDN);
+        }
+
+        mpfr_mul(*temp_val->get(), *value_->get(), *p_mpfr.get(), MPFR_RNDN);
+        mpfr_mul(*new_value->get(), *next_->get(), *q_mpfr.get(), MPFR_RNDN);
         mpfr_add(*new_value->get(), *new_value->get(), *temp_val->get(), MPFR_RNDN);
 
         // Denominator: r * value + s * next
-        mpfr_mul_si(*temp_val->get(), *value_->get(), result.r, MPFR_RNDN);
-        mpfr_mul_si(*temp_->get(), *next_->get(), result.s, MPFR_RNDN);
+        mpfr_mul(*temp_val->get(), *value_->get(), *r_mpfr.get(), MPFR_RNDN);
+        mpfr_mul(*temp_->get(), *next_->get(), *s_mpfr.get(), MPFR_RNDN);
         mpfr_add(*temp_->get(), *temp_->get(), *temp_val->get(), MPFR_RNDN);
 
         // Divide to get new value

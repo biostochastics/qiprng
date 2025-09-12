@@ -1,0 +1,23 @@
+---
+title: "DistributionGenerator"
+description: "Abstract base class for distribution generators"
+sidebarTitle: "DistributionGenerator"
+---
+
+# DistributionGenerator
+
+## Description
+
+Abstract base class for distribution generators
+
+## Source
+
+Defined in `src/distribution_generator.hpp`
+
+## Public Methods
+
+```cpp
+virtual ~DistributionGenerator() = default;
+virtual double generate(UniformSource& source) = 0;
+virtual void reset() {}  // Optional reset for stateful generators
+```

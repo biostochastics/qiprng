@@ -220,10 +220,13 @@ class EnhancedPRNGRefactored {
 
     // Configuration management
     void updateConfig(const PRNGConfig& new_config) {
+        // Capture existing configuration before updating
+        PRNGConfig old_config = config_manager_->getConfig();
+
         config_manager_->updateConfig(new_config);
 
         // Recreate distribution if needed
-        if (new_config.distribution != config_manager_->getDistribution()) {
+        if (new_config.distribution != old_config.distribution) {
             distribution_ = DistributionFactory::create(new_config);
         }
 

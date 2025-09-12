@@ -126,12 +126,39 @@ void QuadraticIrrational::jump_ahead_optimized_v2(uint64_t n) {
                     std::make_unique<MPFRWrapper>(value_->get_precision());
 
                 // Convert int64_t to mpfr_t and apply transformation
-                mpfr_mul_si(*temp_val->get(), *value_->get(), result.get_p(), MPFR_RNDN);
-                mpfr_mul_si(*new_value->get(), *next_->get(), result.get_q(), MPFR_RNDN);
+                // Use mpfr_t intermediates to avoid precision loss on platforms where long !=
+                // int64_t
+                MPFRWrapper p_mpfr(value_->get_precision()), q_mpfr(value_->get_precision()),
+                    r_mpfr(value_->get_precision()), s_mpfr(value_->get_precision());
+                mpfr_set_si(*p_mpfr.get(), static_cast<long>(result.get_p()), MPFR_RNDN);
+                mpfr_set_si(*q_mpfr.get(), static_cast<long>(result.get_q()), MPFR_RNDN);
+                mpfr_set_si(*r_mpfr.get(), static_cast<long>(result.get_r()), MPFR_RNDN);
+                mpfr_set_si(*s_mpfr.get(), static_cast<long>(result.get_s()), MPFR_RNDN);
+
+                // If values exceed long range, use string conversion for exact representation
+                if (result.get_p() != static_cast<long>(result.get_p())) {
+                    mpfr_set_str(*p_mpfr.get(), std::to_string(result.get_p()).c_str(), 10,
+                                 MPFR_RNDN);
+                }
+                if (result.get_q() != static_cast<long>(result.get_q())) {
+                    mpfr_set_str(*q_mpfr.get(), std::to_string(result.get_q()).c_str(), 10,
+                                 MPFR_RNDN);
+                }
+                if (result.get_r() != static_cast<long>(result.get_r())) {
+                    mpfr_set_str(*r_mpfr.get(), std::to_string(result.get_r()).c_str(), 10,
+                                 MPFR_RNDN);
+                }
+                if (result.get_s() != static_cast<long>(result.get_s())) {
+                    mpfr_set_str(*s_mpfr.get(), std::to_string(result.get_s()).c_str(), 10,
+                                 MPFR_RNDN);
+                }
+
+                mpfr_mul(*temp_val->get(), *value_->get(), *p_mpfr.get(), MPFR_RNDN);
+                mpfr_mul(*new_value->get(), *next_->get(), *q_mpfr.get(), MPFR_RNDN);
                 mpfr_add(*new_value->get(), *new_value->get(), *temp_val->get(), MPFR_RNDN);
 
-                mpfr_mul_si(*temp_val->get(), *value_->get(), result.get_r(), MPFR_RNDN);
-                mpfr_mul_si(*denominator->get(), *next_->get(), result.get_s(), MPFR_RNDN);
+                mpfr_mul(*temp_val->get(), *value_->get(), *r_mpfr.get(), MPFR_RNDN);
+                mpfr_mul(*denominator->get(), *next_->get(), *s_mpfr.get(), MPFR_RNDN);
                 mpfr_add(*denominator->get(), *denominator->get(), *temp_val->get(), MPFR_RNDN);
 
                 if (!mpfr_zero_p(*denominator->get())) {
@@ -149,12 +176,28 @@ void QuadraticIrrational::jump_ahead_optimized_v2(uint64_t n) {
             case JumpAheadAlgorithm::DIRECT_CFE: {
                 // Direct CFE manipulation without matrices
                 // This approach directly manipulates the position in the CFE period
-                uint64_t total_steps = full_periods * cfe_period_length_;
 
-                // Instead of matrix operations, directly jump in the CFE sequence
-                // by updating the internal state based on the periodicity
-                for (uint64_t i = 0; i < total_steps; ++i) {
-                    step_once();
+                // Check for overflow before multiplication
+                const uint64_t max_safe_periods =
+                    std::numeric_limits<uint64_t>::max() / cfe_period_length_;
+                if (full_periods > max_safe_periods) {
+                    // Handle overflow by processing in chunks
+                    uint64_t remaining_periods = full_periods;
+                    while (remaining_periods > 0) {
+                        uint64_t chunk = std::min(remaining_periods, max_safe_periods);
+                        uint64_t chunk_steps = chunk * cfe_period_length_;
+                        for (uint64_t i = 0; i < chunk_steps; ++i) {
+                            step_once();
+                        }
+                        remaining_periods -= chunk;
+                    }
+                } else {
+                    uint64_t total_steps = full_periods * cfe_period_length_;
+                    // Instead of matrix operations, directly jump in the CFE sequence
+                    // by updating the internal state based on the periodicity
+                    for (uint64_t i = 0; i < total_steps; ++i) {
+                        step_once();
+                    }
                 }
                 break;
             }
@@ -182,12 +225,39 @@ void QuadraticIrrational::jump_ahead_optimized_v2(uint64_t n) {
                     std::unique_ptr<MPFRWrapper> denominator =
                         std::make_unique<MPFRWrapper>(value_->get_precision());
 
-                    mpfr_mul_si(*temp_val->get(), *value_->get(), result.p, MPFR_RNDN);
-                    mpfr_mul_si(*new_value->get(), *next_->get(), result.q, MPFR_RNDN);
+                    // Use mpfr_t intermediates to avoid precision loss on platforms where long !=
+                    // int64_t
+                    MPFRWrapper p_mpfr(value_->get_precision()), q_mpfr(value_->get_precision()),
+                        r_mpfr(value_->get_precision()), s_mpfr(value_->get_precision());
+                    mpfr_set_si(*p_mpfr.get(), static_cast<long>(result.p), MPFR_RNDN);
+                    mpfr_set_si(*q_mpfr.get(), static_cast<long>(result.q), MPFR_RNDN);
+                    mpfr_set_si(*r_mpfr.get(), static_cast<long>(result.r), MPFR_RNDN);
+                    mpfr_set_si(*s_mpfr.get(), static_cast<long>(result.s), MPFR_RNDN);
+
+                    // If values exceed long range, use string conversion for exact representation
+                    if (result.p != static_cast<long>(result.p)) {
+                        mpfr_set_str(*p_mpfr.get(), std::to_string(result.p).c_str(), 10,
+                                     MPFR_RNDN);
+                    }
+                    if (result.q != static_cast<long>(result.q)) {
+                        mpfr_set_str(*q_mpfr.get(), std::to_string(result.q).c_str(), 10,
+                                     MPFR_RNDN);
+                    }
+                    if (result.r != static_cast<long>(result.r)) {
+                        mpfr_set_str(*r_mpfr.get(), std::to_string(result.r).c_str(), 10,
+                                     MPFR_RNDN);
+                    }
+                    if (result.s != static_cast<long>(result.s)) {
+                        mpfr_set_str(*s_mpfr.get(), std::to_string(result.s).c_str(), 10,
+                                     MPFR_RNDN);
+                    }
+
+                    mpfr_mul(*temp_val->get(), *value_->get(), *p_mpfr.get(), MPFR_RNDN);
+                    mpfr_mul(*new_value->get(), *next_->get(), *q_mpfr.get(), MPFR_RNDN);
                     mpfr_add(*new_value->get(), *new_value->get(), *temp_val->get(), MPFR_RNDN);
 
-                    mpfr_mul_si(*temp_val->get(), *value_->get(), result.r, MPFR_RNDN);
-                    mpfr_mul_si(*denominator->get(), *next_->get(), result.s, MPFR_RNDN);
+                    mpfr_mul(*temp_val->get(), *value_->get(), *r_mpfr.get(), MPFR_RNDN);
+                    mpfr_mul(*denominator->get(), *next_->get(), *s_mpfr.get(), MPFR_RNDN);
                     mpfr_add(*denominator->get(), *denominator->get(), *temp_val->get(), MPFR_RNDN);
 
                     if (!mpfr_zero_p(*denominator->get())) {

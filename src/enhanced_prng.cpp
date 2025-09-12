@@ -880,7 +880,19 @@ void EnhancedPRNG::skip(uint64_t n) {
         // Calculate how many full buffers to jump over
         uint64_t num_full_buffers_to_skip = n / buffer_.size();
         if (num_full_buffers_to_skip > 0) {
-            multi_->jump_ahead(num_full_buffers_to_skip * buffer_.size());
+            // Check for overflow before multiplication
+            const uint64_t max_safe_buffers = std::numeric_limits<uint64_t>::max() / buffer_.size();
+            if (num_full_buffers_to_skip > max_safe_buffers) {
+                // Handle overflow by jumping in smaller chunks
+                uint64_t remaining_buffers = num_full_buffers_to_skip;
+                while (remaining_buffers > 0) {
+                    uint64_t chunk = std::min(remaining_buffers, max_safe_buffers);
+                    multi_->jump_ahead(chunk * buffer_.size());
+                    remaining_buffers -= chunk;
+                }
+            } else {
+                multi_->jump_ahead(num_full_buffers_to_skip * buffer_.size());
+            }
         }
 
         // Calculate the position in the new buffer
