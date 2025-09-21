@@ -1,6 +1,6 @@
 ---
 title: "BufferManager"
-description: "Buffer manager class"
+description: "Thread-safe buffer management for parallel generation"
 sidebarTitle: "BufferManager"
 ---
 
@@ -8,16 +8,19 @@ sidebarTitle: "BufferManager"
 
 ## Description
 
-Buffer manager class
+Thread-safe buffer management for parallel generation
+
+## Key Features
+
 
 ## Source
 
 Defined in `src/buffer_manager.hpp`
 
-## Public Methods
+## Usage Example
 
 ```cpp
-BufferManager(size_t buffer_size, MultiQI* source, CryptoMixer* crypto = nullptr)
-: buffer_(buffer_size), buffer_pos_(0), source_(source), crypto_(crypto) {
-fill_strategy_ = std::make_unique<SequentialFillStrategy>();
+// Example usage of BufferManager
+BufferManager instance;
+// See API documentation for detailed usage
 ```

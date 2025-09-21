@@ -1,25 +1,46 @@
 ---
 title: "API Reference"
 description: "Complete API documentation for qiprng"
+sidebarTitle: "Overview"
 ---
 
 # API Reference
 
-The qiprng package provides a comprehensive API for high-quality pseudo-random number generation.
+## Package Overview
 
-## Core Functions
+The qiprng package provides a comprehensive API for high-quality pseudo-random
+number generation based on quadratic irrational numbers.
 
-- [`createPRNG()`](/api-reference/r-functions/createPRNG) - Initialize a new generator
-- [`generatePRNG()`](/api-reference/r-functions/generatePRNG) - Generate random values
-- [`updatePRNG()`](/api-reference/r-functions/updatePRNG) - Update generator configuration
-- [`jumpAheadPRNG()`](/api-reference/r-functions/jumpAheadPRNG) - Jump ahead in sequence
-- [`cleanupPRNG()`](/api-reference/r-functions/cleanupPRNG) - Clean up resources
+## Quick Links
 
-## C++ Implementation
+<CardGroup cols={2}>
+  <Card title="Core Functions" icon="code" href="/mintlify/api-reference/r-functions/createPRNG">
+    Essential generator functions
+  </Card>
+  <Card title="Testing" icon="flask" href="/mintlify/api-reference/r-functions/test_qiprng">
+    Validation and testing tools
+  </Card>
+  <Card title="C++ Classes" icon="microchip" href="/mintlify/api-reference/cpp-classes/QuadraticIrrational">
+    Implementation details
+  </Card>
+  <Card title="Benchmarks" icon="gauge" href="/mintlify/api-reference/r-functions/benchmark_qiprng">
+    Performance measurement
+  </Card>
+</CardGroup>
 
-The package is implemented in C++ for performance, with key classes including:
+## Function Categories
 
-- `QuadraticIrrational` - Core quadratic irrational implementation
-- `EnhancedPRNG` - Enhanced PRNG with distribution support
-- `CryptoMixer` - Cryptographic mixing for security
-- `Matrix2x2` - Matrix operations for jump-ahead
+### Generator Management
+- [`createPRNG()`](/mintlify/api-reference/r-functions/createPRNG) - Initialize generator
+- [`generatePRNG()`](/mintlify/api-reference/r-functions/generatePRNG) - Generate values
+- [`updatePRNG()`](/mintlify/api-reference/r-functions/updatePRNG) - Update configuration
+- [`cleanupPRNG()`](/mintlify/api-reference/r-functions/cleanupPRNG) - Clean up resources
+
+### Advanced Operations
+- [`jumpAheadPRNG()`](/mintlify/api-reference/r-functions/jumpAheadPRNG) - Skip ahead
+- [`reseedPRNG()`](/mintlify/api-reference/r-functions/reseedPRNG) - Reseed generator
+
+### Validation & Testing
+- [`test_qiprng()`](/mintlify/api-reference/r-functions/test_qiprng) - Run test suite
+- [`validate_qiprng_framework()`](/mintlify/api-reference/r-functions/validate_qiprng_framework) - NIST validation
+- [`benchmark_qiprng()`](/mintlify/api-reference/r-functions/benchmark_qiprng) - Performance testing

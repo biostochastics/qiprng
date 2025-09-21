@@ -12,13 +12,12 @@ sidebarTitle: 'jumpAheadPRNG'
  efficient than generating and discarding n numbers, enabling astronomical
  jumps (e.g., 10^18 steps) in microseconds.
 
-
 ## Usage
 
 ```r
 
- jumpAheadPRNG(n)
 
+jumpAheadPRNG(n)
 ```
 
 ## Parameters
@@ -26,14 +25,14 @@ sidebarTitle: 'jumpAheadPRNG'
 <ParamField body="n" type="any">
   Number of steps to jump ahead (positive integer or numeric value).
  Can be astronomically large (e.g., 1e18) as the implementation uses
- O(log n) matrix exponentiation for optimal performance.
+ O(log n) matrix exponentiation for optimal performance..
 </ParamField>
 
 ## Returns
 
 
  Invisibly returns NULL
- #' @examplesCreate default PRNG
+  default PRNG
 
  createPRNG()Generate some initial values
 
@@ -56,39 +55,38 @@ sidebarTitle: 'jumpAheadPRNG'
  worker2_values <- generatePRNG(1000000)
 
 
-
 ## Details
 
 
- The jump-ahead functionality is particularly useful for:
-
-  Parallel simulations where different workers need non-overlapping sequences
-  Subsampling from specific points in the random sequence
-  Skipping large segments without the computational cost of generation
-  Creating independent streams separated by astronomical distances
-
-
- Version 0.5.0 introduces revolutionary O(log n) complexity using:
-
-  Matrix exponentiation with binary powering algorithm
-  Continued Fraction Expansion (CFE) period detection using Gauss-Legendre
-  MPFR arbitrary precision arithmetic for numerical stability
-  Automatic optimization selection based on jump size and CFE period
-
-
- Performance characteristics:
-
-  Small jumps (< 1000): Direct iteration
-  Medium jumps (1000-1M): Block processing with cache optimization
-  Large jumps (> 1M): O(log n) matrix exponentiation
-  Astronomical jumps (> 10^9): Pure logarithmic scaling
-
-
- Note: Due to the security-focused design with random initialization, two PRNGs
- created with identical parameters may start at different positions in the
- sequence. The jump-ahead function advances from the current position, not from
- a fixed origin.
-
- Thread safety: This function is fully thread-safe and will block until mutex
- is acquired. The implementation ensures proper synchronization of all thread-local
- storage during jump-ahead operations.
+- The jump-ahead functionality is particularly useful for:
+-
+- Parallel simulations where different workers need non-overlapping sequences
+- Subsampling from specific points in the random sequence
+- Skipping large segments without the computational cost of generation
+- Creating independent streams separated by astronomical distances
+-
+-
+- Version 0.5.0 introduces revolutionary O(log n) complexity using:
+-
+- Matrix exponentiation with binary powering algorithm
+- Continued Fraction Expansion (CFE) period detection using Gauss-Legendre
+- MPFR arbitrary precision arithmetic for numerical stability
+- Automatic optimization selection based on jump size and CFE period
+-
+-
+- Performance characteristics:
+-
+- Small jumps (< 1000): Direct iteration
+- Medium jumps (1000-1M): Block processing with cache optimization
+- Large jumps (> 1M): O(log n) matrix exponentiation
+- Astronomical jumps (> 10^9): Pure logarithmic scaling
+-
+-
+- Note: Due to the security-focused design with random initialization, two PRNGs
+- created with identical parameters may start at different positions in the
+- sequence. The jump-ahead function advances from the current position, not from
+- a fixed origin.
+-
+- Thread safety: This function is fully thread-safe and will block until mutex
+- is acquired. The implementation ensures proper synchronization of all thread-local
+- storage during jump-ahead operations.

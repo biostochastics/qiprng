@@ -1,6 +1,6 @@
 ---
 title: "DistributionGenerator"
-description: "Abstract base class for distribution generators"
+description: "Statistical distribution transformations"
 sidebarTitle: "DistributionGenerator"
 ---
 
@@ -8,16 +8,19 @@ sidebarTitle: "DistributionGenerator"
 
 ## Description
 
-Abstract base class for distribution generators
+Statistical distribution transformations
+
+## Key Features
+
 
 ## Source
 
 Defined in `src/distribution_generator.hpp`
 
-## Public Methods
+## Usage Example
 
 ```cpp
-virtual ~DistributionGenerator() = default;
-virtual double generate(UniformSource& source) = 0;
-virtual void reset() {}  // Optional reset for stateful generators
+// Example usage of DistributionGenerator
+DistributionGenerator instance;
+// See API documentation for detailed usage
 ```

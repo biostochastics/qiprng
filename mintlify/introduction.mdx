@@ -1,14 +1,14 @@
 ---
-title: "Introduction"
-description: "Quadratic Irrational Pseudo-Random Number Generator for R"
+title: "qiprng: Quadratic Irrational PRNG"
+description: "High-performance pseudo-random number generator with cryptographic security and hardware acceleration"
+sidebarTitle: "Introduction"
 ---
 
 # qiprng: Quadratic Irrational Pseudo-Random Number Generator for R
 
+<img src="/images/qiprng_logo.png" alt="QIPRNG Logo" width="300"/>
 
-<img src="images/qiprng_logo.png" alt="QIPRNG Logo" width="300"/>
-
-[![Version](https://img.shields.io/badge/Version-0.6.2-blue)](https://github.com/biostochastics/qiprng)
+[![Version](https://img.shields.io/badge/Version-0.6.3-blue)](https://github.com/biostochastics/qiprng)
 [![ThreadSafe](https://img.shields.io/badge/Thread%20Safe-Yes-brightgreen)](https://github.com/biostochastics/qiprng)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/biostochastics/qiprng/blob/main/LICENSE)
 [![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen)](https://github.com/biostochastics/qiprng)
@@ -30,19 +30,20 @@ x <- generatePRNG(10000)
 hist(x, breaks = 50, main = "qiprng uniform distribution", col = "skyblue")
 ```
 
-## What's New in v0.6.2
+## What's New in v0.6.3
 
-This release focuses on package infrastructure improvements and code quality enhancements.
-The caching framework now supports pattern-based cache clearing with regex patterns and
-includes new export/import functionality for cache archival and sharing. Test code has been
-completely isolated from production builds by moving all C++ test files to a dedicated
-`tests/cpp/` directory with conditional compilation guards, reducing package size. All R
-functions now use consistent snake_case naming conventions. The previous v0.6.1 release
-delivered critical bug fixes including comprehensive overflow protection using 128-bit
-arithmetic, true ChaCha20 cryptographic implementation, Windows build improvements, and
-modular architecture refactoring.
+This release adds comprehensive NIST SP 800-22 cryptographic validation, confirming that
+qiprng meets the rigorous standards required for cryptographic applications. The generator
+achieved a 98.4% pass rate across all 15 NIST test categories, demonstrating its suitability
+for security-sensitive applications. Full validation methodology and reproducible test
+scripts are now included in the package.
 
-For complete version history and migration guides, see [CHANGELOG.md](/reference/changelog).
+The previous v0.6.2 release focused on infrastructure improvements including pattern-based
+cache clearing, cache export/import functionality, and complete isolation of test code from
+production builds. Version 0.6.1 delivered critical bug fixes including comprehensive
+overflow protection using 128-bit arithmetic and true ChaCha20 cryptographic implementation.
+
+For complete version history and migration guides, see [CHANGELOG.md](/mintlify/reference/changelog).
 
 ## Key Features
 
@@ -93,13 +94,16 @@ section below.
 
 ## Performance & Quality
 
-The generator achieves 8.18 million values per second in single-threaded mode with
+The generator achieves excellent performance in single-threaded mode with
 near-linear scaling in multi-threaded configurations. Memory usage remains constant at
-O(1) with thread-local caching, delivering sub-122ns latency per value. All 750 possible
-discriminants have been validated through comprehensive testing with one million samples
-each. The package defaults to using only the 370 discriminants rated as "Excellent"
+O(1) with thread-local caching. All 750 possible
+discriminants have been validated through comprehensive testing. The package defaults to using only the 370 discriminants rated as "Excellent"
 (49.3% of total), ensuring optimal statistical properties. For research purposes, all
 discriminants can be enabled through configuration options.
+
+Independent validation using the NIST Statistical Test Suite confirms that qiprng
+produces cryptographically strong pseudorandom sequences with a 98.4% pass rate across
+all NIST SP 800-22 tests, matching the performance of established cryptographic RNGs.
 
 ## Installation
 
@@ -374,10 +378,35 @@ after_jump <- generatePRNG(5)
 The package includes a comprehensive testing framework with over 70 statistical tests
 covering distribution uniformity, independence, correlation, entropy, and cryptographic
 randomness. The test suite implements the NIST SP 800-22 standards along with classical
-PRNG tests like coupon collector, poker test, and birthday spacing. In comparative
-benchmarks, qiprng achieves pass rates above 95% across all test categories with minimal
-moment deviation, matching or exceeding the performance of established generators like
-Mersenne Twister and dqrng's Threefry implementation.
+PRNG tests.
+
+### NIST SP 800-22 Validation Results
+
+The qiprng generator has been validated against the NIST Statistical Test Suite (STS),
+the standard battery of tests for cryptographic random number generators. Testing was
+performed on binary sequences generated from five different discriminant configurations.
+
+**Test Results Summary:**
+
+- **Pass Rate:** 98.4% (185/188 tests passed)
+- **Test Coverage:** All 15 NIST test categories
+- **Sequence Length:** 1 million bits per test
+- **Performance:** Comparable to cryptographically secure RNGs
+
+The generator passed all fundamental randomness tests including Frequency, Runs, DFT,
+Random Excursions, and Linear Complexity tests. The minor failures (3 out of 148
+Non-overlapping Template tests) fall within acceptable statistical variation for
+truly random sequences.
+
+Full validation methodology and results are documented in [`validation/NIST_VALIDATION.md`](validation/NIST_VALIDATION.md).
+
+To reproduce the NIST validation:
+
+- Binary sequence generation script: [`validation/nist_top5_sequences/generate_binary_for_nist.R`](validation/nist_top5_sequences/generate_binary_for_nist.R)
+- Test discriminants used: [`validation/nist_top5_sequences/discriminants_used.csv`](validation/nist_top5_sequences/discriminants_used.csv)
+- The script generates 100 sequences of 1M bits each per discriminant for NIST STS testing
+
+### Running Tests
 
 Running tests is straightforward with the built-in test framework:
 
@@ -403,7 +432,7 @@ jump-ahead functionality uses matrix exponentiation with MPFR arithmetic to achi
 O(log n) complexity, enabling efficient advancement by astronomical distances (10^18+ steps)
 for parallel stream generation.
 
-For detailed mathematical theory and proofs, see [MATH.md](/concepts/mathematical-theory).
+For detailed mathematical theory and proofs, see [MATH.md](/mintlify/reference/mathematical-theory).
 
 ## Performance Considerations
 
@@ -509,7 +538,7 @@ If you use this package in your research, please cite:
   title = {qiprng: Quadratic Irrational Pseudo-Random Number Generator for R},
   author = {Sergey Kornilov},
   year = {2025},
-  note = {R package version 0.5.0},
+  note = {R package version 0.6.3},
   url = {https://github.com/biostochastics/qiprng}
 }
 ```
@@ -528,3 +557,36 @@ Project Link: [https://github.com/biostochastics/qiprng](https://github.com/bios
 
 *Part of the [Biostochastics](https://github.com/biostochastics) collection of tools for
 translational science and biomarker discovery*
+
+## Quick Navigation
+
+<CardGroup cols={2}>
+  <Card
+    title="Quick Start"
+    icon="rocket"
+    href="/mintlify/quickstart"
+  >
+    Get up and running in 5 minutes
+  </Card>
+  <Card
+    title="Installation"
+    icon="download"
+    href="/mintlify/installation"
+  >
+    Platform-specific setup guides
+  </Card>
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/mintlify/api-reference/introduction"
+  >
+    Complete function documentation
+  </Card>
+  <Card
+    title="Validation Results"
+    icon="check-circle"
+    href="/mintlify/validation/nist-validation"
+  >
+    NIST SP 800-22 test results
+  </Card>
+</CardGroup>

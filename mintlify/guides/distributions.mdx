@@ -1,8 +1,79 @@
 ---
-title: "Distributions"
-description: "Guide to distributions in qiprng"
+title: "Statistical Distributions"
+description: "Supported probability distributions"
+sidebarTitle: "Distributions"
 ---
 
-# Distributions
+# Statistical Distributions
 
-This guide is under construction. Please check back soon.
+## Continuous Distributions
+
+### Uniform Distribution
+```r
+createPRNG(list(
+  distribution = "uniform",
+  uniform_min = 0,
+  uniform_max = 1
+))
+```
+
+### Normal Distribution
+```r
+createPRNG(list(
+  distribution = "normal",
+  normal_mean = 0,
+  normal_sd = 1
+))
+```
+
+### Exponential Distribution
+```r
+createPRNG(list(
+  distribution = "exponential",
+  exponential_lambda = 1.0
+))
+```
+
+## Discrete Distributions
+
+### Poisson Distribution
+```r
+createPRNG(list(
+  distribution = "poisson",
+  poisson_lambda = 3.0
+))
+```
+
+### Binomial Distribution
+```r
+createPRNG(list(
+  distribution = "binomial",
+  binomial_n = 10,
+  binomial_p = 0.3
+))
+```
+
+## Advanced Distributions
+
+### Levy Stable
+```r
+values <- generate_levy_stable(
+  n = 1000,
+  alpha = 1.5,  # stability parameter
+  beta = 0,     # skewness
+  gamma = 1,    # scale
+  delta = 0     # location
+)
+```
+
+### Multivariate Normal
+```r
+# Define covariance matrix
+sigma <- matrix(c(1, 0.5, 0.5, 1), 2, 2)
+
+values <- generate_multivariate_normal(
+  n = 1000,
+  mu = c(0, 0),
+  sigma = sigma
+)
+```

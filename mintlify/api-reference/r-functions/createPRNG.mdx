@@ -11,52 +11,53 @@ sidebarTitle: 'createPRNG'
  initializes a new pseudo-random number generator based on quadratic irrationals with
  configurable parameters.
 
-
 ## Usage
 
 ```r
 
- createPRNG(config = default_config)
 
+createPRNG(config = default_config)
 ```
 
 ## Parameters
 
 <ParamField body="config" type="any">
-  List of configuration parameters. Default values are provided by  default_config .
- Possible parameters include:
+  List of configuration parameters.
+  Default values are provided by  default_config .
+- Possible parameters include:
 
- a, b, c Integer parameters for the quadratic equation (ax² + bx + c). Must satisfy b² - 4ac > 0
+ a, b, c Integer parameters for the quadratic equation (ax² + bx + c).
+  Must satisfy b² - 4ac > 0
  mpfr_precision Integer precision in bits for MPFR computations (24-10000)
  buffer_size Integer size of the buffer for random numbers
- distribution String specifying the distribution: "uniform_01", "uniform_range", "normal", "exponential", "poisson", "gamma", or "beta"
+- distribution String specifying the distribution: "uniform_01", "uniform_range", "normal", "exponential", "poisson", "gamma", or "beta"
  range_min, range_max Numeric bounds for uniform_range distribution
  normal_mean, normal_sd Parameters for normal distribution
  exponential_lambda Rate parameter for exponential distribution
  poisson_lambda Rate parameter for Poisson distribution
  gamma_shape, gamma_scale Parameters for gamma distribution
  beta_alpha, beta_beta Parameters for beta distribution
- use_crypto_mixing Logical: whether to apply cryptographic mixing
- reseed_interval Integer: number of iterations between automatic reseeds
- use_threading Logical: whether to enable thread-local PRNG instances
- use_csv_discriminants Logical: whether to use custom discriminants from discriminants.csv
- use_excellent_only Logical: whether to restrict to excellent discriminants (max_abs_acf <= 0.010)
- quality_threshold Numeric: maximum autocorrelation threshold for discriminant selection
- use_parallel_filling Logical: whether to use parallel buffer filling
- mixing_strategy String: entropy mixing strategy for multi-QI ensemble (v0.5.0).
- Options: "round_robin" (default), "xor_mix", "averaging", "modular_add", "cascade_mix"
- debug Logical: whether to enable debugging output
+- use_crypto_mixing Logical: whether to apply cryptographic mixing
+- reseed_interval Integer: number of iterations between automatic reseeds
+- use_threading Logical: whether to enable thread-local PRNG instances
+- use_csv_discriminants Logical: whether to use custom discriminants from discriminants.csv
+- use_excellent_only Logical: whether to restrict to excellent discriminants (max_abs_acf <= 0.010)
+- quality_threshold Numeric: maximum autocorrelation threshold for discriminant selection
+- use_parallel_filling Logical: whether to use parallel buffer filling
+- mixing_strategy String: entropy mixing strategy for multi-QI ensemble (v0.5.0).
+- Options: "round_robin" (default), "xor_mix", "averaging", "modular_add", "cascade_mix"
+- debug Logical: whether to enable debugging output
  seed Numeric seed for reproducible sequences (0 to 2^53-1).
  When provided, all random initialization is replaced with
- deterministic seeding. Default NULL uses secure random initialization.
-
+ deterministic seeding.
+  Default NULL uses secure random initialization.
 </ParamField>
 
 ## Returns
 
 
  Invisibly returns NULL
- #' @examplesCreate PRNG with default settings
+  PRNG with default settings
 
  createPRNG()Create PRNG with custom configuration
 
@@ -77,53 +78,3 @@ sidebarTitle: 'createPRNG'
  createPRNG(list(seed = 12345, use_crypto_mixing = FALSE))
  seq2 <- generatePRNG(10)
  identical(seq1, seq2) # TRUE
-
-
-## Mathematical Foundation
-
-
-
- The generator implements the recurrence relation:
- x_{n+1} = (a \cdot x_n^2 + b \cdot x_n + c) \mod 1
- where the coefficients must satisfy  b^2 - 4ac > 0  and the discriminant
- must not be a perfect square. This ensures the quadratic irrational has a
- periodic continued fraction expansion with good statistical properties.
-
-
-## Thread Safety
-
-<Note>
-
-
- This package uses a global PRNG instance that is protected by a mutex.
- While comprehensive thread safety is provided through mutex protection and thread-local storage,
- for heavy parallel workloads it is recommended to set  use_threading=TRUE  in the configuration.
- OpenMP parallel filling can be enabled with  use_parallel_filling=TRUE .
-
-</Note>
-
-## Performance Characteristics
-
-<Note>
-
-
-
-  Single-threaded: ~8.18 million values/second
-  Near-linear scaling with multiple threads
-  O(1) memory usage with buffering
-  Sub-122ns latency per value
-  O(log n) jump-ahead complexity
-
-
-</Note>
-
-## Security Features
-
-<Note>
-
-
- When  use_crypto_mixing=TRUE , the generator applies ChaCha20 stream cipher
- for cryptographic mixing, providing unpredictability suitable for security
- applications. Multiple mixing strategies are available for ensemble generation.
-
-</Note>
