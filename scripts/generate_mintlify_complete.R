@@ -9,6 +9,7 @@ library(tools)
 library(jsonlite)
 library(stringr)
 
+
 # Configuration
 if (interactive()) {
   PROJECT_ROOT <- getwd()
@@ -38,8 +39,19 @@ dir.create(file.path(MINTLIFY_DIR, "guides"), showWarnings = FALSE, recursive = 
 dir.create(file.path(MINTLIFY_DIR, "reference"), showWarnings = FALSE, recursive = TRUE)
 dir.create(file.path(MINTLIFY_DIR, "validation"), showWarnings = FALSE, recursive = TRUE)
 
-# Source the existing roxygen2_to_mintlify.R functions
-source(file.path(PROJECT_ROOT, "scripts", "roxygen2_to_mintlify.R"))
+# Source conversion functions - use fixed version if available
+fixed_script <- file.path(PROJECT_ROOT, "scripts", "roxygen2_to_mintlify_fixed.R")
+original_script <- file.path(PROJECT_ROOT, "scripts", "roxygen2_to_mintlify.R")
+
+if (file.exists(fixed_script)) {
+  source(fixed_script)
+  cat("✓ Using fixed MDX conversion functions\n")
+} else if (file.exists(original_script)) {
+  source(original_script)
+  cat("⚠ Using original conversion functions (may have MDX issues)\n")
+} else {
+  stop("No conversion functions found. Please ensure roxygen2_to_mintlify_fixed.R exists.")
+}
 
 #' Convert README to comprehensive Introduction
 convert_readme_to_introduction <- function() {

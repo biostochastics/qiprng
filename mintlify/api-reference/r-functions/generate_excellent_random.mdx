@@ -11,18 +11,22 @@ sidebarTitle: 'generate_excellent_random'
  creates a PRNG configuration, and generates random numbers. Combines the
  functionality of multiple functions for ease of use.
 
-
 ## Usage
 
 ```r
 
- generate_excellent_random(
-   n = 10000,
-   discriminant_index = 1,
-   results_file = "discriminant_analysis_results/raw_results.rds",
-   precision = 256
- )
 
+generate_excellent_random(
+
+  n = 10000,
+
+  discriminant_index = 1,
+
+  results_file = "discriminant_analysis_results/raw_results.rds",
+
+  precision = 256
+
+)
 ```
 
 ## Parameters
@@ -30,14 +34,18 @@ sidebarTitle: 'generate_excellent_random'
 <ParamField body="n" type="any">
   Number of random numbers to generate (default: 10000)
 </ParamField>
+
 <ParamField body="discriminant_index" type="any">
   Index of discriminant to use where 1 = best,
- 2 = second best, etc. (default: 1)
+- 2 = second best, etc.
+  (default: 1).
 </ParamField>
+
 <ParamField body="results_file" type="any">
   Path to the analysis results RDS file
- (default: "discriminant_analysis_results/raw_results.rds")
+ (default: "discriminant_analysis_results/raw_results.rds").
 </ParamField>
+
 <ParamField body="precision" type="any">
   MPFR precision in bits (default: 256)
 </ParamField>
@@ -47,54 +55,19 @@ sidebarTitle: 'generate_excellent_random'
 
  A numeric vector of n random numbers uniformly distributed on  0,1
 
+## Examples
 
 ## Details
 
 
- This function:
-
-  Loads the excellent discriminants from the results file
-  Selects the discriminant at the specified index (sorted by score)
-  Creates a PRNG configuration with cryptographic mixing enabled
-  Initializes the PRNG
-  Generates the requested random numbers
-
-
- The discriminants are ordered by overall_score, so index 1 gives the
- highest-scoring discriminant.
-
-
-## Examples
-
-```r
-
-
- # Generate random numbers using the best discriminant
- samples <- generate_excellent_random(n = 50000)
- hist(samples, breaks = 50)
-
- # Use the 10th best discriminant
- samples <- generate_excellent_random(n = 10000, discriminant_index = 10)
-
- # Use higher precision
- samples <- generate_excellent_random(n = 5000, precision = 512)
-
-
-```
-
-## See Also
-
-<CardGroup cols={2}>
-  <Card title="load_excellent_discriminants" href="/api-reference/r-functions/load_excellent_discriminants">
-    Related function: load_excellent_discriminants
-  </Card>
-  <Card title="create_excellent_prng_config" href="/api-reference/r-functions/create_excellent_prng_config">
-    Related function: create_excellent_prng_config
-  </Card>
-  <Card title="createPRNG" href="/api-reference/r-functions/createPRNG">
-    Related function: createPRNG
-  </Card>
-  <Card title="generatePRNG" href="/api-reference/r-functions/generatePRNG">
-    Related function: generatePRNG
-  </Card>
-</CardGroup>
+- This function:
+-
+- Loads the excellent discriminants from the results file
+- Selects the discriminant at the specified index (sorted by score)
+- Creates a PRNG configuration with cryptographic mixing enabled
+- Initializes the PRNG
+- Generates the requested random numbers
+-
+-
+- The discriminants are ordered by overall_score, so index 1 gives the
+- highest-scoring discriminant.

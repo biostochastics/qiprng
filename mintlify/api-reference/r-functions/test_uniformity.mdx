@@ -10,13 +10,12 @@ sidebarTitle: 'test_uniformity'
  Performs comprehensive uniformity testing on a sample of random numbers using
  both the Kolmogorov-Smirnov test and Chi-squared goodness-of-fit test.
 
-
 ## Usage
 
 ```r
 
- test_uniformity(samples, bins = 20)
 
+test_uniformity(samples, bins = 20)
 ```
 
 ## Parameters
@@ -24,6 +23,7 @@ sidebarTitle: 'test_uniformity'
 <ParamField body="samples" type="any">
   Numeric vector of random samples to test
 </ParamField>
+
 <ParamField body="bins" type="any">
   Number of bins for the Chi-squared test (default: 20)
 </ParamField>
@@ -31,7 +31,7 @@ sidebarTitle: 'test_uniformity'
 ## Returns
 
 
- A list containing test results:
+- A list containing test results:
 
  test_name Name of the test suite
  ks_statistic Kolmogorov-Smirnov test statistic
@@ -42,29 +42,16 @@ sidebarTitle: 'test_uniformity'
  interpretation Human-readable interpretation of results
 
 
+## Examples
 
 ## Details
 
 
- The function performs two complementary tests:
-
-   Kolmogorov-Smirnov test : Compares the empirical CDF against uniform 0,1
-   Chi-squared test : Tests if bin frequencies match expected uniform distribution
-
-
- A warning is issued if expected bin counts are less than 5, as this may
- affect the validity of the Chi-squared test.
-
-
-## Examples
-
-```r
-
-
- # Test uniform random numbers
- samples <- runif(10000)
- result <- test_uniformity(samples)
- print(result$interpretation)
-
-
-```
+- The function performs two complementary tests:
+-
+- Kolmogorov-Smirnov test : Compares the empirical CDF against uniform 0,1
+- Chi-squared test : Tests if bin frequencies match expected uniform distribution
+-
+-
+- A warning is issued if expected bin counts are less than 5, as this may
+- affect the validity of the Chi-squared test.

@@ -12,20 +12,19 @@ sidebarTitle: 'reseedPRNG'
  applications or to ensure sequence independence between different parts of
  a simulation.
 
-
 ## Usage
 
 ```r
 
- reseedPRNG()
 
+reseedPRNG()
 ```
 
 ## Returns
 
 
  Invisibly returns NULL
- #' @examplesCreate default PRNG
+  default PRNG
 
  createPRNG()Generate some values
 
@@ -35,10 +34,9 @@ sidebarTitle: 'reseedPRNG'
 
  generatePRNG(10)
 
-
 ## Details
 
 
- Thread safety: This function is fully thread-safe and will block until mutex
- is acquired. The implementation ensures that all thread-local resources are
- properly handled during reseeding.
+- Thread safety: This function is fully thread-safe and will block until mutex
+- is acquired. The implementation ensures that all thread-local resources are
+- properly handled during reseeding.

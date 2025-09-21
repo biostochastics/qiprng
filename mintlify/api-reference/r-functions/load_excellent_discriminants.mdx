@@ -11,33 +11,36 @@ sidebarTitle: 'load_excellent_discriminants'
  based on comprehensive statistical testing. These discriminants have passed
  all major randomness tests and are suitable for production use.
 
-
 ## Usage
 
 ```r
 
- load_excellent_discriminants(
-   results_file = "discriminant_analysis_results/raw_results.rds",
-   min_score = 0.85
- )
 
+load_excellent_discriminants(
+
+  results_file = "discriminant_analysis_results/raw_results.rds",
+
+  min_score = 0.85
+
+)
 ```
 
 ## Parameters
 
 <ParamField body="results_file" type="any">
   Path to the analysis results RDS file containing test results
- (default: "discriminant_analysis_results/raw_results.rds")
+ (default: "discriminant_analysis_results/raw_results.rds").
 </ParamField>
+
 <ParamField body="min_score" type="any">
   Minimum overall score threshold for excellent discriminants
- (default: 0.85)
+ (default: 0.85).
 </ParamField>
 
 ## Returns
 
 
- A data frame containing excellent discriminants with columns:
+- A data frame containing excellent discriminants with columns:
 
  a Quadratic coefficient
  b Linear coefficient
@@ -51,41 +54,16 @@ sidebarTitle: 'load_excellent_discriminants'
  periodicity_passed Logical; periodicity test result
 
 
+## Examples
 
 ## Details
 
 
- The function filters discriminants that:
-
-  Have quality_rating == "Excellent"
-  Have overall_score >= min_score (default 0.85)
-  Have valid (non-NA) scores
-
-
- Results are sorted by overall_score in descending order.
-
-
-## Examples
-
-```r
-
-
- # Load excellent discriminants
- excellent <- load_excellent_discriminants()
-
- # Load with higher threshold
- top_excellent <- load_excellent_discriminants(min_score = 0.90)
-
-
-```
-
-## See Also
-
-<CardGroup cols={2}>
-  <Card title="run_discriminant_analysis" href="/api-reference/r-functions/run_discriminant_analysis">
-    Related function: run_discriminant_analysis
-  </Card>
-  <Card title="get_recommended_discriminants" href="/api-reference/r-functions/get_recommended_discriminants">
-    Related function: get_recommended_discriminants
-  </Card>
-</CardGroup>
+- The function filters discriminants that:
+-
+- Have quality_rating == "Excellent"
+- Have overall_score >= min_score (default 0.85)
+- Have valid (non-NA) scores
+-
+-
+- Results are sorted by overall_score in descending order.

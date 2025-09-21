@@ -11,20 +11,19 @@ sidebarTitle: 'cleanupPRNG'
  releases all PRNG resources, including thread-local storage, memory buffers,
  and cryptographic state.
 
-
 ## Usage
 
 ```r
 
- cleanupPRNG()
 
+cleanupPRNG()
 ```
 
 ## Returns
 
 
  Invisibly returns NULL
- #' @examplesCreate PRNG
+  PRNG
 
  createPRNG()Use the PRNG
 
@@ -32,11 +31,10 @@ sidebarTitle: 'cleanupPRNG'
 
  cleanupPRNG()
 
-
 ## Details
 
 
- Thread safety: This function implements a two-phase cleanup process that first
- disables threading to prevent new generations during cleanup, then releases all
- resources in a controlled manner. This approach ensures memory safety even in
- multi-threaded environments.
+- Thread safety: This function implements a two-phase cleanup process that first
+- disables threading to prevent new generations during cleanup, then releases all
+- resources in a controlled manner. This approach ensures memory safety even in
+- multi-threaded environments.

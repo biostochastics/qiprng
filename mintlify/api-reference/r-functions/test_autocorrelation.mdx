@@ -11,13 +11,12 @@ sidebarTitle: 'test_autocorrelation'
  bounds and empirical thresholds. This enhanced test is designed to detect even
  subtle autocorrelation patterns that might affect PRNG quality.
 
-
 ## Usage
 
 ```r
 
- test_autocorrelation(samples, max_lag = 50)
 
+test_autocorrelation(samples, max_lag = 50)
 ```
 
 ## Parameters
@@ -25,6 +24,7 @@ sidebarTitle: 'test_autocorrelation'
 <ParamField body="samples" type="any">
   Numeric vector of random samples to test
 </ParamField>
+
 <ParamField body="max_lag" type="any">
   Maximum lag to test (default: 50)
 </ParamField>
@@ -32,7 +32,7 @@ sidebarTitle: 'test_autocorrelation'
 ## Returns
 
 
- A list containing test results:
+- A list containing test results:
 
  test_name Name of the test
  autocorrelations Vector of autocorrelation values at each lag
@@ -46,29 +46,16 @@ sidebarTitle: 'test_autocorrelation'
  interpretation Human-readable interpretation
 
 
+## Examples
 
 ## Details
 
 
- The test uses two thresholds:
-
-   Statistical bound : 99% confidence interval = 2.576/sqrt(n)
-   Empirical threshold : 0.010 (based on comprehensive discriminant analysis)
-
- The stricter of the two thresholds is used to ensure rigorous testing.
- This approach helps identify high-quality PRNGs that show minimal
- autocorrelation across all lags.
-
-
-## Examples
-
-```r
-
-
- # Test autocorrelation
- samples <- runif(10000)
- result <- test_autocorrelation(samples, max_lag = 30)
- print(paste("Max |ACF|:", round(result$max_abs_acf, 4)))
-
-
-```
+- The test uses two thresholds:
+-
+- Statistical bound : 99% confidence interval = 2.576/sqrt(n)
+- Empirical threshold : 0.010 (based on comprehensive discriminant analysis)
+-
+- The stricter of the two thresholds is used to ensure rigorous testing.
+- This approach helps identify high-quality PRNGs that show minimal
+- autocorrelation across all lags.
