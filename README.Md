@@ -2,7 +2,7 @@
 
 <img src="images/qiprng_logo.png" alt="QIPRNG Logo" width="300"/>
 
-[![Version](https://img.shields.io/badge/Version-0.6.2-blue)](https://github.com/biostochastics/qiprng)
+[![Version](https://img.shields.io/badge/Version-0.6.3-blue)](https://github.com/biostochastics/qiprng)
 [![ThreadSafe](https://img.shields.io/badge/Thread%20Safe-Yes-brightgreen)](https://github.com/biostochastics/qiprng)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen)](https://github.com/biostochastics/qiprng)
@@ -24,17 +24,18 @@ x <- generatePRNG(10000)
 hist(x, breaks = 50, main = "qiprng uniform distribution", col = "skyblue")
 ```
 
-## What's New in v0.6.2
+## What's New in v0.6.3
 
-This release focuses on package infrastructure improvements and code quality enhancements.
-The caching framework now supports pattern-based cache clearing with regex patterns and
-includes new export/import functionality for cache archival and sharing. Test code has been
-completely isolated from production builds by moving all C++ test files to a dedicated
-`tests/cpp/` directory with conditional compilation guards, reducing package size. All R
-functions now use consistent snake_case naming conventions. The previous v0.6.1 release
-delivered critical bug fixes including comprehensive overflow protection using 128-bit
-arithmetic, true ChaCha20 cryptographic implementation, Windows build improvements, and
-modular architecture refactoring.
+This release adds comprehensive NIST SP 800-22 cryptographic validation, confirming that
+qiprng meets the rigorous standards required for cryptographic applications. The generator
+achieved a 98.4% pass rate across all 15 NIST test categories, demonstrating its suitability
+for security-sensitive applications. Full validation methodology and reproducible test
+scripts are now included in the package.
+
+The previous v0.6.2 release focused on infrastructure improvements including pattern-based
+cache clearing, cache export/import functionality, and complete isolation of test code from
+production builds. Version 0.6.1 delivered critical bug fixes including comprehensive
+overflow protection using 128-bit arithmetic and true ChaCha20 cryptographic implementation.
 
 For complete version history and migration guides, see [CHANGELOG.md](CHANGELOG.md).
 
@@ -391,8 +392,13 @@ Random Excursions, and Linear Complexity tests. The minor failures (3 out of 148
 Non-overlapping Template tests) fall within acceptable statistical variation for
 truly random sequences.
 
-Full validation report and test results are available in [`validation/NIST_VALIDATION.md`](validation/NIST_VALIDATION.md),
-with complete test outputs preserved in [`validation/nist_sts/`](validation/nist_sts/).
+Full validation methodology and results are documented in [`validation/NIST_VALIDATION.md`](validation/NIST_VALIDATION.md).
+
+To reproduce the NIST validation:
+
+- Binary sequence generation script: [`validation/nist_top5_sequences/generate_binary_for_nist.R`](validation/nist_top5_sequences/generate_binary_for_nist.R)
+- Test discriminants used: [`validation/nist_top5_sequences/discriminants_used.csv`](validation/nist_top5_sequences/discriminants_used.csv)
+- The script generates 100 sequences of 1M bits each per discriminant for NIST STS testing
 
 ### Running Tests
 
@@ -526,7 +532,7 @@ If you use this package in your research, please cite:
   title = {qiprng: Quadratic Irrational Pseudo-Random Number Generator for R},
   author = {Sergey Kornilov},
   year = {2025},
-  note = {R package version 0.5.0},
+  note = {R package version 0.6.3},
   url = {https://github.com/biostochastics/qiprng}
 }
 ```

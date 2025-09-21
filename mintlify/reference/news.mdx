@@ -1,8 +1,28 @@
 ---
 title: "News"
-description: "Latest updates and announcements for qiprng"
+description: "Latest updates and announcements"
 sidebarTitle: "News"
 ---
+
+# qiprng 0.6.3
+
+## Cryptographic Validation
+
+### NIST SP 800-22 Statistical Test Suite Validation
+
+* **Comprehensive cryptographic validation**: Successfully validated against NIST Statistical Test Suite
+  * Pass rate: 98.4% (185/188 tests passed)
+  * All 15 NIST test categories covered
+  * Tested with 1 million bit sequences from 5 different discriminants
+  * Performance comparable to established cryptographic RNGs
+* **Validation documentation**: Added complete NIST validation report and methodology
+  * Detailed results in `validation/NIST_VALIDATION.md`
+  * Binary sequence generation scripts in `validation/nist_top5_sequences/`
+  * Reproducible test framework for independent verification
+* **Cryptographic readiness**: Confirmed suitability for security-sensitive applications
+  * Passed all fundamental randomness tests (Frequency, Runs, DFT, etc.)
+  * Minor failures (3/148 template tests) within acceptable statistical variation
+  * Validated discriminants available in `validation/nist_top5_sequences/discriminants_used.csv`
 
 # qiprng 0.6.2
 

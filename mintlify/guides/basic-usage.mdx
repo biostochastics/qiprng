@@ -1,299 +1,73 @@
 ---
-title: 'Basic Usage'
-description: 'Learn the fundamentals of using qiprng'
-sidebarTitle: 'Basic Usage'
+title: "Basic Usage"
+description: "Getting started with qiprng"
+sidebarTitle: "Basic Usage"
 ---
 
 # Basic Usage Guide
 
-This guide covers the fundamental operations of the qiprng package.
-
-## Quick Start
-
-The simplest way to use qiprng:
+## Simple Random Generation
 
 ```r
 library(qiprng)
 
-# Create PRNG with defaults
+# Create default generator
 createPRNG()
 
-# Generate uniform random numbers in [0,1)
-random_values <- generatePRNG(1000)
+# Generate uniform random numbers
+uniform_values <- generatePRNG(1000)
 
-# Clean up when done
-cleanup_prng()
+# Visualize
+hist(uniform_values, breaks = 50,
+     main = "Uniform Distribution",
+     col = "skyblue")
 ```
 
-## Configuration Options
-
-### Basic Configuration
+## Setting Seeds
 
 ```r
-# Custom quadratic parameters
-config <- list(
-  a = 3L,
-  b = 7L,
-  c = -5L,
-  mpfr_precision = 256,
-  buffer_size = 2048
-)
+# Set specific seed for reproducibility
+createPRNG(list(seed = 42))
 
-createPRNG(config)
+# Generate reproducible sequence
+values1 <- generatePRNG(100)
+
+# Recreate with same seed
+createPRNG(list(seed = 42))
+values2 <- generatePRNG(100)
+
+# Verify reproducibility
+all.equal(values1, values2)  # TRUE
 ```
 
-### Distribution Configuration
+## Updating Configuration
 
-Generate random numbers from different distributions:
+```r
+# Start with default
+createPRNG()
 
-<CodeGroup>
-```r Uniform
-createPRNG(list(
-  distribution = "uniform_range",
-  range_min = -10,
-  range_max = 10
-))
-
-values <- generatePRNG(100)
-```
-
-```r Normal
-createPRNG(list(
+# Update to use different distribution
+updatePRNG(list(
   distribution = "normal",
   normal_mean = 100,
   normal_sd = 15
 ))
 
-values <- generatePRNG(100)
+# Generate from new distribution
+iq_scores <- generatePRNG(1000)
 ```
 
-```r Exponential
-createPRNG(list(
-  distribution = "exponential",
-  exponential_lambda = 2.5
-))
-
-values <- generatePRNG(100)
-```
-</CodeGroup>
-
-## Reproducibility
-
-### Using Seeds
-
-For reproducible sequences:
+## Resource Management
 
 ```r
-# Set a specific seed
-createPRNG(list(
-  seed = 42,
-  use_crypto_mixing = FALSE  # Required for reproducibility
-))
+# Always clean up when done
+cleanupPRNG()
 
-set1 <- generatePRNG(10)
-
-# Recreate with same seed
-cleanup_prng()
-createPRNG(list(
-  seed = 42,
-  use_crypto_mixing = FALSE
-))
-
-set2 <- generatePRNG(10)
-
-# Verify they're identical
-identical(set1, set2)  # TRUE
-```
-
-### Jump-Ahead Feature
-
-Skip ahead in the sequence efficiently:
-
-```r
-createPRNG()
-
-# Generate first 100 values
-first_100 <- generatePRNG(100)
-
-# Jump ahead by 1 million values
-jumpAheadPRNG(1000000)
-
-# Continue generation
-next_values <- generatePRNG(100)
-```
-
-## Performance Optimization
-
-### Enable Threading
-
-For parallel applications:
-
-```r
-createPRNG(list(
-  use_threading = TRUE,
-  use_parallel_filling = TRUE
-))
-
-# Now safe for parallel code
-library(parallel)
-results <- mclapply(1:4, function(x) {
-  generatePRNG(1000)
-}, mc.cores = 4)
-```
-
-### Buffer Management
-
-Optimize buffer size for your use case:
-
-```r
-# Large buffer for bulk generation
-createPRNG(list(
-  buffer_size = 8192  # 8K values
-))
-
-# Generate large dataset efficiently
-large_dataset <- generatePRNG(1000000)
-```
-
-## Working with Discriminants
-
-### Use Excellent Discriminants
-
-For highest quality random numbers:
-
-```r
-# Load excellent discriminants
-excellent <- get_excellent_discriminants()
-
-# Create PRNG with excellent discriminant
-createPRNG(list(
-  a = excellent$a[1],
-  b = excellent$b[1],
-  c = excellent$c[1],
-  use_excellent_only = TRUE
-))
-```
-
-### Custom Discriminant Selection
-
-```r
-# Use discriminants from CSV file
-createPRNG(list(
-  use_csv_discriminants = TRUE,
-  quality_threshold = 0.01  # Max autocorrelation
-))
-```
-
-## Common Patterns
-
-### Monte Carlo Simulation
-
-```r
-# Configure for Monte Carlo
-createPRNG(list(
-  distribution = "uniform_01",
-  use_crypto_mixing = TRUE,  # For security
-  buffer_size = 4096
-))
-
-# Run simulation
-n_simulations <- 10000
-results <- replicate(n_simulations, {
-  # Your Monte Carlo logic here
-  sample <- generatePRNG(100)
-  mean(sample)
-})
-```
-
-### Statistical Sampling
-
-```r
-# Setup for sampling
-createPRNG(list(
-  distribution = "normal",
-  normal_mean = 0,
-  normal_sd = 1
-))
-
-# Generate samples
-n_samples <- 1000
-samples <- generatePRNG(n_samples)
-
-# Verify distribution
-hist(samples, breaks = 30, main = "Normal Distribution")
-abline(v = mean(samples), col = "red", lwd = 2)
-```
-
-### Time Series Generation
-
-```r
-# Configure for time series
-createPRNG(list(
-  distribution = "normal",
-  normal_mean = 0,
-  normal_sd = 0.1
-))
-
-# Generate random walk
-n_steps <- 1000
-innovations <- generatePRNG(n_steps)
-random_walk <- cumsum(innovations)
-
-plot(random_walk, type = "l", main = "Random Walk")
-```
-
-## Best Practices
-
-<Note>
-**Always clean up**: Call `cleanup_prng()` when done to free resources
-</Note>
-
-<Warning>
-**Thread Safety**: Enable `use_threading = TRUE` for parallel code
-</Warning>
-
-<Tip>
-**Performance**: Use larger buffer sizes for bulk generation
-</Tip>
-
-### Do's and Don'ts
-
-✅ **Do:**
-- Use seeds for reproducible research
-- Enable threading for parallel applications
-- Choose appropriate buffer sizes
-- Clean up resources when done
-
-❌ **Don't:**
-- Use crypto mixing with seeds (breaks reproducibility)
-- Share PRNG instances across threads without threading enabled
-- Forget to call cleanup_prng()
-- Use small buffers for large-scale generation
-
-## Error Handling
-
-```r
-# Wrap in tryCatch for production code
-tryCatch({
-  createPRNG(list(
-    a = 3L,
-    b = 7L,
-    c = -5L
-  ))
-
+# Or use automatic cleanup
+local({
+  createPRNG()
   values <- generatePRNG(1000)
-
-}, error = function(e) {
-  message("PRNG error: ", e$message)
-  # Fallback to base R
-  values <- runif(1000)
-}, finally = {
-  cleanup_prng()
+  on.exit(cleanupPRNG())
+  # Your code here
 })
 ```
-
-## Next Steps
-
-- [Distribution Generation](/guides/distributions) - Generate from various distributions
-- [Parallel Generation](/guides/parallel-generation) - Use in parallel computing
-- [Performance Tuning](/guides/performance-tuning) - Optimize for your use case

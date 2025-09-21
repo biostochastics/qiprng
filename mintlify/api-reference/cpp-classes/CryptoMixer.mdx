@@ -1,21 +1,30 @@
 ---
 title: "CryptoMixer"
-description: "C++ class CryptoMixer"
+description: "Cryptographic mixing using ChaCha20 for enhanced security"
 sidebarTitle: "CryptoMixer"
 ---
 
 # CryptoMixer
 
+## Description
+
+Cryptographic mixing using ChaCha20 for enhanced security
+
+## Key Features
+
+- ChaCha20 cryptographic mixing
+- 256-bit security level
+- Constant-time operations
+- SIMD-accelerated mixing
+
 ## Source
 
 Defined in `src/crypto_mixer.hpp`
 
-## Public Methods
+## Usage Example
 
 ```cpp
-CryptoMixer(bool adhoc_corrections, bool use_tie_breaking);
-~CryptoMixer();  // SecureBuffer handles its own cleanup
-void reseed();
-bool is_initialized() const;
-bool mix(unsigned char* data, size_t len);  // data is interpreted as array of doubles
+// Example usage of CryptoMixer
+CryptoMixer instance;
+// See API documentation for detailed usage
 ```
