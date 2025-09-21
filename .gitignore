@@ -20,6 +20,11 @@ test_results/*
 test_log.txt
 tests/test_results/
 
+# NIST test sequences (large binary files)
+nist_top5_sequences/
+nist_binary_sequences/
+*.txt
+
 # Analysis and reports
 analysis/reports/
 analysis/results/
