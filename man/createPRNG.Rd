@@ -37,27 +37,6 @@ deterministic seeding. Default NULL uses secure random initialization.}
 }
 \value{
 Invisibly returns NULL
-#' @examplesCreate PRNG with default settings
-
-createPRNG()Create PRNG with custom configuration
-
-createPRNG(list(
-a = 3L,
-b = 7L,
-c = -5L,
-distribution = "normal",
-normal_mean = 10,
-normal_sd = 2,
-use_threading = TRUE
-))Create PRNG with seed for reproducible sequences (crypto mixing disabled)
-
-createPRNG(list(seed = 12345, use_crypto_mixing = FALSE))
-seq1 <- generatePRNG(10)Same seed produces same sequence
-
-cleanup_prng()
-createPRNG(list(seed = 12345, use_crypto_mixing = FALSE))
-seq2 <- generatePRNG(10)
-identical(seq1, seq2) # TRUE
 }
 \description{
 Creates a new global PRNG instance with the specified configuration. This function
@@ -99,3 +78,28 @@ for cryptographic mixing, providing unpredictability suitable for security
 applications. Multiple mixing strategies are available for ensemble generation.
 }
 
+\examples{
+# Create PRNG with default settings
+createPRNG()
+
+# Create PRNG with custom configuration
+createPRNG(list(
+  a = 3L,
+  b = 7L,
+  c = -5L,
+  distribution = "normal",
+  normal_mean = 10,
+  normal_sd = 2,
+  use_threading = TRUE
+))
+
+# Create PRNG with seed for reproducible sequences (crypto mixing disabled)
+createPRNG(list(seed = 12345, use_crypto_mixing = FALSE))
+seq1 <- generatePRNG(10)
+
+# Same seed produces same sequence
+cleanup_prng()
+createPRNG(list(seed = 12345, use_crypto_mixing = FALSE))
+seq2 <- generatePRNG(10)
+identical(seq1, seq2) # TRUE
+}
