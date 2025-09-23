@@ -13,28 +13,6 @@ O(log n) matrix exponentiation for optimal performance.}
 }
 \value{
 Invisibly returns NULL
-#' @examplesCreate default PRNG
-
-createPRNG()Generate some initial values
-
-initial_values <- generatePRNG(5)Jump ahead 1000 values
-
-jumpAheadPRNG(1000)Generate values after the jump
-
-after_jump_values <- generatePRNG(5)Large jumps are handled efficiently
-
-jumpAheadPRNG(1e6) # Jump ahead 1 million stepsUse for parallel simulations
-
-\dontrun{
-# Worker 1: uses steps 0-999999
-createPRNG()
-worker1_values <- generatePRNG(1000000)
-
-# Worker 2: uses steps 1000000-1999999
-createPRNG()
-jumpAheadPRNG(1000000)
-worker2_values <- generatePRNG(1000000)
-}
 }
 \description{
 Advances the PRNG state by skipping ahead n numbers using O(log n) matrix
@@ -75,4 +53,32 @@ a fixed origin.
 Thread safety: This function is fully thread-safe and will block until mutex
 is acquired. The implementation ensures proper synchronization of all thread-local
 storage during jump-ahead operations.
+}
+\examples{
+# Create default PRNG
+createPRNG()
+
+# Generate some initial values
+initial_values <- generatePRNG(5)
+
+# Jump ahead 1000 values
+jumpAheadPRNG(1000)
+
+# Generate values after the jump
+after_jump_values <- generatePRNG(5)
+
+# Large jumps are handled efficiently
+jumpAheadPRNG(1e6) # Jump ahead 1 million steps
+
+# Use for parallel simulations
+\dontrun{
+# Worker 1: uses steps 0-999999
+createPRNG()
+worker1_values <- generatePRNG(1000000)
+
+# Worker 2: uses steps 1000000-1999999
+createPRNG()
+jumpAheadPRNG(1000000)
+worker2_values <- generatePRNG(1000000)
+}
 }

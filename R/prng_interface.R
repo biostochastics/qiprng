@@ -232,7 +232,7 @@ validate_config <- function(config) {
 #'           deterministic seeding. Default NULL uses secure random initialization.}
 #'   }
 #' @return Invisibly returns NULL
-#' #' @examples
+#' @examples
 #' # Create PRNG with default settings
 #' createPRNG()
 #'
@@ -301,7 +301,7 @@ createPRNG <- function(config = default_config) {
 #' @param config List of new configuration parameters to update. Only specified
 #'   parameters will be changed; others retain their current values.
 #' @return Invisibly returns NULL
-#' #' @examples
+#' @examples
 #' # Create default PRNG
 #' createPRNG()
 #'
@@ -350,7 +350,7 @@ updatePRNG <- function(config) {
 #'
 #' @param n Number of random numbers to generate
 #' @return Numeric vector of length n with values from the configured distribution
-#' #' @examples
+#' @examples
 #' # Create default PRNG (uniform 0-1)
 #' createPRNG()
 #'
@@ -383,7 +383,7 @@ generatePRNG <- function(n) {
 #' properly handled during reseeding.
 #'
 #' @return Invisibly returns NULL
-#' #' @examples
+#' @examples
 #' # Create default PRNG
 #' createPRNG()
 #'
@@ -413,7 +413,7 @@ reseedPRNG <- function() {
 #' multi-threaded environments.
 #'
 #' @return Invisibly returns NULL
-#' #' @examples
+#' @examples
 #' # Create PRNG
 #' createPRNG()
 #'
@@ -472,7 +472,7 @@ cleanup_prng <- function() {
 #'
 #' @param suppress Logical: TRUE to suppress warnings, FALSE to show them
 #' @return The previous setting (invisibly)
-#' #' @examples
+#' @examples
 #' # Suppress MPFR warnings
 #' suppressMPFRWarnings(TRUE)
 #'
@@ -539,7 +539,7 @@ suppressMPFRWarnings <- function(suppress = TRUE) {
 #'   Can be astronomically large (e.g., 1e18) as the implementation uses
 #'   O(log n) matrix exponentiation for optimal performance.
 #' @return Invisibly returns NULL
-#' #' @examples
+#' @examples
 #' # Create default PRNG
 #' createPRNG()
 #'

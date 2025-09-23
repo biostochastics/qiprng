@@ -1,5 +1,0 @@
-# Ignore everything except mintlify directory
-/*
-!/mintlify/
-!/mint.json
-!/.mintignore

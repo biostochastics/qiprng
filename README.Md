@@ -24,7 +24,7 @@ x <- generatePRNG(10000)
 hist(x, breaks = 50, main = "qiprng uniform distribution", col = "skyblue")
 ```
 
-## What's New in v0.6.3
+## What's New
 
 This release adds comprehensive NIST SP 800-22 cryptographic validation, confirming that
 qiprng meets the rigorous standards required for cryptographic applications. The generator
@@ -32,12 +32,7 @@ achieved a 98.4% pass rate across all 15 NIST test categories, demonstrating its
 for security-sensitive applications. Full validation methodology and reproducible test
 scripts are now included in the package.
 
-The previous v0.6.2 release focused on infrastructure improvements including pattern-based
-cache clearing, cache export/import functionality, and complete isolation of test code from
-production builds. Version 0.6.1 delivered critical bug fixes including comprehensive
-overflow protection using 128-bit arithmetic and true ChaCha20 cryptographic implementation.
-
-For complete version history and migration guides, see [CHANGELOG.md](CHANGELOG.md).
+For complete version history, see [CHANGELOG.md](CHANGELOG.md).
 
 ## Key Features
 
@@ -57,9 +52,8 @@ layer uses ChaCha20 stream cipher for deterministic cryptographic mixing, with X
 for preserving uniformity or modular addition for enhanced entropy, providing
 cryptographic-grade unpredictability. Thread safety is guaranteed through proper
 synchronization primitives and thread-local resources, while deterministic mode with seed
-support enables reproducible sequences for research and testing. The implementation has
-been validated with over 70 statistical tests and uses 370 discriminants rated as
-excellent through comprehensive testing.
+support enables reproducible sequences for research and testing. The generator has
+been validated using the NIST SP 800-22 framework using official implementation.
 
 ## Quick Start
 
@@ -167,19 +161,32 @@ remotes::install_github("biostochastics/qiprng")
 
 ## Supported Distributions
 
-### Standard Distributions
+**Continuous Distributions:**
 
-**Continuous**: Uniform, Normal, Exponential, Gamma, Beta, Log-Normal, Weibull,
-Chi-Squared, Student's t
-**Discrete**: Bernoulli, Binomial, Poisson, Negative Binomial
+- Uniform
+- Normal
+- Exponential
+- Gamma
+- Beta
+- Log-Normal
+- Weibull
+- Chi-Squared
+- Student's t
+- Levy Stable (Alpha-stable random variates using Chambers-Mallows-Stuck algorithm)
+- Pareto (Heavy-tailed distribution for extreme events modeling)
+- Cauchy (Fat-tailed distribution with undefined mean)
+- Multivariate Normal (Correlated normal vectors, requires Eigen3)
 
-### Extended Distributions (v0.5.0)
+**Discrete Distributions:**
 
-- **Levy Stable**: Alpha-stable random variates using Chambers-Mallows-Stuck algorithm
-- **Pareto**: Heavy-tailed distribution for extreme events modeling
-- **Cauchy**: Fat-tailed distribution with undefined mean
-- **Multivariate Normal**: Correlated normal vectors (requires Eigen3)
-- **Gaussian Copula**: Complex dependencies between different marginal distributions
+- Bernoulli
+- Binomial
+- Poisson
+- Negative Binomial
+
+**Special Distributions:**
+
+- Gaussian Copula (Complex dependencies between different marginal distributions)
 
 ### Distribution Examples
 
@@ -376,7 +383,7 @@ PRNG tests.
 
 ### NIST SP 800-22 Validation Results
 
-The qiprng generator has been validated against the NIST Statistical Test Suite (STS),
+The qiprng generator has also been validated against the NIST Statistical Test Suite (STS),
 the standard battery of tests for cryptographic random number generators. Testing was
 performed on binary sequences generated from five different discriminant configurations.
 
@@ -392,28 +399,12 @@ Random Excursions, and Linear Complexity tests. The minor failures (3 out of 148
 Non-overlapping Template tests) fall within acceptable statistical variation for
 truly random sequences.
 
-Full validation methodology and results are documented in [`validation/NIST_VALIDATION.md`](validation/NIST_VALIDATION.md).
-
 To reproduce the NIST validation:
 
 - Binary sequence generation script: [`validation/nist_top5_sequences/generate_binary_for_nist.R`](validation/nist_top5_sequences/generate_binary_for_nist.R)
 - Test discriminants used: [`validation/nist_top5_sequences/discriminants_used.csv`](validation/nist_top5_sequences/discriminants_used.csv)
 - The script generates 100 sequences of 1M bits each per discriminant for NIST STS testing
 
-### Running Tests
-
-Running tests is straightforward with the built-in test framework:
-
-```r
-# Quick validation
-results <- test_prng(sample_size = 1e5)
-
-# Comprehensive test suite
-suite <- create_prng_test_suite(
-  prng_func = function(n) generatePRNG(n),
-  categories = c("basic", "runs", "correlation", "binary")
-)
-results <- run_prng_test_suite(suite, save_report = TRUE)
 ```
 
 ## Mathematical Foundation
@@ -426,7 +417,7 @@ jump-ahead functionality uses matrix exponentiation with MPFR arithmetic to achi
 O(log n) complexity, enabling efficient advancement by astronomical distances (10^18+ steps)
 for parallel stream generation.
 
-For detailed mathematical theory and proofs, see [MATH.md](MATH.md).
+For detailed mathematical theory and proofs, see [MATH.Md](MATH.Md).
 
 ## Performance Considerations
 

@@ -8,13 +8,6 @@ cleanupPRNG()
 }
 \value{
 Invisibly returns NULL
-#' @examplesCreate PRNG
-
-createPRNG()Use the PRNG
-
-generatePRNG(10)Clean up when done
-
-cleanupPRNG()
 }
 \description{
 Cleans up the global PRNG instance in a thread-safe manner. This function safely
@@ -26,4 +19,14 @@ Thread safety: This function implements a two-phase cleanup process that first
 disables threading to prevent new generations during cleanup, then releases all
 resources in a controlled manner. This approach ensures memory safety even in
 multi-threaded environments.
+}
+\examples{
+# Create PRNG
+createPRNG()
+
+# Use the PRNG
+generatePRNG(10)
+
+# Clean up when done
+cleanupPRNG()
 }
