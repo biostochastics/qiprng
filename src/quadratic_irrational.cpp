@@ -420,6 +420,24 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
 }
 
 double QuadraticIrrational::next() {
+    // Use fast path for precision 53 if parameters are safe
+    static bool use_fast_path = std::getenv("QIPRNG_FAST_PATH") != nullptr;
+
+    if (use_fast_path && mpfr_prec_ == 53 && std::abs(static_cast<double>(a_)) < 1e100 &&
+        std::abs(static_cast<double>(b_)) < 1e100 && std::abs(static_cast<double>(c_)) < 1e100) {
+        // Fast double precision path
+        double x = mpfr_get_d(*value_->get(), MPFR_RNDN);
+        double x2 = x * x;
+        double result = std::fma(static_cast<double>(a_), x2,
+                                 std::fma(static_cast<double>(b_), x, static_cast<double>(c_)));
+        result = result - std::floor(result);
+        if (result < 0.0)
+            result += 1.0;
+        mpfr_set_d(*value_->get(), result, MPFR_RNDN);
+        return result;
+    }
+
+    // Fall back to MPFR implementation
     step_once();
     // Use safe conversion with extended precision intermediates
     double val = precision::safe_mpfr_to_double(*value_->get(), true);

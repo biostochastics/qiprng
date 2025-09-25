@@ -147,10 +147,11 @@ EnhancedPRNG::EnhancedPRNG(const PRNGConfig& cfg,
 
     if (config_.has_seed) {
         // Pass seed to MultiQI for deterministic initialization
-        multi_ = std::make_unique<MultiQI>(abc_list, config_.mpfr_precision, config_.seed, true,
-                                           strategy);
+        multi_ = std::make_unique<MultiQIOptimized>(abc_list, config_.mpfr_precision, config_.seed,
+                                                    true, strategy);
     } else {
-        multi_ = std::make_unique<MultiQI>(abc_list, config_.mpfr_precision, 0, false, strategy);
+        multi_ = std::make_unique<MultiQIOptimized>(abc_list, config_.mpfr_precision, 0, false,
+                                                    strategy);
     }
 
     reset_state();
@@ -378,7 +379,7 @@ void EnhancedPRNG::copy_thread_buffers_to_main(
 
 void EnhancedPRNG::submit_parallel_tasks(ThreadPool& pool, size_t thread_count,
                                          std::vector<SecureBuffer<double>>& thread_buffers,
-                                         std::vector<std::unique_ptr<MultiQI>>& thread_qis,
+                                         std::vector<std::unique_ptr<MultiQIOptimized>>& thread_qis,
                                          std::atomic<bool>& any_thread_failed,
                                          std::vector<std::future<void>>& futures) {
     // Submit tasks to the thread pool
@@ -441,7 +442,7 @@ void EnhancedPRNG::submit_parallel_tasks(ThreadPool& pool, size_t thread_count,
 
 bool EnhancedPRNG::create_thread_resources(
     size_t thread_count, std::vector<std::vector<std::tuple<long, long, long>>>& thread_abc_lists,
-    std::vector<std::unique_ptr<MultiQI>>& thread_qis,
+    std::vector<std::unique_ptr<MultiQIOptimized>>& thread_qis,
     std::vector<SecureBuffer<double>>& thread_buffers, std::vector<size_t>& chunk_sizes) {
     const PRNGConfig& cfg = config_;
 
@@ -494,9 +495,9 @@ bool EnhancedPRNG::create_thread_resources(
                 return false;
             }
 
-            // Create a MultiQI instance for each thread with thread-specific parameters
-            thread_qis.push_back(std::make_unique<MultiQI>(thread_abc_lists[t], cfg.mpfr_precision,
-                                                           0, false, MixingStrategy::ROUND_ROBIN));
+            // Create a MultiQIOptimized instance for each thread with thread-specific parameters
+            thread_qis.push_back(std::make_unique<MultiQIOptimized>(
+                thread_abc_lists[t], cfg.mpfr_precision, 0, false, MixingStrategy::ROUND_ROBIN));
             // Create a buffer for each thread
             thread_buffers.emplace_back(chunk_sizes[t]);
         } catch (...) {
@@ -536,7 +537,7 @@ void EnhancedPRNG::fill_buffer_parallel(size_t thread_count) {
 
         // Create containers for thread resources
         std::vector<std::vector<std::tuple<long, long, long>>> thread_abc_lists;
-        std::vector<std::unique_ptr<MultiQI>> thread_qis;
+        std::vector<std::unique_ptr<MultiQIOptimized>> thread_qis;
         std::vector<SecureBuffer<double>> thread_buffers;
         std::vector<size_t> chunk_sizes;
 
@@ -717,9 +718,9 @@ void EnhancedPRNG::fill_buffer_openmp() {
         return;
     }
 
-    // Thread-local cache for MultiQI instances to avoid recreation overhead
+    // Thread-local cache for MultiQIOptimized instances to avoid recreation overhead
     struct MultiQICache {
-        std::unordered_map<int, std::unique_ptr<MultiQI>> cache;
+        std::unordered_map<int, std::unique_ptr<MultiQIOptimized>> cache;
         std::unordered_map<int, std::vector<std::tuple<long, long, long>>> abc_cache;
     };
     static thread_local MultiQICache tl_cache;
@@ -733,14 +734,14 @@ void EnhancedPRNG::fill_buffer_openmp() {
             const size_t end = (tid == num_threads - 1) ? buffer_.size() : (tid + 1) * chunk_size;
 
             if (start < end) {
-                // Get or create thread-local MultiQI instance
+                // Get or create thread-local MultiQIOptimized instance
                 auto& local_cache = tl_cache.cache;
                 auto& local_abc = tl_cache.abc_cache;
 
                 if (local_cache.find(tid) == local_cache.end()) {
-                    // Create new MultiQI instance for this thread
+                    // Create new MultiQIOptimized instance for this thread
                     local_abc[tid] = pickMultiQiSet(config_.qi_sets_per_thread);
-                    local_cache[tid] = std::make_unique<MultiQI>(local_abc[tid], tid + 1);
+                    local_cache[tid] = std::make_unique<MultiQIOptimized>(local_abc[tid], tid + 1);
                 }
 
                 // Prefetch for better cache performance
@@ -748,7 +749,7 @@ void EnhancedPRNG::fill_buffer_openmp() {
                     __builtin_prefetch(&buffer_[start + 64], 1, 3);
                 }
 
-                // Fill buffer with cached MultiQI instance
+                // Fill buffer with cached MultiQIOptimized instance
                 auto& multiqi = local_cache[tid];
 
 // Use SIMD-optimized filling when possible
@@ -778,7 +779,7 @@ void EnhancedPRNG::cleanup_thread_caches() {
 #    pragma omp parallel
     {
         struct MultiQICache {
-            std::unordered_map<int, std::unique_ptr<MultiQI>> cache;
+            std::unordered_map<int, std::unique_ptr<MultiQIOptimized>> cache;
             std::unordered_map<int, std::vector<std::tuple<long, long, long>>> abc_cache;
         };
         static thread_local MultiQICache tl_cache;

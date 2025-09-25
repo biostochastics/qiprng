@@ -30,9 +30,9 @@
 #include <vector>
 
 #include "crypto_mixer.hpp"
-#include "multi_qi.hpp"
-#include "precision_utils.hpp"  // For high-precision constants and safe conversions
-#include "prng_common.hpp"      // For SecureBuffer
+#include "multi_qi_optimized.hpp"  // Use optimized lock-free version
+#include "precision_utils.hpp"     // For high-precision constants and safe conversions
+#include "prng_common.hpp"         // For SecureBuffer
 #include "prng_config.hpp"
 #include "prng_utils.hpp"           // For pickMultiQiSet and other utilities
 #include "simd_operations.hpp"      // For SIMD vectorization
@@ -74,7 +74,7 @@ namespace qiprng {
 class EnhancedPRNG {
    private:
     PRNGConfig config_;
-    std::unique_ptr<MultiQI> multi_;
+    std::unique_ptr<MultiQIOptimized> multi_;  // Using optimized lock-free version
     std::unique_ptr<CryptoMixer> crypto_;
     std::unique_ptr<ZigguratNormal> ziggurat_;
     SecureBuffer<double> buffer_;
@@ -118,11 +118,11 @@ class EnhancedPRNG {
     bool create_thread_resources(
         size_t thread_count,
         std::vector<std::vector<std::tuple<long, long, long>>>& thread_abc_lists,
-        std::vector<std::unique_ptr<MultiQI>>& thread_qis,
+        std::vector<std::unique_ptr<MultiQIOptimized>>& thread_qis,
         std::vector<SecureBuffer<double>>& thread_buffers, std::vector<size_t>& chunk_sizes);
     void submit_parallel_tasks(ThreadPool& pool, size_t thread_count,
                                std::vector<SecureBuffer<double>>& thread_buffers,
-                               std::vector<std::unique_ptr<MultiQI>>& thread_qis,
+                               std::vector<std::unique_ptr<MultiQIOptimized>>& thread_qis,
                                std::atomic<bool>& any_thread_failed,
                                std::vector<std::future<void>>& futures);
     void copy_thread_buffers_to_main(size_t thread_count,

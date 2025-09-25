@@ -49,8 +49,9 @@ thread_local size_t tl_cache_pos = 0;
 // - Small enough to fit in L1 cache (32KB typical)
 // - Large enough to amortize lock acquisition overhead
 // - Power of 2 for memory alignment and efficient indexing
-// - 256 * 8 bytes = 2KB buffer, leaves room for other L1 data
-const size_t CACHE_SIZE = 256;  // Batch size for reducing lock frequency
+// - 4096 * 8 bytes = 32KB buffer, maximizes L1 cache usage
+// Increased from 256 to reduce mutex acquisition frequency by 16x
+const size_t CACHE_SIZE = 4096;  // Optimized batch size for reducing lock frequency
 
 // Enhanced constructor with mixing strategy
 MultiQI::MultiQI(const std::vector<std::tuple<long, long, long>>& abc_list, int mpfr_prec,
@@ -306,9 +307,13 @@ void MultiQI::fill_thread_safe(double* buffer, size_t fill_size) {
             size_t batch_size = simd::get_optimal_batch_size();
             size_t num_batches = fill_size / batch_size;
 
-            // Temporary buffers for SIMD operations
-            std::vector<double> temp1(batch_size);
-            std::vector<double> temp2(batch_size);
+            // Use pre-allocated thread-local buffers to avoid allocation in critical section
+            static thread_local std::vector<double> temp1;
+            static thread_local std::vector<double> temp2;
+            if (temp1.size() < batch_size) {
+                temp1.resize(batch_size);
+                temp2.resize(batch_size);
+            }
 
             for (size_t batch = 0; batch < num_batches; ++batch) {
                 // Fill temp buffers from two QIs
@@ -362,7 +367,11 @@ void MultiQI::fill_thread_safe(double* buffer, size_t fill_size) {
                 for (size_t i = 0; i < fill_size; i++) {
                     // Collect values for mixing - only use the first mix_size elements
                     size_t mix_size = std::min(mixing_buffer_.size(), qis_.size());
-                    std::vector<double> temp_values(mix_size);
+                    // Use pre-allocated thread-local buffer to avoid allocation in critical section
+                    static thread_local std::vector<double> temp_values;
+                    if (temp_values.size() < mix_size) {
+                        temp_values.resize(mix_size);
+                    }
 
 #ifdef DEBUG_MIXING
                     if (i == 0) {

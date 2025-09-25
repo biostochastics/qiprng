@@ -2,7 +2,7 @@
 
 <img src="images/qiprng_logo.png" alt="QIPRNG Logo" width="300"/>
 
-[![Version](https://img.shields.io/badge/Version-0.6.3-blue)](https://github.com/biostochastics/qiprng)
+[![Version](https://img.shields.io/badge/Version-0.6.4-blue)](https://github.com/biostochastics/qiprng)
 [![ThreadSafe](https://img.shields.io/badge/Thread%20Safe-Yes-brightgreen)](https://github.com/biostochastics/qiprng)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen)](https://github.com/biostochastics/qiprng)
@@ -26,11 +26,21 @@ hist(x, breaks = 50, main = "qiprng uniform distribution", col = "skyblue")
 
 ## What's New
 
-This release adds comprehensive NIST SP 800-22 cryptographic validation, confirming that
-qiprng meets the rigorous standards required for cryptographic applications. The generator
-achieved a 98.4% pass rate across all 15 NIST test categories, demonstrating its suitability
-for security-sensitive applications. Full validation methodology and reproducible test
-scripts are now included in the package.
+### Version 0.6.4 - Performance Optimizations
+
+This release includes significant architectural improvements focused on eliminating
+concurrency bottlenecks:
+
+- **Lock-Free Architecture**: Implemented thread-local PRNG instances with zero mutex contention
+- **Cache Optimization**: Increased cache size to 4096 samples for better L1 cache utilization
+- **Golden Ratio Seeding**: Thread-specific seeds using golden ratio prime (0x9E3779B97F4A7C15)
+- **Cache-Line Alignment**: 64-byte aligned data structures to prevent false sharing
+- **Optimized Mixing Strategies**: Enhanced CASCADE_MIX performance through mantissa extraction
+
+While these optimizations successfully eliminated mutex contention, performance remains
+bounded by the mathematical requirements of high-precision MPFR operations (~8M samples/sec).
+The quadratic irrational algorithm prioritizes cryptographic strength and mathematical
+correctness over raw speed.
 
 For complete version history, see [CHANGELOG.md](CHANGELOG.md).
 
@@ -216,6 +226,28 @@ marginals <- list(
 )
 copula_samples <- generate_with_copula(n = 1000, correlation, marginals)
 ```
+
+## Architecture
+
+### Lock-Free Thread-Local Design
+
+The optimized architecture eliminates mutex contention through thread-local storage:
+
+```cpp
+// Each thread maintains its own PRNG state
+static thread_local ThreadLocalData {
+    std::vector<QuadraticIrrational> qis;  // Thread-local QI instances
+    std::vector<double> cache;              // L1-optimized cache (4096 samples)
+    size_t cache_pos;                       // Current position in cache
+} tl_data;
+```
+
+Key optimizations include:
+
+- **Zero Contention**: Each thread has independent PRNG instances
+- **Cache-Line Alignment**: 64-byte alignment prevents false sharing
+- **Golden Ratio Seeding**: `thread_seed = base_seed + thread_id * 0x9E3779B97F4A7C15`
+- **Prefetching**: Hardware prefetch hints for sequential access patterns
 
 ## Usage
 

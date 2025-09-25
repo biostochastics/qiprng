@@ -1,7 +1,7 @@
 Package: qiprng
 Type: Package
 Title: Quadratic Irrational PRNG
-Version: 0.6.1
+Version: 0.6.4
 Authors@R: person("Sergey", "Kornilov", email = "sergey.kornilov@biostochastics.com", role = c("aut", "cre"))
 Author: Sergey Kornilov [aut, cre]
 Maintainer: Sergey Kornilov <sergey.kornilov@biostochastics.com>
