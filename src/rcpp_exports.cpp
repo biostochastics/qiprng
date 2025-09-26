@@ -3,6 +3,8 @@
 #include <Rcpp.h>
 
 #include "enhanced_prng.hpp"
+#include "multi_qi.hpp"            // For ThreadLocalPRNG and thread-local variables
+#include "multi_qi_optimized.hpp"  // For MultiQIOptimized
 #include "prng_utils.hpp"
 #include "ziggurat_normal.hpp"
 
@@ -723,6 +725,28 @@ void createPRNG_(Rcpp::List rcfg) {
 
         // Update global threading flag based on config
         g_use_threading = cfg.use_threading;
+
+        // Clear used discriminants when creating a new PRNG with a seed
+        // This ensures deterministic discriminant selection
+        if (cfg.has_seed) {
+            std::lock_guard<std::mutex> disc_lock(g_disc_mutex);
+            g_used_discriminants.clear();
+            // Reset the deterministic engine to ensure it starts fresh
+            qiprng::resetDeterministicEngine();
+            // Reset MultiQIOptimized thread counter for deterministic behavior
+            MultiQIOptimized::reset_thread_counter();
+        }
+
+        // Clear thread-local caches from multi_qi.cpp to ensure deterministic behavior
+        qiprng::tl_cache.clear();
+        qiprng::tl_cache_pos = 0;
+
+        // Reset the fallback generator to ensure determinism
+        if (cfg.has_seed) {
+            qiprng::tl_fallback.set_deterministic(true, cfg.seed);
+        } else {
+            qiprng::tl_fallback.set_deterministic(false, 0);
+        }
 
         if (g_use_threading) {
             // Clean up any existing thread-local PRNG

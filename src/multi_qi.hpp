@@ -8,21 +8,31 @@
 #include <functional>  // For std::function
 #include <memory>      // For std::unique_ptr
 #include <mutex>       // For std::mutex
+#include <random>      // For std::mt19937_64 and distributions
 #include <tuple>       // For std::tuple
 #include <vector>
 
+#include "multi_qi_optimized.hpp"  // For MixingStrategy enum
 #include "quadratic_irrational.hpp"
 
 namespace qiprng {
 
-// Enum for different mixing strategies
-enum class MixingStrategy {
-    ROUND_ROBIN,  // Original round-robin approach
-    XOR_MIX,      // XOR-based mixing for bit diffusion
-    AVERAGING,    // Weighted averaging for smooth distribution
-    MODULAR_ADD,  // Modular addition for entropy combining
-    CASCADE_MIX   // Cascaded mixing for maximum entropy
+// Thread-safe fallback PRNG with lazy initialization
+struct ThreadLocalPRNG {
+    std::mt19937_64 rng;
+    std::uniform_real_distribution<double> dist{0.0, 1.0};
+    bool is_initialized = false;
+    bool deterministic_mode = false;
+    uint64_t deterministic_seed = 0;
+
+    void set_deterministic(bool is_det, uint64_t seed = 0);
+    double generate();
 };
+
+// Thread-local instances
+extern thread_local ThreadLocalPRNG tl_fallback;
+extern thread_local std::vector<double> tl_cache;
+extern thread_local size_t tl_cache_pos;
 
 class MultiQI {
    private:

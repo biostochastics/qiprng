@@ -171,6 +171,11 @@ class QuadraticIrrational {
     std::unique_ptr<MPFRWrapper> temp_;
     std::unique_ptr<MPFRWrapper> temp2_;
 
+    // Fast-path cache for double-precision operation
+    bool use_fast_path_;
+    double fast_value_;
+    bool fast_value_dirty_;
+
     // CFE period detection and caching
     std::vector<long> cfe_coefficients_;  // Stores the CFE period
     size_t cfe_period_length_;            // Length of the period
@@ -195,6 +200,9 @@ class QuadraticIrrational {
         MPFRState(mpfr_prec_t prec) : x(prec), x_prev(prec) {}
     };
     std::unique_ptr<MPFRState> state_;
+
+    void ensure_mpfr_state();
+    void refresh_fast_state();
 
     void step_once();
 

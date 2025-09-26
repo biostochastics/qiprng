@@ -16,6 +16,14 @@
 #include <cmath>
 #include <limits>
 
+#ifndef QIPRNG_ENABLE_MPFR_DIAGNOSTICS
+#    ifdef NDEBUG
+#        define QIPRNG_ENABLE_MPFR_DIAGNOSTICS 0
+#    else
+#        define QIPRNG_ENABLE_MPFR_DIAGNOSTICS 1
+#    endif
+#endif
+
 #ifdef __cplusplus
 #    if __cplusplus >= 202002L
 #        include <numbers>
@@ -90,6 +98,10 @@ class PrecisionConstants {
 
 // Safe MPFR to double conversion with extended precision intermediates
 inline double safe_mpfr_to_double(const mpfr_t& value, bool use_extended = true) {
+#if !QIPRNG_ENABLE_MPFR_DIAGNOSTICS
+    (void)use_extended;
+    return mpfr_get_d(value, MPFR_RNDN);
+#else
     // Track precision loss
     mpfr_prec_t mpfr_prec = mpfr_get_prec(value);
     size_t bits_lost = mpfr_prec > 53 ? mpfr_prec - 53 : 0;
@@ -121,17 +133,18 @@ inline double safe_mpfr_to_double(const mpfr_t& value, bool use_extended = true)
     }
 
 // Use extended precision intermediate for gradual precision reduction
-#ifdef __SIZEOF_FLOAT128__
+#    ifdef __SIZEOF_FLOAT128__
     // Use 128-bit quad precision if available (113-bit mantissa)
     __float128 intermediate = mpfr_get_float128(value, MPFR_RNDN);
     return static_cast<double>(intermediate);
-#elif defined(__x86_64__) || defined(_M_X64)
+#    elif defined(__x86_64__) || defined(_M_X64)
     // Use 80-bit extended precision on x86_64 (64-bit mantissa)
     long double intermediate = mpfr_get_ld(value, MPFR_RNDN);
     return static_cast<double>(intermediate);
-#else
+#    else
     // Fallback to direct conversion on other architectures
     return mpfr_get_d(value, MPFR_RNDN);
+#    endif
 #endif
 }
 

@@ -32,6 +32,7 @@ void ensure_libsodium_initialized();  // SECURITY FIX: New unified initializatio
 // Thread-local random engine
 std::mt19937_64& getThreadLocalEngine();
 std::mt19937_64& getDeterministicThreadLocalEngine(uint64_t seed);
+void resetDeterministicEngine();
 
 // Global PRNG state
 extern bool g_use_threading;
