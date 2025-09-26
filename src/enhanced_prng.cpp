@@ -24,7 +24,7 @@ namespace qiprng {
 // Helper method to get raw uniform without distribution transformations
 // This avoids circular dependencies when used with Ziggurat
 double EnhancedPRNG::next_raw_uniform() {
-    // Thread-safe fallback generator with lazy initialization
+    // Thread-safe deterministic fallback generator with lazy initialization
     struct FallbackGen {
         std::mt19937_64 rng;
         std::uniform_real_distribution<double> dist{0.000001, 0.999999};
@@ -32,9 +32,8 @@ double EnhancedPRNG::next_raw_uniform() {
 
         void init() {
             std::call_once(init_flag, [this]() {
-                ensure_libsodium_initialized();
-                uint64_t seed;
-                randombytes_buf(&seed, sizeof(seed));
+                // Use deterministic seed helper for consistent fallback behavior
+                uint64_t seed = DeterministicSeedHelper::get_fallback_seed();
                 rng.seed(seed);
             });
         }
@@ -153,6 +152,9 @@ EnhancedPRNG::EnhancedPRNG(const PRNGConfig& cfg,
         multi_ = std::make_unique<MultiQIOptimized>(abc_list, config_.mpfr_precision, 0, false,
                                                     strategy);
     }
+
+    // Initialize deterministic seeding helper for fallback RNGs
+    DeterministicSeedHelper::set_global_seed(config_.has_seed, config_.seed);
 
     reset_state();
 
@@ -409,30 +411,26 @@ void EnhancedPRNG::submit_parallel_tasks(ThreadPool& pool, size_t thread_count,
                     }
                     any_thread_failed.store(true);
 
-                    // Fill with proper random fallback values
+                    // Fill with deterministic fallback values
                     if (t < thread_buffers.size()) {
-                        // SECURITY FIX: Use libsodium for cryptographically secure fallback
-                        ensure_libsodium_initialized();
+                        // Use deterministic seed helper for consistent fallback behavior
+                        std::mt19937_64 local_rng(DeterministicSeedHelper::get_fallback_seed());
+                        std::uniform_real_distribution<double> dist(0.000001, 0.999999);
                         for (size_t i = 0; i < thread_buffers[t].size(); i++) {
-                            uint64_t rand_val;
-                            randombytes_buf(&rand_val, sizeof(rand_val));
-                            // Convert to uniform [0,1) using proper scaling
-                            thread_buffers[t][i] = (rand_val >> 11) * 0x1.0p-53;
+                            thread_buffers[t][i] = dist(local_rng);
                         }
                     }
                 } catch (...) {
                     // Handle unknown errors
                     any_thread_failed.store(true);
 
-                    // Fill with proper random fallback values
+                    // Fill with deterministic fallback values
                     if (t < thread_buffers.size()) {
-                        // SECURITY FIX: Use libsodium for cryptographically secure fallback
-                        ensure_libsodium_initialized();
+                        // Use deterministic seed helper for consistent fallback behavior
+                        std::mt19937_64 local_rng(DeterministicSeedHelper::get_fallback_seed());
+                        std::uniform_real_distribution<double> dist(0.000001, 0.999999);
                         for (size_t i = 0; i < thread_buffers[t].size(); i++) {
-                            uint64_t rand_val;
-                            randombytes_buf(&rand_val, sizeof(rand_val));
-                            // Convert to uniform [0,1) using proper scaling
-                            thread_buffers[t][i] = (rand_val >> 11) * 0x1.0p-53;
+                            thread_buffers[t][i] = dist(local_rng);
                         }
                     }
                 }
@@ -805,10 +803,10 @@ void EnhancedPRNG::reseed() {
     const uint64_t MIN_RESEED_SKIP = 1000;   // Minimum to ensure state change
     const uint64_t MAX_RESEED_SKIP = 10000;  // Maximum to keep reseed fast
 
-    // SECURITY FIX: Use libsodium for cryptographically secure random skip distance
-    ensure_libsodium_initialized();
-    uint64_t skip_distance =
-        MIN_RESEED_SKIP + (randombytes_uniform(MAX_RESEED_SKIP - MIN_RESEED_SKIP + 1));
+    // Use deterministic seed helper for consistent skip distance
+    std::mt19937_64 local_rng(DeterministicSeedHelper::get_fallback_seed());
+    std::uniform_int_distribution<uint64_t> dist(MIN_RESEED_SKIP, MAX_RESEED_SKIP);
+    uint64_t skip_distance = dist(local_rng);
     multi_->jump_ahead(skip_distance);
 }
 
@@ -1158,7 +1156,7 @@ double EnhancedPRNG::generate_normal(double u) {
     if (is_being_destroyed_.load(std::memory_order_acquire)) {
         // Return a mean + small random variance if we're in the process of cleanup
         // This avoids returning identical values which break statistical tests
-        static thread_local std::mt19937 fallback_rng(std::random_device{}());
+        DETERMINISTIC_FALLBACK_RNG(fallback_rng, std::mt19937);
         std::normal_distribution<double> fallback_dist(config_.normal_mean, 0.01);
         return fallback_dist(fallback_rng);
     }
@@ -1187,7 +1185,7 @@ double EnhancedPRNG::generate_normal(double u) {
                 // Make sure the uniform is valid
                 if (u <= 0.0 || u >= 1.0) {
                     // Use a better fallback than a fixed value
-                    static thread_local std::mt19937 rng_u(std::random_device{}());
+                    DETERMINISTIC_FALLBACK_RNG(rng_u, std::mt19937);
                     std::uniform_real_distribution<double> dist_u(0.000001, 0.999999);
                     u = dist_u(rng_u);
                 }
@@ -1195,7 +1193,7 @@ double EnhancedPRNG::generate_normal(double u) {
                 // Check again for object destruction - critical for thread safety
                 if (is_being_destroyed_.load(std::memory_order_acquire)) {
                     // Use fallback RNG instead of fixed value
-                    static thread_local std::mt19937 fallback_rng(std::random_device{}());
+                    DETERMINISTIC_FALLBACK_RNG(fallback_rng, std::mt19937);
                     std::normal_distribution<double> fallback_dist(config_.normal_mean, 0.01);
                     return fallback_dist(fallback_rng);
                 }
@@ -1227,7 +1225,7 @@ double EnhancedPRNG::generate_normal(double u) {
 
                 // If the Ziggurat is being destroyed, use fallback RNG
                 if (is_being_destroyed_.load(std::memory_order_acquire)) {
-                    static thread_local std::mt19937 fallback_rng(std::random_device{}());
+                    DETERMINISTIC_FALLBACK_RNG(fallback_rng, std::mt19937);
                     std::normal_distribution<double> fallback_dist(config_.normal_mean,
                                                                    config_.normal_sd);
                     return fallback_dist(fallback_rng);
@@ -1238,7 +1236,7 @@ double EnhancedPRNG::generate_normal(double u) {
                     return generate_normal_box_muller(u);
                 } catch (...) {
                     // If Box-Muller also fails, use fallback RNG
-                    static thread_local std::mt19937 fallback_rng(std::random_device{}());
+                    DETERMINISTIC_FALLBACK_RNG(fallback_rng, std::mt19937);
                     std::normal_distribution<double> fallback_dist(config_.normal_mean,
                                                                    config_.normal_sd);
                     return fallback_dist(fallback_rng);
@@ -1255,7 +1253,7 @@ double EnhancedPRNG::generate_normal(double u) {
 
                 // If the object is being destroyed, use fallback RNG
                 if (is_being_destroyed_.load(std::memory_order_acquire)) {
-                    static thread_local std::mt19937 fallback_rng(std::random_device{}());
+                    DETERMINISTIC_FALLBACK_RNG(fallback_rng, std::mt19937);
                     std::normal_distribution<double> fallback_dist(config_.normal_mean,
                                                                    config_.normal_sd);
                     return fallback_dist(fallback_rng);
@@ -1266,7 +1264,7 @@ double EnhancedPRNG::generate_normal(double u) {
                     return generate_normal_box_muller(u);
                 } catch (...) {
                     // If Box-Muller also fails, use fallback RNG
-                    static thread_local std::mt19937 fallback_rng(std::random_device{}());
+                    DETERMINISTIC_FALLBACK_RNG(fallback_rng, std::mt19937);
                     std::normal_distribution<double> fallback_dist(config_.normal_mean,
                                                                    config_.normal_sd);
                     return fallback_dist(fallback_rng);
@@ -1275,7 +1273,7 @@ double EnhancedPRNG::generate_normal(double u) {
         } else {
             // Use Box-Muller method with destruction check
             if (is_being_destroyed_.load(std::memory_order_acquire)) {
-                static thread_local std::mt19937 fallback_rng(std::random_device{}());
+                DETERMINISTIC_FALLBACK_RNG(fallback_rng, std::mt19937);
                 std::normal_distribution<double> fallback_dist(config_.normal_mean,
                                                                config_.normal_sd);
                 return fallback_dist(fallback_rng);
@@ -1291,7 +1289,7 @@ double EnhancedPRNG::generate_normal(double u) {
                 warning_count++;
             }
         }
-        static thread_local std::mt19937 fallback_rng(std::random_device{}());
+        DETERMINISTIC_FALLBACK_RNG(fallback_rng, std::mt19937);
         std::normal_distribution<double> fallback_dist(config_.normal_mean, config_.normal_sd);
         return fallback_dist(fallback_rng);
     } catch (...) {
@@ -1303,7 +1301,7 @@ double EnhancedPRNG::generate_normal(double u) {
                 warning_count++;
             }
         }
-        static thread_local std::mt19937 fallback_rng(std::random_device{}());
+        DETERMINISTIC_FALLBACK_RNG(fallback_rng, std::mt19937);
         std::normal_distribution<double> fallback_dist(config_.normal_mean, config_.normal_sd);
         return fallback_dist(fallback_rng);
     }
@@ -1333,7 +1331,7 @@ double EnhancedPRNG::generate_normal_box_muller(double u) {
                     Rcpp::warning("Buffer filling failed in normal generation: %s", e.what());
                 }
                 // If buffer filling fails, use a fallback method
-                static thread_local std::mt19937_64 fallback_rng(std::random_device{}());
+                DETERMINISTIC_FALLBACK_RNG(fallback_rng, std::mt19937_64);
                 static thread_local std::uniform_real_distribution<double> fallback_dist(0.000001,
                                                                                          0.999999);
                 u2 = fallback_dist(fallback_rng);
@@ -1343,7 +1341,7 @@ double EnhancedPRNG::generate_normal_box_muller(double u) {
         // Safely get the second uniform value
         if (buffer_pos_ >= buffer_.size()) {
             // Buffer is still invalid after filling attempt
-            static thread_local std::mt19937_64 fallback_rng(std::random_device{}());
+            DETERMINISTIC_FALLBACK_RNG(fallback_rng, std::mt19937_64);
             static thread_local std::uniform_real_distribution<double> fallback_dist(0.000001,
                                                                                      0.999999);
             u2 = fallback_dist(fallback_rng);
@@ -1371,7 +1369,7 @@ double EnhancedPRNG::generate_normal_box_muller(double u) {
                 Rcpp::warning("Box-Muller transform failed: %s", e.what());
             }
             // If Box-Muller fails, use fallback RNG instead of fixed mean
-            static thread_local std::mt19937 fallback_rng(std::random_device{}());
+            DETERMINISTIC_FALLBACK_RNG(fallback_rng, std::mt19937);
             std::normal_distribution<double> fallback_dist(config_.normal_mean, config_.normal_sd);
             return fallback_dist(fallback_rng);
         }
@@ -1383,14 +1381,14 @@ double EnhancedPRNG::generate_normal_box_muller(double u) {
         // Check for NaN/infinity
         if (std::isnan(x1) || std::isinf(x1)) {
             // Use fallback RNG instead of fixed mean value
-            static thread_local std::mt19937 fallback_rng(std::random_device{}());
+            DETERMINISTIC_FALLBACK_RNG(fallback_rng, std::mt19937);
             std::normal_distribution<double> fallback_dist(config_.normal_mean, config_.normal_sd);
             x1 = fallback_dist(fallback_rng);
         }
 
         if (std::isnan(x2) || std::isinf(x2)) {
             // Use fallback RNG instead of fixed mean value
-            static thread_local std::mt19937 fallback_rng(std::random_device{}());
+            DETERMINISTIC_FALLBACK_RNG(fallback_rng, std::mt19937);
             std::normal_distribution<double> fallback_dist(config_.normal_mean, config_.normal_sd);
             x2 = fallback_dist(fallback_rng);
         } else if (!config_.use_threading) {
@@ -1405,7 +1403,7 @@ double EnhancedPRNG::generate_normal_box_muller(double u) {
         if (config_.debug) {
             Rcpp::warning("Box-Muller failed with error: %s", e.what());
         }
-        static thread_local std::mt19937 fallback_rng(std::random_device{}());
+        DETERMINISTIC_FALLBACK_RNG(fallback_rng, std::mt19937);
         std::normal_distribution<double> fallback_dist(config_.normal_mean, config_.normal_sd);
         return fallback_dist(fallback_rng);
     } catch (...) {
@@ -1413,7 +1411,7 @@ double EnhancedPRNG::generate_normal_box_muller(double u) {
         if (config_.debug) {
             Rcpp::warning("Box-Muller failed with unknown error");
         }
-        static thread_local std::mt19937 fallback_rng(std::random_device{}());
+        DETERMINISTIC_FALLBACK_RNG(fallback_rng, std::mt19937);
         std::normal_distribution<double> fallback_dist(config_.normal_mean, config_.normal_sd);
         return fallback_dist(fallback_rng);
     }

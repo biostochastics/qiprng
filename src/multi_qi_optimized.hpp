@@ -113,6 +113,9 @@ class MultiQIOptimized {
     MixingStrategy get_mixing_strategy() const { return mixing_strategy_; }
     void set_weights(const std::vector<double>& weights);
 
+    // Reset thread counter for deterministic behavior
+    static void reset_thread_counter();
+
     // Statistics
     uint64_t get_mix_counter() const { return mix_counter_; }
     double estimate_entropy() const;

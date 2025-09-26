@@ -2,7 +2,7 @@
 
 <img src="images/qiprng_logo.png" alt="QIPRNG Logo" width="300"/>
 
-[![Version](https://img.shields.io/badge/Version-0.6.4-blue)](https://github.com/biostochastics/qiprng)
+[![Version](https://img.shields.io/badge/Version-0.6.5-blue)](https://github.com/biostochastics/qiprng)
 [![ThreadSafe](https://img.shields.io/badge/Thread%20Safe-Yes-brightgreen)](https://github.com/biostochastics/qiprng)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen)](https://github.com/biostochastics/qiprng)
@@ -26,6 +26,15 @@ hist(x, breaks = 50, main = "qiprng uniform distribution", col = "skyblue")
 
 ## What's New
 
+### Version 0.6.5 - Deterministic Mode Enhancements
+
+This release fixes critical issues with deterministic mode to ensure perfect reproducibility:
+
+- **Fixed Deterministic Seeding**: Resolved thread-local RNG initialization to properly reset between PRNG creations
+- **Thread Counter Reset**: Added proper reset of MultiQIOptimized thread counter for consistent thread IDs
+- **Fallback RNG Determinism**: Replaced all non-deterministic fallback RNGs with deterministic alternatives
+- **Complete Test Coverage**: All 23 deterministic mode tests now pass with identical sequences for same seeds
+
 ### Version 0.6.4 - Performance Optimizations
 
 This release includes significant architectural improvements focused on eliminating
@@ -36,11 +45,6 @@ concurrency bottlenecks:
 - **Golden Ratio Seeding**: Thread-specific seeds using golden ratio prime (0x9E3779B97F4A7C15)
 - **Cache-Line Alignment**: 64-byte aligned data structures to prevent false sharing
 - **Optimized Mixing Strategies**: Enhanced CASCADE_MIX performance through mantissa extraction
-
-While these optimizations successfully eliminated mutex contention, performance remains
-bounded by the mathematical requirements of high-precision MPFR operations (~8M samples/sec).
-The quadratic irrational algorithm prioritizes cryptographic strength and mathematical
-correctness over raw speed.
 
 For complete version history, see [CHANGELOG.md](CHANGELOG.md).
 
@@ -338,9 +342,10 @@ stopCluster(cl)
 print(results)
 ```
 
-### Reproducible Random Numbers
+### Reproducible Random Numbers (Deterministic Mode)
 
-For scientific computing and testing, you can enable fully reproducible sequences:
+For scientific computing and testing, you can enable fully reproducible sequences. Version 0.6.5
+ensures perfect determinism - identical seeds always produce identical sequences:
 
 ```r
 # Set a seed for reproducibility
@@ -522,6 +527,17 @@ include quadratic coefficients (a, b, c), MPFR precision (24-10000 bits), distri
 type and parameters, mixing strategy for multiple QIs, cryptographic mixing settings, and
 parallelization options. See the package documentation for complete parameter descriptions
 and valid ranges.
+
+### Environment Variables
+
+The following environment variables can be used to control MPFR optimization behavior:
+
+- **`QIPRNG_FORCE_MPFR`** - Set to `1` to disable fast-path optimization and force MPFR operations
+- **`QIPRNG_FAST_PATH`** - Set to `1` to force fast-path even for precision > 64 bits
+- **`QIPRNG_ENABLE_MPFR_DIAGNOSTICS`** - Set to `1` to enable precision loss tracking (compile-time flag)
+
+These variables are useful for debugging, benchmarking, and ensuring reproducible results
+in research environments.
 
 ### Testing Functions
 

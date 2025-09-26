@@ -25,24 +25,28 @@
 
 namespace qiprng {
 
-// Thread-safe fallback PRNG with lazy initialization to prevent races
-struct ThreadLocalPRNG {
-    std::mt19937_64 rng;
-    std::uniform_real_distribution<double> dist{0.0, 1.0};
-    std::once_flag init_flag;
+// Implementation of ThreadLocalPRNG methods
+void ThreadLocalPRNG::set_deterministic(bool is_det, uint64_t seed) {
+    deterministic_mode = is_det;
+    deterministic_seed = seed;
+    // Force re-initialization on next generate call
+    is_initialized = false;
+}
 
-    double generate() {
-        std::call_once(init_flag, [this]() {
-            std::random_device rd;
-            rng.seed(rd());
-        });
-        return dist(rng);
+double ThreadLocalPRNG::generate() {
+    if (!is_initialized) {
+        if (deterministic_mode) {
+            rng.seed(deterministic_seed);
+        } else {
+            rng.seed(DeterministicSeedHelper::get_fallback_seed());
+        }
+        is_initialized = true;
     }
-};
+    return dist(rng);
+}
 
+// Thread-local instances (definitions)
 thread_local ThreadLocalPRNG tl_fallback;
-
-// Thread-local cache to reduce lock contention
 thread_local std::vector<double> tl_cache;
 thread_local size_t tl_cache_pos = 0;
 // Optimal cache size determined through benchmarking:
@@ -73,6 +77,11 @@ MultiQI::MultiQI(const std::vector<std::tuple<long, long, long>>& abc_list, int 
 
     // Initialize default weights for averaging
     weights_.resize(qis_.size(), 1.0 / qis_.size());
+
+    // Set fallback generator to deterministic mode if seed is provided
+    if (has_seed) {
+        tl_fallback.set_deterministic(true, seed);
+    }
 }
 
 // Dynamic QI generation constructor for v0.5.0
@@ -128,6 +137,11 @@ MultiQI::MultiQI(size_t num_qis, int mpfr_prec, uint64_t seed, bool has_seed,
 
     // Initialize default weights
     weights_.resize(qis_.size(), 1.0 / qis_.size());
+
+    // Set fallback generator to deterministic mode if seed is provided
+    if (has_seed) {
+        tl_fallback.set_deterministic(true, seed);
+    }
 }
 
 // Helper method: Get value from cache if available
@@ -711,8 +725,7 @@ void MultiQI::regenerate_qis(size_t target_count) {
     qis_.reserve(target_count);
 
     // Generate new QIs with diverse discriminants
-    std::random_device rd;
-    std::mt19937_64 rng(rd());
+    DETERMINISTIC_FALLBACK_RNG(rng, std::mt19937_64);
     std::uniform_int_distribution<long> param_dist(1, 10000);
 
     for (size_t i = 0; i < target_count; ++i) {

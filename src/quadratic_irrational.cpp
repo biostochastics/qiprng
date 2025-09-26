@@ -68,6 +68,20 @@ bool QuadraticIrrational::is_square_free(long long n) {
     return true;
 }
 
+void QuadraticIrrational::ensure_mpfr_state() {
+    if (use_fast_path_ && fast_value_dirty_) {
+        mpfr_set_d(*value_->get(), fast_value_, MPFR_RNDN);
+        fast_value_dirty_ = false;
+    }
+}
+
+void QuadraticIrrational::refresh_fast_state() {
+    if (use_fast_path_) {
+        fast_value_ = mpfr_get_d(*value_->get(), MPFR_RNDN);
+        fast_value_dirty_ = false;
+    }
+}
+
 // Custom hash function for pair<long, long>
 struct PairHash {
     std::size_t operator()(const std::pair<long, long>& p) const {
@@ -200,6 +214,8 @@ void QuadraticIrrational::step_once() {
         throw std::runtime_error("QuadraticIrrational: Invalid MPFR state in step_once");
     }
 
+    ensure_mpfr_state();
+
     int ret = 0;
 
     int op_ret = 0;
@@ -255,6 +271,7 @@ void QuadraticIrrational::step_once() {
         }
     }
     mpfr_swap(*value_->get(), *next_->get());
+    refresh_fast_state();
 
     // Only issue a single warning for the entire operation if any part was inexact
     if (ret != 0) {
@@ -265,7 +282,8 @@ void QuadraticIrrational::step_once() {
 QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t prec, uint64_t seed,
                                          bool has_seed)
     : a_(a), b_(b), c_(c), discriminant_(0), mpfr_prec_(prec), cfe_period_length_(0),
-      cfe_computed_(false), P_n_(0), Q_n_(1) {
+      cfe_computed_(false), P_n_(0), Q_n_(1), use_fast_path_(false), fast_value_(0.0),
+      fast_value_dirty_(false), seed_(seed), has_seed_(has_seed) {
     // Validate parameters more comprehensively
     if (a == 0) {
         throw std::invalid_argument("QuadraticIrrational: 'a' parameter cannot be zero");
@@ -369,6 +387,24 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
         if (mpfr_nan_p(*value_->get()))
             throw std::runtime_error("QuadraticIrrational: initial frac() resulted in NaN");
 
+        // If seed is provided, add a deterministic offset to the initial value
+        // This preserves the irrational nature of the starting value while making it seed-dependent
+        if (has_seed) {
+            // Create a deterministic RNG based on seed and parameters
+            auto det_rng = DeterministicRNGFactory::create(
+                seed, std::to_string(a) + "_" + std::to_string(b) + "_" + std::to_string(c));
+            std::uniform_real_distribution<double> offset_dist(0.0, 1.0);
+            double seed_offset = offset_dist(det_rng);
+
+            // Create temporary MPFR variable for the offset
+            MPFRWrapper offset_mpfr(mpfr_prec_);
+            mpfr_set_d(*offset_mpfr.get(), seed_offset, MPFR_RNDN);
+
+            // Add the offset to the current value and take fractional part
+            mpfr_add(*value_->get(), *value_->get(), *offset_mpfr.get(), MPFR_RNDN);
+            mpfr_frac(*value_->get(), *value_->get(), MPFR_RNDN);
+        }
+
         // Warm-up period for quadratic irrational sequences
         // Literature suggests that nonlinear PRNGs benefit from an initial "burn-in" period
         // to ensure the sequence has moved away from potentially predictable initial states.
@@ -396,9 +432,8 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
                                                               MAX_WARMUP_ITERATIONS);
             skip_amt = skip_dist(det_rng);
         } else {
-            // Original random behavior
-            std::random_device rd;
-            std::mt19937_64 rng(rd());
+            // Use deterministic fallback when no explicit seed is set
+            DETERMINISTIC_FALLBACK_RNG(rng, std::mt19937_64);
             std::uniform_int_distribution<uint64_t> skip_dist(MIN_WARMUP_ITERATIONS,
                                                               MAX_WARMUP_ITERATIONS);
             skip_amt = skip_dist(rng);
@@ -417,30 +452,39 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
         throw std::runtime_error(std::string("QuadraticIrrational: Initialization failed: ") +
                                  e.what());
     }
+
+    const bool env_force_mpfr = std::getenv("QIPRNG_FORCE_MPFR") != nullptr;
+    const bool env_force_fast = std::getenv("QIPRNG_FAST_PATH") != nullptr;
+    use_fast_path_ = (!env_force_mpfr && mpfr_prec_ <= 64) || env_force_fast;
+    refresh_fast_state();
 }
 
 double QuadraticIrrational::next() {
-    // Use fast path for precision 53 if parameters are safe
-    static bool use_fast_path = std::getenv("QIPRNG_FAST_PATH") != nullptr;
-
-    if (use_fast_path && mpfr_prec_ == 53 && std::abs(static_cast<double>(a_)) < 1e100 &&
-        std::abs(static_cast<double>(b_)) < 1e100 && std::abs(static_cast<double>(c_)) < 1e100) {
-        // Fast double precision path
-        double x = mpfr_get_d(*value_->get(), MPFR_RNDN);
-        double x2 = x * x;
-        double result = std::fma(static_cast<double>(a_), x2,
+    if (use_fast_path_) {
+        double x = fast_value_;
+        double result = std::fma(static_cast<double>(a_), x * x,
                                  std::fma(static_cast<double>(b_), x, static_cast<double>(c_)));
         result = result - std::floor(result);
-        if (result < 0.0)
+        if (result < 0.0) {
             result += 1.0;
-        mpfr_set_d(*value_->get(), result, MPFR_RNDN);
-        return result;
+        }
+
+        if (!std::isfinite(result)) {
+            // Disable fast path on numerical failure and fall back to MPFR
+            use_fast_path_ = false;
+            ensure_mpfr_state();
+        } else {
+            fast_value_ = result;
+            fast_value_dirty_ = true;
+            return result;
+        }
     }
 
     // Fall back to MPFR implementation
     step_once();
     // Use safe conversion with extended precision intermediates
     double val = precision::safe_mpfr_to_double(*value_->get(), true);
+    refresh_fast_state();
     if (std::isnan(val) || std::isinf(val)) {
         Rcpp::warning("QuadraticIrrational::next() produced NaN/Inf. Returning 0.5.");
         return 0.5;  // A fallback value
@@ -458,6 +502,8 @@ void QuadraticIrrational::jump_ahead(uint64_t n) {
         throw std::runtime_error(
             "QuadraticIrrational: Invalid MPFR state at the beginning of jump_ahead");
     }
+
+    ensure_mpfr_state();
 
     if (n == 0) {
         return;  // No jump needed
@@ -488,6 +534,8 @@ void QuadraticIrrational::jump_ahead(uint64_t n) {
             step_once();
         }
     }
+
+    refresh_fast_state();
 }
 
 // Optimized O(log n) jump-ahead using matrix exponentiation (v0.5.0 enhancement)
@@ -642,9 +690,17 @@ void QuadraticIrrational::reseed() {
 
     // If we have a seed, regenerate using a new seed
     if (has_seed_) {
-        // Generate new seed from current state
-        std::random_device rd;
-        seed_ = rd();
+        // Generate new seed deterministically if global seed is set, otherwise use random
+        if (DeterministicSeedHelper::has_seed()) {
+            // Derive a new seed deterministically from the current seed
+            seed_ = seed_ ^ 0x9e3779b97f4a7c15ULL;  // Use a constant to alter the seed
+            seed_ = (seed_ ^ (seed_ >> 30)) * 0xbf58476d1ce4e5b9ULL;
+            seed_ = (seed_ ^ (seed_ >> 27)) * 0x94d049bb133111ebULL;
+            seed_ = seed_ ^ (seed_ >> 31);
+        } else {
+            // Use fallback random when not in deterministic mode
+            seed_ = DeterministicSeedHelper::get_fallback_seed();
+        }
 
         // Reinitialize random engine
         if (rd_engine_) {
@@ -667,6 +723,8 @@ void QuadraticIrrational::reseed() {
         cfe_period_length_ = 0;
         cfe_computed_ = false;
     }
+
+    refresh_fast_state();
 }
 
 }  // namespace qiprng

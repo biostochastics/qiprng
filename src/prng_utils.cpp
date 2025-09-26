@@ -81,10 +81,27 @@ void qiprng::ensure_libsodium_initialized() {
 std::mt19937_64& qiprng::getThreadLocalEngine() {
     static thread_local std::unique_ptr<std::mt19937_64> t_engine_ptr;
     if (!t_engine_ptr) {
-        std::random_device rd;
         std::array<std::uint32_t, std::mt19937_64::state_size / 2> seeds;  // Correct seeding
-        for (size_t i = 0; i < seeds.size(); ++i)
-            seeds[i] = rd();
+
+        if (DeterministicSeedHelper::has_seed()) {
+            // Use deterministic seeding based on global seed
+            uint64_t base_seed = DeterministicSeedHelper::get_fallback_seed();
+
+            // Fill seeds array deterministically
+            for (size_t i = 0; i < seeds.size(); ++i) {
+                // Apply a different mixing function for each seed element
+                uint64_t mixed = base_seed + i * 0x9e3779b97f4a7c15ULL;
+                mixed = (mixed ^ (mixed >> 33)) * 0xff51afd7ed558ccdULL;
+                mixed = (mixed ^ (mixed >> 33)) * 0xc4ceb9fe1a85ec53ULL;
+                mixed = mixed ^ (mixed >> 33);
+                seeds[i] = static_cast<uint32_t>(mixed);
+            }
+        } else {
+            // Use random device for non-deterministic seeding
+            std::random_device rd;
+            for (size_t i = 0; i < seeds.size(); ++i)
+                seeds[i] = rd();
+        }
 
         // Incorporate thread ID for better seed diversity across threads
         auto tid_hash = std::hash<std::thread::id>()(std::this_thread::get_id());
@@ -98,23 +115,31 @@ std::mt19937_64& qiprng::getThreadLocalEngine() {
     return *t_engine_ptr;
 }
 
+// Thread-local flag for forcing deterministic engine reset
+static thread_local bool t_force_det_reset = false;
+
 // Deterministic thread-local random engine
 std::mt19937_64& qiprng::getDeterministicThreadLocalEngine(uint64_t seed) {
     static thread_local std::unique_ptr<std::mt19937_64> t_det_engine_ptr;
     static thread_local uint64_t t_last_seed = 0;
 
-    if (!t_det_engine_ptr || t_last_seed != seed) {
-        // Get unique thread ID
-        std::hash<std::thread::id> hasher;
-        size_t thread_id = hasher(std::this_thread::get_id());
-
-        // Create deterministic RNG for this thread
-        t_det_engine_ptr = std::make_unique<std::mt19937_64>(
-            DeterministicRNGFactory::create_for_thread(seed, thread_id));
+    // Always reset when force_reset is true (set during PRNG creation)
+    // or when the seed has changed
+    if (!t_det_engine_ptr || t_last_seed != seed || t_force_det_reset) {
+        // For deterministic mode, use seed directly without thread ID
+        // This ensures the same seed always produces the same sequence
+        // across different program runs
+        t_det_engine_ptr = std::make_unique<std::mt19937_64>(seed);
         t_last_seed = seed;
+        t_force_det_reset = false;
     }
 
     return *t_det_engine_ptr;
+}
+
+// Function to force reset of deterministic engine on next use
+void qiprng::resetDeterministicEngine() {
+    t_force_det_reset = true;
 }
 
 // Multi-QI parameter set selection

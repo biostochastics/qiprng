@@ -280,8 +280,11 @@ void ZigguratNormal::refill_random_cache() {
                 }
                 tls_random_cache_[i] = u;
             } catch (...) {
-                // In case of error, use a default value
-                tls_random_cache_[i] = 0.5;
+                // In case of error, use deterministic fallback value
+                static thread_local std::mt19937_64 fallback_rng(
+                    12345);  // Fixed seed for determinism
+                std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
+                tls_random_cache_[i] = fallback_dist(fallback_rng);
             }
         }
     }
@@ -292,7 +295,10 @@ void ZigguratNormal::refill_random_cache() {
 double ZigguratNormal::get_cached_uniform() {
     // Skip if cleanup is in progress - return a safe value
     if (cleanup_in_progress_.load(std::memory_order_acquire)) {
-        return 0.5;  // Safe fallback value
+        // Use deterministic fallback value
+        static thread_local std::mt19937_64 fallback_rng(12345);  // Fixed seed for determinism
+        std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
+        return fallback_dist(fallback_rng);
     }
 
     // Check TLS manager
@@ -301,7 +307,10 @@ double ZigguratNormal::get_cached_uniform() {
         initialize_thread_local_tables();
 
         if (!tls_manager_ || !tls_manager_->is_valid()) {
-            return 0.5;  // Safe fallback value if initialization fails
+            // Use deterministic fallback value
+            static thread_local std::mt19937_64 fallback_rng(12345);  // Fixed seed for determinism
+            std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
+            return fallback_dist(fallback_rng);  // Safe fallback value if initialization fails
         }
     }
 
@@ -311,7 +320,10 @@ double ZigguratNormal::get_cached_uniform() {
 
         // Double-check initialization success
         if (!tls_random_cache_initialized_) {
-            return 0.5;  // Safe fallback value if initialization fails
+            // Use deterministic fallback value
+            static thread_local std::mt19937_64 fallback_rng(12345);  // Fixed seed for determinism
+            std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
+            return fallback_dist(fallback_rng);  // Safe fallback value if initialization fails
         }
     }
 
@@ -431,13 +443,21 @@ double ZigguratNormal::sample_from_tail_original() {
             while (u1 <= 0.0 || u1 >= 1.0) {
                 if (++u1_attempts > 10) {
                     // After several attempts, use a reasonable default
-                    u1 = 0.5;
+                    // Use deterministic fallback value
+                    static thread_local std::mt19937_64 fallback_rng_u1(
+                        12345);  // Fixed seed for determinism
+                    std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
+                    u1 = fallback_dist(fallback_rng_u1);
                     break;
                 }
                 try {
                     u1 = uniform_generator_();
                 } catch (...) {
-                    u1 = 0.5;  // Safe default
+                    // Use deterministic fallback value
+                    static thread_local std::mt19937_64 fallback_rng_u1(
+                        12345);  // Fixed seed for determinism
+                    std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
+                    u1 = fallback_dist(fallback_rng_u1);  // Safe default
                     break;
                 }
             }
@@ -453,13 +473,21 @@ double ZigguratNormal::sample_from_tail_original() {
             while (u2 <= 0.0 || u2 >= 1.0) {
                 if (++u2_attempts > 10) {
                     // After several attempts, use a reasonable default
-                    u2 = 0.5;
+                    // Use deterministic fallback value
+                    static thread_local std::mt19937_64 fallback_rng_u2(
+                        12345);  // Fixed seed for determinism
+                    std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
+                    u2 = fallback_dist(fallback_rng_u2);
                     break;
                 }
                 try {
                     u2 = uniform_generator_();
                 } catch (...) {
-                    u2 = 0.5;  // Safe default
+                    // Use deterministic fallback value
+                    static thread_local std::mt19937_64 fallback_rng_u2(
+                        12345);  // Fixed seed for determinism
+                    std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
+                    u2 = fallback_dist(fallback_rng_u2);  // Safe default
                     break;
                 }
             }
@@ -524,7 +552,11 @@ double ZigguratNormal::generate_internal() {
             // Guard against uniform_generator_ returning invalid values
             double u0 = uniform_generator_();
             if (u0 <= 0.0 || u0 >= 1.0) {
-                u0 = 0.5;  // Use a safe default if generator fails
+                // Use deterministic fallback value if generator fails
+                static thread_local std::mt19937_64 fallback_rng_u0(
+                    12345);  // Fixed seed for determinism
+                std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
+                u0 = fallback_dist(fallback_rng_u0);
             }
 
             // Convert u0 to a 32-bit integer for table lookup
@@ -566,7 +598,11 @@ double ZigguratNormal::generate_internal() {
             try {
                 u1 = uniform_generator_();
                 if (u1 <= 0.0 || u1 >= 1.0) {
-                    u1 = 0.5;  // Use a safe default if generator fails
+                    // Use deterministic fallback value
+                    static thread_local std::mt19937_64 fallback_rng_u1(
+                        12345);  // Fixed seed for determinism
+                    std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
+                    u1 = fallback_dist(fallback_rng_u1);  // Use a safe default if generator fails
                 }
             } catch (...) {
                 // If generator fails, derive u1 from iz
@@ -601,7 +637,11 @@ double ZigguratNormal::generate_internal() {
             try {
                 u2 = uniform_generator_();
                 if (u2 <= 0.0 || u2 >= 1.0) {
-                    u2 = 0.5;  // Use a safe default if generator fails
+                    // Use deterministic fallback value
+                    static thread_local std::mt19937_64 fallback_rng_u2(
+                        12345);  // Fixed seed for determinism
+                    std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
+                    u2 = fallback_dist(fallback_rng_u2);  // Use a safe default if generator fails
                 }
             } catch (...) {
                 // If generator fails, derive u2 deterministically
@@ -863,7 +903,7 @@ double ZigguratNormal::generate() {
         // Also check the global cleanup flag
         if (local_thread_exiting || cleanup_in_progress_.load(std::memory_order_acquire)) {
             // Use fallback RNG instead of fixed mean value
-            static thread_local std::mt19937 fallback_rng(std::random_device{}());
+            static thread_local std::mt19937 fallback_rng(12345);  // Fixed seed for determinism
             std::normal_distribution<double> fallback_dist(mean_, stddev_);
             return fallback_dist(fallback_rng);
         }
@@ -874,7 +914,7 @@ double ZigguratNormal::generate() {
             // Handle case where object is being destroyed
             if (!uniform_generator_) {
                 // Use fallback RNG instead of fixed mean value
-                static thread_local std::mt19937 fallback_rng(std::random_device{}());
+                static thread_local std::mt19937 fallback_rng(12345);  // Fixed seed for determinism
                 std::normal_distribution<double> fallback_dist(mean_, stddev_);
                 return fallback_dist(fallback_rng);
             }
@@ -886,13 +926,15 @@ double ZigguratNormal::generate() {
                     // Verify initialization succeeded
                     if (!tls_tables_initialized_) {
                         // Initialization failed, use fallback
-                        static thread_local std::mt19937 fallback_rng(std::random_device{}());
+                        static thread_local std::mt19937 fallback_rng(
+                            12345);  // Fixed seed for determinism
                         std::normal_distribution<double> fallback_dist(mean_, stddev_);
                         return fallback_dist(fallback_rng);
                     }
                 } catch (...) {
                     // Use fallback RNG instead of fixed mean value
-                    static thread_local std::mt19937 fallback_rng(std::random_device{}());
+                    static thread_local std::mt19937 fallback_rng(
+                        12345);  // Fixed seed for determinism
                     std::normal_distribution<double> fallback_dist(mean_, stddev_);
                     return fallback_dist(fallback_rng);
                 }
@@ -901,7 +943,7 @@ double ZigguratNormal::generate() {
             // Post-initialization check - verify TLS data is valid
             if (!tls_manager_ || !tls_manager_->is_valid()) {
                 // TLS manager is invalid, use fallback
-                static thread_local std::mt19937 fallback_rng(std::random_device{}());
+                static thread_local std::mt19937 fallback_rng(12345);  // Fixed seed for determinism
                 std::normal_distribution<double> fallback_dist(mean_, stddev_);
                 return fallback_dist(fallback_rng);
             }
@@ -916,7 +958,8 @@ double ZigguratNormal::generate() {
                     std_normal_val = generate_internal();
                 } catch (...) {
                     // Use fallback RNG instead of fixed mean value
-                    static thread_local std::mt19937 fallback_rng(std::random_device{}());
+                    static thread_local std::mt19937 fallback_rng(
+                        12345);  // Fixed seed for determinism
                     std::normal_distribution<double> fallback_dist(mean_, stddev_);
                     return fallback_dist(fallback_rng);
                 }
@@ -931,7 +974,7 @@ double ZigguratNormal::generate() {
         // Validate the result
         if (std::isnan(result) || std::isinf(result)) {
             // Use fallback RNG instead of fixed mean value
-            static thread_local std::mt19937 fallback_rng(std::random_device{}());
+            static thread_local std::mt19937 fallback_rng(12345);  // Fixed seed for determinism
             std::normal_distribution<double> fallback_dist(mean_, stddev_);
             return fallback_dist(fallback_rng);
         }
@@ -944,7 +987,7 @@ double ZigguratNormal::generate() {
             warning_count++;
         }
         // Use fallback RNG instead of fixed mean value
-        static thread_local std::mt19937 fallback_rng(std::random_device{}());
+        static thread_local std::mt19937 fallback_rng(12345);  // Fixed seed for determinism
         std::normal_distribution<double> fallback_dist(mean_, stddev_);
         return fallback_dist(fallback_rng);
     } catch (...) {
@@ -958,7 +1001,7 @@ double ZigguratNormal::generate() {
         }
 
         // Use fallback RNG instead of fixed mean value
-        static thread_local std::mt19937 fallback_rng(std::random_device{}());
+        static thread_local std::mt19937 fallback_rng(12345);  // Fixed seed for determinism
         std::normal_distribution<double> fallback_dist(mean_, stddev_);
         return fallback_dist(fallback_rng);
     }
@@ -985,7 +1028,8 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
                 } catch (...) {
                     // If generate fails for an individual value, use mean
                     // Use fallback RNG instead of fixed mean value
-                    static thread_local std::mt19937 fallback_rng(std::random_device{}());
+                    static thread_local std::mt19937 fallback_rng(
+                        12345);  // Fixed seed for determinism
                     std::normal_distribution<double> fallback_dist(mean_, stddev_);
                     buffer[i] = fallback_dist(fallback_rng);
                 }
@@ -995,9 +1039,11 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
 
         // Safety check for object validity during multi-threaded operation
         if (!uniform_generator_) {
-            // Something is wrong with the generator - fill with mean values
+            // Something is wrong with the generator - fill with deterministic fallback values
+            static thread_local std::mt19937 fallback_rng(12345);  // Fixed seed for determinism
+            std::normal_distribution<double> fallback_dist(mean_, stddev_);
             for (size_t i = 0; i < count; ++i) {
-                buffer[i] = mean_;
+                buffer[i] = fallback_dist(fallback_rng);
             }
             return;
         }
@@ -1019,7 +1065,8 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
                     buffer[i] = generate();
                 } catch (...) {
                     // Use fallback RNG instead of fixed mean value
-                    static thread_local std::mt19937 fallback_rng(std::random_device{}());
+                    static thread_local std::mt19937 fallback_rng(
+                        12345);  // Fixed seed for determinism
                     std::normal_distribution<double> fallback_dist(mean_, stddev_);
                     buffer[i] = fallback_dist(fallback_rng);
                 }
@@ -1056,9 +1103,12 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
                         any_thread_failed.store(true);
                         worker_exiting = true;
 
-                        // Fill this thread's portion with mean values
+                        // Fill this thread's portion with deterministic fallback values
+                        static thread_local std::mt19937 fallback_rng(
+                            12345);  // Fixed seed for determinism
+                        std::normal_distribution<double> fallback_dist(mean_, stddev_);
                         for (size_t i_local = start; i_local < end; ++i_local) {
-                            buffer[i_local] = mean_;
+                            buffer[i_local] = fallback_dist(fallback_rng);
                         }
                         return;  // Exit this thread's lambda
                     }

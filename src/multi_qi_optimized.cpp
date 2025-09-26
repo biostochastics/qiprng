@@ -21,6 +21,13 @@ namespace qiprng {
 thread_local MultiQIOptimized::ThreadLocalData MultiQIOptimized::tl_data;
 std::atomic<size_t> MultiQIOptimized::thread_counter_{0};
 
+// Reset thread counter for deterministic behavior
+void MultiQIOptimized::reset_thread_counter() {
+    thread_counter_.store(0, std::memory_order_relaxed);
+    // Also reset thread-local data to ensure clean state
+    tl_data = ThreadLocalData();
+}
+
 // Performance metrics
 namespace perf {
 Metrics global_metrics;
