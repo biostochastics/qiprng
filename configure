@@ -29,12 +29,9 @@ fi
 
 echo "Found pkg-config: $PKG_CONFIG"
 
-# Use pkg-config to get the required flags for mandatory libraries
-PKG_CPPFLAGS=$($PKG_CONFIG --cflags gmp mpfr libsodium openssl 2>/dev/null)
-PKG_LIBS=$($PKG_CONFIG --libs gmp mpfr libsodium openssl 2>/dev/null)
-
-# Check if pkg-config found the libraries
-if [ -z "$PKG_CPPFLAGS" ] || [ -z "$PKG_LIBS" ]; then
+# Check if pkg-config can find the libraries using --exists (more robust than checking flags)
+# This correctly handles libraries installed in standard system paths where flags may be empty
+if ! $PKG_CONFIG --exists gmp mpfr libsodium openssl 2>/dev/null; then
     echo "--------------------------------------------------------------------" >&2
     echo "ERROR: Could not find one or more required libraries via pkg-config:" >&2
     echo "  gmp, mpfr, libsodium, openssl" >&2
@@ -46,6 +43,11 @@ if [ -z "$PKG_CPPFLAGS" ] || [ -z "$PKG_LIBS" ]; then
     echo "--------------------------------------------------------------------" >&2
     exit 1
 fi
+
+# Use pkg-config to get the required flags for mandatory libraries
+# Note: These may be empty if libraries are in standard system paths, which is fine
+PKG_CPPFLAGS=$($PKG_CONFIG --cflags gmp mpfr libsodium openssl 2>/dev/null)
+PKG_LIBS=$($PKG_CONFIG --libs gmp mpfr libsodium openssl 2>/dev/null)
 
 echo "Found required libraries: gmp, mpfr, libsodium, openssl"
 

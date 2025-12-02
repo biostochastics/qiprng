@@ -10,7 +10,7 @@ library(DT)
 utils::globalVariables(c(
   "a", "b", "c", "discriminant", "overall_score",
   "quality_rating", "empirical_rating", "rating", "count", "test",
-  "pass_rate", "p_value", "pvalue"
+  "pass_rate", "p_value", "pvalue", "n_sig_lags"
 ))
 
 #' Generate summary statistics from test results

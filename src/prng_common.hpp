@@ -628,18 +628,17 @@ class MPFRWrapper {
 
     inline int compare_si(long val) const { return mpfr_cmp_si(*get(), val); }
 
-    // Efficient swap operation - handles all initialization states
+    // Efficient swap operation - handles all initialization states correctly
+    // Uses move semantics to properly transfer mpfr_t ownership along with flags
     inline void swap(MPFRWrapper& other) noexcept {
-        // Swap initialization flags
-        std::swap(initialized_, other.initialized_);
-        std::swap(cached_precision_, other.cached_precision_);
-        // Only swap MPFR values if both are initialized (after flag swap)
-        // This works because mpfr_swap requires both to be initialized
-        if (initialized_ && other.initialized_) {
-            mpfr_swap(value, other.value);
+        if (this == &other) {
+            return;  // Self-swap is a no-op
         }
-        // Note: If only one was initialized before swap, the initialized_
-        // flag is now correctly swapped to indicate the new state
+        // Use move operations so mpfr_t ownership and initialization flags stay consistent
+        // This correctly handles mixed initialization states (one initialized, one not)
+        MPFRWrapper temp(std::move(other));
+        other = std::move(*this);
+        *this = std::move(temp);
     }
 };
 

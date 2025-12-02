@@ -145,8 +145,6 @@ test_entropy <- function(samples, bins = 256) {
 #'
 #' @export
 test_gaps <- function(samples, alpha = 0.3, beta = 0.7) {
-  n <- length(samples)
-
   # Find gaps between alpha and beta
   in_range <- samples >= alpha & samples <= beta
   gaps <- diff(which(in_range))
@@ -162,7 +160,6 @@ test_gaps <- function(samples, alpha = 0.3, beta = 0.7) {
 
   # Expected gap length for uniform distribution
   p <- beta - alpha
-  expected_gap <- 1 / p
 
   # Chi-square test on gap lengths
   max_gap <- min(20, max(gaps))
@@ -410,7 +407,6 @@ test_poker <- function(samples, m = 5) {
 
   # Observed frequencies
   observed <- table(factor(patterns, levels = 1:m))
-  expected <- num_hands * expected_probs
 
   # Chi-square test
   chi_result <- tryCatch(

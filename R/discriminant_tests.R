@@ -461,8 +461,8 @@ test_moments <- function(samples) {
   sample_mean <- mean(samples)
   sample_var <- var(samples)
   sample_skew <- skewness(samples)
-  # kurtosis() returns excess kurtosis by default, add 3 for non-excess kurtosis
-  sample_kurt <- kurtosis(samples) + 3
+  # moments::kurtosis() returns raw kurtosis (Pearson's kurtosis, μ₄/σ⁴) by default
+  sample_kurt <- kurtosis(samples)
 
   # For uniform [0,1]: mean=0.5, var=1/12≈0.0833, skew=0, kurt=1.8
   expected_mean <- 0.5
@@ -550,10 +550,7 @@ test_periodicity <- function(samples) {
       periodogram <- periodogram[2:(n / 2 + 1)] # Only positive frequencies
 
       g_stat <- max(periodogram) / sum(periodogram)
-      alpha <- 0.05
-      critical_value <- -log(alpha) / length(periodogram)
       fisher_p_value <- exp(-length(periodogram) * g_stat)
-      fisher_passed <- fisher_p_value > alpha # Pass if p-value > significance level
 
       # 2. Bartels rank test for randomness (from randtests)
       bartels_result <- tryCatch(
@@ -624,12 +621,12 @@ test_periodicity <- function(samples) {
       )
     },
     error = function(e) {
-      results <- list(
+      return(list(
         test_name = "Enhanced Periodicity Analysis",
         passed = FALSE,
         p_value = NA,
         interpretation = paste("Error in periodicity analysis:", e$message)
-      )
+      ))
     }
   )
 
@@ -746,7 +743,7 @@ test_discriminant <- function(a, b, c, discriminant, n = 50000) {
       })
 
       # Run advanced tests
-      source("R/advanced_tests.R")
+      # Note: run_advanced_tests() is exported from the package namespace
       advanced_results <- tryCatch(run_advanced_tests(samples),
         error = function(e) list(error = paste("Advanced tests failed:", e$message))
       )

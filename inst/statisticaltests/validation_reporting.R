@@ -592,8 +592,20 @@ generate_html_scripts <- function() {
 #' @param report Validation report object
 #' @param output_file Output JSON file path
 generate_json_report <- function(report, output_file) {
-  # Convert report to JSON
-  json_data <- jsonlite::toJSON(report, pretty = TRUE, auto_unbox = TRUE)
+  # Helper function to recursively remove S3 classes for JSON serialization
+  strip_s3_classes <- function(x) {
+    if (inherits(x, "difftime")) {
+      return(as.numeric(x))
+    }
+    if (is.list(x)) {
+      x <- unclass(x)
+      x <- lapply(x, strip_s3_classes)
+    }
+    x
+  }
+
+  # Convert report to JSON with recursive S3 class removal
+  json_data <- jsonlite::toJSON(strip_s3_classes(report), pretty = TRUE, auto_unbox = TRUE)
 
   # Write to file
   writeLines(json_data, output_file)

@@ -378,7 +378,7 @@ validate_classical_tests <- function(config, verbose = TRUE) {
       for (test_name in expected_tests) {
         results$total_tests <- results$total_tests + 1
         if (test_name %in% names(classical_results) &&
-          validate_test_structure(classical_results[[test_name]])) {
+              validate_test_structure(classical_results[[test_name]])) {
           results$passed <- results$passed + 1
         } else {
           results$failed <- results$failed + 1
@@ -449,7 +449,7 @@ validate_external_tests <- function(config, verbose = TRUE) {
       for (test_name in base_tests) {
         results$total_tests <- results$total_tests + 1
         if (test_name %in% names(external_results) &&
-          validate_test_structure(external_results[[test_name]])) {
+              validate_test_structure(external_results[[test_name]])) {
           results$passed <- results$passed + 1
         } else {
           results$failed <- results$failed + 1
@@ -823,7 +823,7 @@ validate_test_structure <- function(test_result) {
 
   # Check p_value range when not NA
   if (!is.na(test_result$p_value) &&
-    (test_result$p_value < 0 || test_result$p_value > 1)) {
+        (test_result$p_value < 0 || test_result$p_value > 1)) {
     return(FALSE)
   }
 
@@ -1081,7 +1081,6 @@ print_validation_summary <- function(report) {
 modifyList <- function(x, val) {
   modifyList <- function(x, val, keep.null = FALSE) {
     stopifnot(is.list(x), is.list(val))
-    xnames <- names(x)
     vnames <- names(val)
     vnames <- vnames[nzchar(vnames)]
     for (v in vnames) {

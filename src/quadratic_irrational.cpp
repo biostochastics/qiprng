@@ -133,10 +133,15 @@ void QuadraticIrrational::compute_cfe_period() {
     const size_t BASE_MAX_PERIOD = 100000;          // Base maximum period length for safety
     const size_t DISCRIMINANT_SCALING_FACTOR = 10;  // Scaling factor based on Lagrange's theorem
     // Period length is O(sqrt(D) * log(D)) in worst case, include log term for large D
-    const size_t MAX_PERIOD =
-        std::max(BASE_MAX_PERIOD, static_cast<size_t>(DISCRIMINANT_SCALING_FACTOR *
-                                                      std::sqrt(static_cast<double>(D)) *
-                                                      std::log(static_cast<double>(D) + 1.0)));
+    // Guard against overflow: clamp to size_t max before casting
+    double max_period_double = static_cast<double>(DISCRIMINANT_SCALING_FACTOR) *
+                               std::sqrt(static_cast<double>(D)) *
+                               std::log(static_cast<double>(D) + 1.0);
+    const double max_size_t_double = static_cast<double>(std::numeric_limits<size_t>::max());
+    if (max_period_double > max_size_t_double) {
+        max_period_double = max_size_t_double;
+    }
+    const size_t MAX_PERIOD = std::max(BASE_MAX_PERIOD, static_cast<size_t>(max_period_double));
 
     while (index < MAX_PERIOD) {
         // Gauss-Legendre recurrence formulas
@@ -718,9 +723,11 @@ void QuadraticIrrational::reseed() {
         uint64_t skip_amount = dist(*rd_engine_);
         skip(skip_amount);
     } else {
-        // Without seed, just reset to initial state
-        mpfr_set_d(*state_->x.get(), 0.5, MPFR_RNDN);
-        mpfr_set_d(*state_->x_prev.get(), 0.25, MPFR_RNDN);
+        // Without seed, reset to a deterministic initial state using value_
+        // (state_ is not used in this class - value_ is the actual MPFR state)
+        mpfr_set_d(*value_->get(), 0.5, MPFR_RNDN);
+        // Perform a step to refresh next_ and the fast path state
+        step_once();
     }
 
     // Clear CFE cache if computed

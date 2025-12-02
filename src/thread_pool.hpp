@@ -194,10 +194,10 @@ class ThreadPool {
 
     // Reset the pool for reuse with specified or default thread count
     void reset(size_t num_threads = 0) {
-        // Must be stopped first
-        if (!stop_) {
-            shutdown();
-        }
+        // Always call shutdown - it handles being called multiple times safely
+        // via atomic exchange. This ensures we wait for any in-progress shutdown
+        // to complete before resetting.
+        shutdown();
 
         // Reset the stop flag
         stop_.store(false, std::memory_order_release);
