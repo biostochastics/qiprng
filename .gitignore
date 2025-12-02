@@ -93,3 +93,4 @@ archive
 # Task files
 # tasks.json
 # tasks/
+MIGRATION_AGENT_PROMPT.md
