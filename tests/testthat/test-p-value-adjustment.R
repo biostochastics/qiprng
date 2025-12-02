@@ -3,6 +3,14 @@
 library(testthat)
 library(qiprng)
 
+# Source required test helper files
+unified_reporting_file <- system.file("statisticaltests", "unified_reporting.R", package = "qiprng")
+if (file.exists(unified_reporting_file)) {
+  source(unified_reporting_file)
+} else {
+  stop("Required file unified_reporting.R not found in package installation")
+}
+
 test_that("p-value adjustment function works correctly", {
   # Create a test suite with multiple test results
   suite <- test_suite_results("Test Suite")

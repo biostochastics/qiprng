@@ -382,7 +382,7 @@ cached_test_result <- function(test_func, test_name, test_category,
                                data, config, ...) {
   # Check if caching is enabled
   if (!getOption("R.cache.enabled", TRUE) ||
-    !isTRUE(config$cache_test_results)) {
+        !isTRUE(config$cache_test_results)) {
     return(test_func(data, config, ...))
   }
 
@@ -634,7 +634,7 @@ import_cached_results <- function(file, overwrite = FALSE) {
 
   # Validate structure
   if (!is.list(exported_data) ||
-    !all(c("metadata", "cache_entries") %in% names(exported_data))) {
+        !all(c("metadata", "cache_entries") %in% names(exported_data))) {
     stop("Invalid export file format.")
   }
 

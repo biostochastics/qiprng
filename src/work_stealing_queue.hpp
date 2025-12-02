@@ -21,7 +21,10 @@ struct WorkItem {
     std::function<void(size_t, size_t)> task;
 };
 
-// Lock-free work-stealing queue for load balancing
+// Work-stealing queue for load balancing
+// Note: Despite the name, this uses a mutex for simplicity and correctness.
+// A truly lock-free implementation would use atomic operations with CAS loops,
+// but the mutex-based approach is sufficient for our workload sizes.
 class WorkStealingQueue {
    private:
     std::deque<WorkItem> queue_;

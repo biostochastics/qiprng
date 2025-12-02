@@ -66,8 +66,8 @@ load_excellent_discriminants <- function(results_file = "discriminant_analysis_r
 
   # Filter for excellent discriminants
   excellent <- summary_data[summary_data$quality_rating == "Excellent" &
-    !is.na(summary_data$overall_score) &
-    summary_data$overall_score >= min_score, ]
+                              !is.na(summary_data$overall_score) &
+                              summary_data$overall_score >= min_score, ]
 
   # Sort by overall score (descending)
   excellent <- excellent[order(excellent$overall_score, decreasing = TRUE), ]
@@ -205,7 +205,7 @@ get_recommended_discriminants <- function(n = 10,
   )
 
   cat("\nSelected", nrow(selected), "discriminants using '", criteria, "' criteria:\n")
-  for (i in 1:nrow(selected)) {
+  for (i in seq_len(nrow(selected))) {
     row <- selected[i, ]
     cat(sprintf(
       "  %d. a=%d, b=%d, c=%d, Δ=%d (Score: %.3f)\n",
@@ -422,7 +422,7 @@ print_excellent_summary <- function(results_file = "discriminant_analysis_result
 
   cat("Top 5 Excellent Discriminants:\n")
   top5 <- head(excellent, 5)
-  for (i in 1:nrow(top5)) {
+  for (i in seq_len(nrow(top5))) {
     row <- top5[i, ]
     cat(sprintf(
       "  %d. a=%d, b=%d, c=%d, Δ=%d (Score: %.3f)\n",

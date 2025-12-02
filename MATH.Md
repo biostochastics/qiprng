@@ -1,4 +1,4 @@
-# Technical Documentation for the Quadratic Irrational PRNG v0.5.0
+# Technical Documentation for the Quadratic Irrational PRNG v0.6.6
 
  **Attribution Note**: The mathematical foundation and core algorithm design presented in this document is based on the amazing work of Vincent Granville (2024), specifically his research on military-grade random number generators using quadratic irrationals that I ran into in the dead of night after having way too much coffee. While Granville provided the original Python implementation, this doc describes my R/C++ implementation developed primarily for educational purposes. Cool if you find it useful. Even better if you find a bug!
 
@@ -232,36 +232,68 @@ By default the package uses only the 370 "Excellent" discriminants obtained usin
 The quadratic map can be represented in matrix form. Given the recurrence:
 
 ```
-x_{n+1} = (a*x_n^2 + b*x_n + c) mod 1
+x_{n+1} = (a·x_n² + b·x_n + c) mod 1
 ```
 
-For the linearized form around the orbit, we can express transformations as:
+**Key Insight**: While a single quadratic map is nonlinear, we can encode the transformation using a lifted state vector that tracks the polynomial coefficients. The core algebraic fact is:
+
+> The set of quadratic polynomials under composition forms a semigroup that can be represented via matrix multiplication on their coefficient vectors in a suitable basis.
+
+For a quadratic map f(x) = ax² + bx + c, its n-fold composition f∘ⁿ(x) is a polynomial of degree 2ⁿ. By lifting to a higher-dimensional state that tracks monomials (or using projective coordinates), we can express:
 
 ```
-[x_{n+1}]   [p q] [x_n]
-[   1   ] = [0 1] [ 1 ]
+v_{n+1} = M · v_n
 ```
 
-Where p and q depend on the specific transformation parameters.
+where vₙ encodes the current polynomial's coefficients (or a lifted state) and M is a fixed matrix.
 
-### 4.2 Binary Exponentiation
+### 4.2 State Vector Representation
 
-To jump ahead by n steps, we compute the nth power of the transformation matrix using binary exponentiation:
+The implementation uses a state vector that tracks the relevant polynomial terms:
 
 ```
-Matrix^n = Matrix^(b_k * 2^k + ... + b_1 * 2 + b_0)
-         = Matrix^(b_k * 2^k) * ... * Matrix^(b_1 * 2) * Matrix^b_0
+[ x_{n+1}  ]   [ a  b  c ] [ x_n²  ]
+[ x_n      ] = [ 1  0  0 ] [ x_n   ]
+[ 1        ]   [ 0  0  1 ] [ 1     ]
 ```
 
-This reduces complexity from O(n) to O(log n) matrix multiplications.
+Once we have a representation v_{n+1} = M · v_n, then:
 
-### 4.3 MPFR Precision Preservation
+```
+v_n = M^n · v_0
+```
+
+### 4.3 Binary Exponentiation
+
+To jump ahead by n steps, we compute Mⁿ using binary exponentiation (repeated squaring):
+
+```
+M^n = M^(b_k · 2^k + ... + b_1 · 2 + b_0)
+    = M^(b_k · 2^k) · ... · M^(b_1 · 2) · M^b_0
+```
+
+**Complexity Analysis**:
+- **Naive iteration**: O(n) applications of the map
+- **Binary exponentiation**: O(log n) matrix multiplications
+
+This enables efficient jump-ahead for astronomically large n (e.g., 10¹⁸ steps).
+
+### 4.4 Mathematical Validity
+
+The "matrix exponentiation ⇒ jump ahead in O(log n)" claim is mathematically sound provided:
+
+1. The chosen matrix representation correctly encodes composition of the map
+2. Modular reduction (mod 1) is applied only at the final evaluation stage
+3. All linear algebra is performed over reals (or MPFR with sufficient precision)
+
+### 4.5 MPFR Precision Preservation
 
 All matrix operations use MPFR arithmetic to maintain full precision:
 
 - Matrix multiplication preserves exact values
 - Modular reduction maintains fractional precision
-- No accuracy loss even for astronomical jumps (10^18 steps)
+- No accuracy loss even for astronomical jumps (10¹⁸ steps)
+- The linear algebra itself operates over MPFR reals, not modular arithmetic
 
 ## 5. CFE Period Detection (v0.5.0)
 
@@ -279,26 +311,49 @@ The continued fraction expansion is:
 α = a_0 + 1/(a_1 + 1/(a_2 + 1/(...)))
 ```
 
-### 5.2 Gauss-Legendre Algorithm
+### 5.2 Theoretical Foundation: Lagrange's Theorem
+
+**Definition**: A *quadratic irrational* is a real number α that is a root of Ax² + Bx + C = 0 with integers A, B, C, A ≠ 0, and discriminant D = B² - 4AC not a perfect square.
+
+**Theorem (Lagrange)**: A real number has an eventually periodic simple continued fraction expansion if and only if it is a quadratic irrational.
+
+Therefore, numbers of the form α = (√D + P₀)/Q₀ (with integer D > 0 not a perfect square) are exactly in this class, and their CFE is ultimately periodic.
+
+### 5.3 Gauss-Legendre Algorithm
 
 The package implements the Gauss-Legendre algorithm for O(L) period detection:
 
-1. **Initialization**: Start with P_0 = 0, Q_0 = 1
+1. **Initialization**: Start with P₀ = 0, Q₀ = 1
 2. **Iteration**:
 
    ```
-   a_n = floor((√D + P_n) / Q_n)
-   P_{n+1} = a_n * Q_n - P_n
-   Q_{n+1} = (D - P_{n+1}^2) / Q_n
+   aₙ = floor((√D + Pₙ) / Qₙ)
+   P_{n+1} = aₙ · Qₙ - Pₙ
+   Q_{n+1} = (D - P_{n+1}²) / Qₙ
    ```
 
-3. **Period detection**: When (P_n, Q_n) repeats, period is found
+3. **Period detection**: When (Pₙ, Qₙ) repeats, period is found
 
-### 5.3 Complexity Analysis
+### 5.4 Why the Algorithm Terminates (Proof of Periodicity)
+
+**Theorem (Periodicity of CFE)**: For α = (√D + P₀)/Q₀ with integer D > 0 not a square, the recursion on (Pₙ, Qₙ) visits only finitely many integer states. Hence (Pₙ, Qₙ) must eventually repeat, and the resulting CFE [a₀; a₁, a₂, ...] is eventually periodic.
+
+**Proof**: The crucial observation is that (Pₙ, Qₙ) live in a finite set of integer pairs:
+
+1. **Boundedness of Qₙ**: It can be shown that Qₙ divides D - Pₙ², and the algorithm maintains Q_{n+1} = (D - P_{n+1}²)/Qₙ as an integer. The values |Qₙ| are bounded by D.
+
+2. **Boundedness of Pₙ**: By the definition of the algorithm, |Pₙ| ≤ √D for all n ≥ 1.
+
+3. **Pigeonhole argument**: Since there are only finitely many integer pairs (P, Q) with |P| ≤ √D and |Q| ≤ D, by the pigeonhole principle some pair must repeat: (Pₙ, Qₙ) = (Pₘ, Qₘ) with n > m.
+
+4. **Periodicity follows**: Once the state (Pₙ, Qₙ) repeats, the sequence of partial quotients aₙ repeats from that point onward, establishing the period. ∎
+
+### 5.5 Complexity Analysis
 
 - **Time complexity**: O(L) where L is the period length
 - **Space complexity**: O(L) to store the period
-- **Practical performance**: Periods typically < 1000 for discriminants < 10^6
+- **Practical performance**: Periods typically < 1000 for discriminants < 10⁶
+- **Theoretical bound**: L = O(√D log D) for discriminant D
 
 ## 6. Dynamic QI Generation (v0.5.0)
 
@@ -306,9 +361,12 @@ The package implements the Gauss-Legendre algorithm for O(L) period detection:
 
 The package uses discriminants of the form D = k² + 1:
 
-- Always square-free (cannot be divided by any perfect square)
-- Produces well-distributed quadratic irrationals
+- **Often square-free**: Many values of k² + 1 are square-free, but this is *not* guaranteed
+- **Counterexample**: For k = 7, we have k² + 1 = 50 = 2 × 5², which is *not* square-free
+- Produces well-distributed quadratic irrationals when square-free
 - Efficient validation: check if D - 1 is a perfect square
+
+**Important**: The implementation validates square-freeness and discards discriminants that fail this test. The k² + 1 pattern is a convenient source of candidate discriminants, not a guarantee of square-freeness.
 
 ### 6.2 Square-Free Validation
 
@@ -322,11 +380,13 @@ is_square_free(D):
   return true
 ```
 
+This validation is **required** for all discriminants, including those of the form k² + 1.
+
 ### 6.3 Benefits
 
-- **Guaranteed quality**: Square-free discriminants avoid degenerate cases
-- **Efficient generation**: O(sqrt(D)) validation time
-- **Good distribution**: k² + 1 pattern covers discriminant space well
+- **Quality assurance**: Square-free validation ensures only valid discriminants are used
+- **Efficient generation**: O(√D) validation time
+- **Good coverage**: k² + 1 pattern provides a rich source of candidate discriminants
 
 ## 7. Cryptographic Mixing
 
@@ -354,9 +414,41 @@ Where:
 - `crypto_uniform` is a cryptographically secure random value in [0,1)
 - The result is taken modulo 1 to keep it in [0,1)
 
+**Theorem (Crypto Mixing Preserves Uniformity)**: If U ~ Unif[0,1) and C ~ Unif[0,1) are independent, then (U + C) mod 1 ~ Unif[0,1).
+
+**Proof**: Let V := (U + C) mod 1. We want to show V ~ Unif[0,1).
+
+Take any measurable set A ⊂ [0,1). Then:
+
+```
+P(V ∈ A) = P((U + C) mod 1 ∈ A)
+         = ∫∫ 𝟙{(u+c) mod 1 ∈ A} f_U(u) f_C(c) du dc
+```
+
+Since U, C are independent uniforms: f_U(u) = f_C(c) = 1 on [0,1).
+
+Use the fact that adding a fixed c modulo 1 is just a rotation of the circle:
+
+For each fixed c, the map u ↦ (u + c) mod 1 is a bijection of [0,1) onto itself that preserves Lebesgue measure. Therefore, for uniform u:
+
+```
+P((U + c) mod 1 ∈ A) = |A|
+```
+
+where |A| is the Lebesgue measure of A.
+
+Thus:
+```
+P(V ∈ A) = ∫₀¹ P((U + c) mod 1 ∈ A) dc = ∫₀¹ |A| dc = |A|
+```
+
+But P(V ∈ A) = |A| is exactly the defining property of Unif[0,1). ∎
+
+**Corollary**: Even if X_original is only approximately uniform, the mixing operation pushes the distribution closer to uniform, since the cryptographic component C is exactly uniform.
+
 **Benefits**:
 
-- Preserves the uniform distribution
+- **Mathematically proven** to preserve the uniform distribution
 - Cryptographically strong
 - Efficiently eliminates patterns in the original sequence
 
@@ -368,12 +460,20 @@ An alternative approach that uses weighted averaging instead of modular addition
 x_mixed = (x_original + crypto_uniform) / 2
 ```
 
+**Important Mathematical Note**: Unlike modular addition, averaging does **not** preserve uniform distribution. If U, C ~ Unif[0,1) are independent, then (U + C)/2 has a triangular distribution on [0,1), not a uniform distribution. The density is:
+
+```
+f(x) = 4x       for 0 ≤ x ≤ 1/2
+f(x) = 4(1-x)   for 1/2 < x ≤ 1
+```
+
 **Differences**:
 
-- May provide slight differences in statistical behavior
-- Included as an alternative mixing strategy for testing
+- Produces a non-uniform (triangular) distribution concentrated toward 0.5
+- May be useful for specific applications requiring central tendency
+- Included as an alternative mixing strategy for testing purposes
 
-### 4.3 Integration with Core Generator
+### 7.3 Integration with Core Generator
 
 The cryptographic mixing integrates with the core generator in several ways:
 
@@ -390,7 +490,7 @@ The cryptographic mixing integrates with the core generator in several ways:
    - Keys are properly zeroed when no longer needed using sodium_memzero
    - Side-channel mitigation techniques are employed
 
-### 4.4 Tie-Breaking Mechanism
+### 7.4 Tie-Breaking Mechanism
 
 The implementation includes a tie-breaking mechanism to handle the rare case of duplicate consecutive values:
 
@@ -408,11 +508,11 @@ The implementation includes a tie-breaking mechanism to handle the rare case of 
    - Provides additional entropy in edge cases
    - Maintains the overall statistical properties
 
-## 5. Distribution Transformations
+## 8. Distribution Transformations
 
 The raw uniform [0,1] values can be transformed into various probability distributions:
 
-### 5.1 Uniform Range
+### 8.1 Uniform Range
 
 Transforms uniform [0,1] to uniform [min, max]:
 
@@ -420,7 +520,7 @@ Transforms uniform [0,1] to uniform [min, max]:
 y = min + x*(max - min)
 ```
 
-### 5.2 Normal Distribution
+### 8.2 Normal Distribution
 
 Uses the Box-Muller transform to generate normally distributed values:
 
@@ -433,7 +533,7 @@ y = mean + sd * r*sin(θ)
 
 Where u1 and u2 are independent uniform [0,1] values. The implementation optimizes this by storing the second value (y) for the next call, effectively using both random numbers generated from each pair of uniform draws.
 
-### 5.3 Exponential Distribution
+### 8.3 Exponential Distribution
 
 Uses the inverse transform method:
 
@@ -443,9 +543,9 @@ x = -ln(1-u)/λ
 
 Where u is a uniform [0,1] value and λ is the rate parameter.
 
-## 6. Precision and Numerical Considerations
+## 9. Precision and Numerical Considerations
 
-### 6.1 MPFR Precision
+### 9.1 MPFR Precision
 
 The package uses the GNU MPFR library for arbitrary-precision arithmetic:
 
@@ -453,7 +553,7 @@ The package uses the GNU MPFR library for arbitrary-precision arithmetic:
 - **Range**: 24 to 10,000 bits (package limit)
 - **Impact**: Higher precision increases cycle length and improves statistical properties
 
-### 6.2 Numerical Stability
+### 9.2 Numerical Stability
 
 Considerations for numerical stability:
 
@@ -461,7 +561,7 @@ Considerations for numerical stability:
 - **Underflow handling**: Special handling for values close to zero
 - **Modular reduction**: Exact fractional part calculation ensures values stay in [0,1)
 
-### 6.3 Period Length
+### 9.3 Period Length
 
 With sufficient precision, the period length of the generator is extremely long:
 
@@ -469,7 +569,7 @@ With sufficient precision, the period length of the generator is extremely long:
 - At higher precisions: period grows exponentially
 - With cryptographic mixing: period becomes cryptographically large
 
-### 6.4 Fixed Point Avoidance
+### 9.4 Fixed Point Avoidance
 
 A critical consideration in the implementation is avoiding fixed points. A fixed point is a value x where f(x) = x, meaning the sequence would get stuck at this value.
 
@@ -479,16 +579,29 @@ A critical consideration in the implementation is avoiding fixed points. A fixed
 - Once convergence occurs, random numbers are no longer generated, as all subsequent values are identical
 - This severely impacts the statistical properties and utility of the PRNG
 
-**Solution:**
+**Fixed Point Analysis:**
+
+For the map f(x) = {ax² + bx + c} (where {·} denotes fractional part), a fixed point in [0,1) is any x and integer k such that:
+
+```
+ax² + bx + c = x + k  ⟺  ax² + (b-1)x + (c-k) = 0
+```
+
+with x ∈ [0,1). For given integers a > 0, b, c < 0, nothing prevents some integer k from making this quadratic have a root in [0,1). **The constraints a > 0, c < 0, Δ > 0 alone do not mathematically guarantee the absence of fixed points.**
+
+**Practical Mitigation:**
 
 1. The current implementation uses the full quadratic map (ax² + bx + c mod 1)
-2. The choice of parameters (a>0, c<0) ensures no fixed points in [0,1]
-3. Even if a fixed point were approached, cryptographic mixing would move the state away
-4. Random initial values and seeding further prevent fixed point convergence
+2. For our selected parameter sets, empirical testing shows no convergence to fixed points
+3. Cryptographic mixing provides strong protection: even if a fixed point were approached, the mixing would immediately move the state away
+4. Random initial values and periodic reseeding further prevent any potential fixed point convergence
+5. Fully ruling out fixed points for all parameter sets would require a separate, more technical argument specific to each parameter choice
 
-## 7. Thread Safety and Parallelism
+**Note**: The combination of empirical validation, cryptographic mixing, and reseeding makes fixed point convergence practically impossible, even though we do not have a blanket mathematical proof for all parameter combinations.
 
-### 7.1 Thread Safety Mechanisms
+## 10. Thread Safety and Parallelism
+
+### 10.1 Thread Safety Mechanisms
 
 The package provides two approaches to thread safety:
 
@@ -504,7 +617,7 @@ The package provides two approaches to thread safety:
    - No mutex contention, allowing full parallelism
    - Different random sequences in each thread
 
-### 7.2 Mathematical Implications of Threading
+### 10.2 Mathematical Implications of Threading
 
 Using thread-local PRNG instances has important mathematical implications:
 
@@ -523,9 +636,9 @@ Using thread-local PRNG instances has important mathematical implications:
    - Global mutex offers deterministic results but may be slower in highly threaded applications
    - Choice depends on application requirements
 
-## 8. Secure Memory Management
+## 11. Secure Memory Management
 
-### 8.1 SecureBuffer Implementation
+### 11.1 SecureBuffer Implementation
 
 The package uses a template class called `SecureBuffer` for secure memory management:
 
@@ -544,7 +657,7 @@ The package uses a template class called `SecureBuffer` for secure memory manage
    - Prevents buffer overflows and memory corruption
    - Simplifies memory management throughout the codebase
 
-### 8.2 Side-Channel Mitigation
+### 11.2 Side-Channel Mitigation
 
 The implementation includes several measures to reduce side-channel attack vectors:
 
@@ -553,7 +666,7 @@ The implementation includes several measures to reduce side-channel attack vecto
 3. **Protection against timing attacks**
 4. **Use of libsodium's secure memory functions**
 
-### 8.3 Application to Sensitive Data
+### 11.3 Application to Sensitive Data
 
 SecureBuffer is applied to:
 
@@ -562,7 +675,7 @@ SecureBuffer is applied to:
 - Temporary buffers containing sensitive data
 - Any other security-critical components
 
-## 9. Implementation Note on Use of SecureBuffer
+## 12. Implementation Note on Use of SecureBuffer
 
 The qiprng implementation uses the SecureBuffer template class for secure memory management of sensitive data. This class:
 
@@ -577,9 +690,9 @@ When implementing or modifying code, it's important to:
 - Allow the SecureBuffer destructor to handle clearing instead of manual clearing
 - Remember that SecureBuffer constructor takes only a size parameter, not an initializer value
 
-## 10. Memory Management Optimizations (v0.5.0)
+## 13. Memory Management Optimizations (v0.5.0)
 
-### 10.1 MPFR Memory Pooling
+### 13.1 MPFR Memory Pooling
 
 Version 0.5.0 introduces a singleton memory pool for MPFR objects:
 
@@ -598,7 +711,7 @@ Version 0.5.0 introduces a singleton memory pool for MPFR objects:
    - Per-thread quotas prevent starvation
    - Fallback to heap allocation when pool exhausted
 
-### 10.2 Thread-Local Storage
+### 13.2 Thread-Local Storage
 
 Each thread maintains its own MultiQI instance:
 
@@ -617,7 +730,7 @@ Each thread maintains its own MultiQI instance:
    - Automatic cleanup prevents leaks
    - Shared discriminant data
 
-## 11. Discriminants (pre-selected)
+## 14. Discriminants (pre-selected)
 
 The package includes a set of pre-selected discriminants for quadratic irrationals.
 
@@ -654,9 +767,9 @@ The package includes all discriminants for research, but uses only excellent one
 - **Effective Discrimination**: The stricter autocorrelation test provides a more realistic distribution of results, successfully identifying minor flaws that were previously missed.
 - **Overall Robustness**: 92.5% of the discriminants were rated as "Good" or better (including "Very-Good"), confirming the underlying strength of the generation method.
 
-## 12. Performance Analysis
+## 15. Performance Analysis
 
-### 12.1 Benchmarking Results
+### 15.1 Benchmarking Results
 
 In comprehensive benchmarks comparing qiprng with standard R generators, the following performance characteristics were observed:
 
@@ -667,11 +780,11 @@ In comprehensive benchmarks comparing qiprng with standard R generators, the fol
 | L'Ecuyer-CMRG | ~0.9ms | 30x faster | Very Good |
 | Wichmann-Hill | ~0.4ms | 68x faster | Good |
 
-### 12.2 Computational Complexity Analysis
+### 15.2 Computational Complexity Analysis
 
 The performance difference stems from fundamental algorithmic differences:
 
-#### 12.2.1 Operation Count per Random Number
+#### 15.2.1 Operation Count per Random Number
 
 **Standard Linear Congruential Generators (e.g., Mersenne Twister)**:
 
@@ -689,7 +802,7 @@ The performance difference stems from fundamental algorithmic differences:
 - 1 MPFR sign check and conditional addition
 - Total: ~7 arbitrary precision operations
 
-#### 12.2.2 MPFR Overhead
+#### 15.2.2 MPFR Overhead
 
 Each MPFR operation involves:
 
@@ -700,7 +813,7 @@ Each MPFR operation involves:
 
 Typical overhead: 100-1000x slower than hardware floating-point operations
 
-### 12.3 Component-wise Performance Breakdown
+### 15.3 Component-wise Performance Breakdown
 
 Based on code analysis and profiling estimates:
 
@@ -728,9 +841,9 @@ Based on code analysis and profiling estimates:
    - NaN/infinity checks
    - Range validation
 
-### 12.4 Optimization Opportunities
+### 15.4 Optimization Opportunities
 
-#### 12.4.1 Precision Tuning
+#### 15.4.1 Precision Tuning
 
 The most effective optimization is reducing MPFR precision:
 
@@ -739,7 +852,7 @@ The most effective optimization is reducing MPFR precision:
 - 256-bit: ~4x slower than 53-bit
 - 512-bit: ~8x slower than 53-bit
 
-#### 12.4.2 Batch Generation
+#### 15.4.2 Batch Generation
 
 Generating numbers in batches amortizes overhead:
 
@@ -751,7 +864,7 @@ for(i in 1:n) { x[i] <- generatePRNG(1) }
 x <- generatePRNG(n)
 ```
 
-#### 12.4.3 Disabling Optional Features
+#### 15.4.3 Disabling Optional Features
 
 When cryptographic security isn't required:
 
@@ -763,7 +876,7 @@ config <- list(
 )
 ```
 
-### 12.5 Performance vs. Security Trade-off
+### 15.5 Performance vs. Security Trade-off
 
 The 50x performance penalty is a deliberate design choice that provides:
 
@@ -774,7 +887,7 @@ The 50x performance penalty is a deliberate design choice that provides:
 
 For applications where these properties are valuable, the performance cost is justified. For general statistical sampling, standard generators remain more appropriate.
 
-### 12.6 Future Performance Improvements
+### 15.6 Future Performance Improvements
 
 Potential optimizations that could be explored:
 
@@ -784,38 +897,78 @@ Potential optimizations that could be explored:
 4. **JIT Compilation**: Compile parameter-specific optimized code at runtime
 5. **Hardware PRNG Integration**: Use hardware random sources for mixing instead of libsodium
 
-## 13. Statistical Test Algorithms
+## 16. Statistical Test Algorithms
 
-### 13.1 Gap Test
+### 16.1 Gap Test
 
 The gap test examines the distribution of gaps between occurrences of values within a specified range. For a truly random sequence, these gaps should follow a geometric distribution.
 
-#### 13.1.1 Algorithm
+#### 16.1.1 Algorithm
 
 1. **Define target range**: Default is [α, β] = [0.3, 0.7]
 2. **Identify positions**: Find all indices where values fall within [α, β]
 3. **Calculate gaps**: Compute differences between consecutive positions
 4. **Expected distribution**: For uniform random data, gaps follow a geometric distribution with parameter p = β - α
 
-#### 13.1.2 Mathematical Foundation
+#### 16.1.2 Mathematical Foundation (Rigorous Proof)
 
-For a sequence of uniform random numbers, the probability that a value falls in [α, β] is:
-
-```
-p = β - α
-```
-
-The probability of a gap of length k is:
+**Setup**: Let (Uₙ)ₙ≥₁ be i.i.d. uniform on [0,1]. Fix an interval [α, β] ⊂ [0,1] and set:
 
 ```
-P(gap = k) = (1-p)^(k-1) * p
+p := P(Uₙ ∈ [α, β]) = β - α
 ```
 
-This is the geometric distribution, representing the number of trials until the first success.
+Define indicator variables Xₙ := 𝟙{Uₙ ∈ [α, β]} for n = 1, 2, .... Then (Xₙ) are i.i.d. Bernoulli(p).
 
-#### 13.1.3 Implementation Details
+Let T₁ < T₂ < ... be the (random) indices of hits:
+- T₁ := min{n ≥ 1 : Xₙ = 1}
+- T_{k+1} := min{n > Tₖ : Xₙ = 1}
 
-The test uses chi-squared goodness-of-fit to compare observed gap frequencies with expected geometric distribution:
+Define the gap lengths Gₖ := T_{k+1} - Tₖ.
+
+**Theorem (Gap Distribution)**: For an i.i.d. uniform sequence on [0,1], the gaps between visits to a fixed interval [α, β] follow a geometric distribution:
+
+```
+P(G = k) = (1-p)^(k-1) · p,    p = β - α
+```
+
+**Proof**: We compute P(G₁ = k) for k = 1, 2, ....
+
+- G₁ = 1 iff we see a hit immediately after T₁: that is X_{T₁+1} = 1
+- In general, G₁ = k means: after a hit at T₁, we see k-1 misses followed by a hit
+
+Because the sequence is i.i.d., conditioning on the fact that time T₁ is a hit, the sequence (X_{T₁+1}, X_{T₁+2}, ...) is again i.i.d. Bernoulli(p) and independent of the past. Thus:
+
+```
+P(G₁ = k) = P(X_{T₁+1} = 0, ..., X_{T₁+k-1} = 0, X_{T₁+k} = 1)
+          = (1-p)^(k-1) · p
+```
+
+By the same argument, the post-T₂ process is independent and identically distributed to the original, so each gap Gₖ has the same law. ∎
+
+#### 16.1.3 Expected Frequencies and χ² Test
+
+If you observe N_gaps gaps and bucket them as lengths 1, 2, ..., K-1 and "≥ K", then:
+
+- For 1 ≤ k ≤ K-1:
+  ```
+  E[count of gaps with length k] = N_gaps · (1-p)^(k-1) · p
+  ```
+
+- For the last bin "≥ K":
+  ```
+  E[count of gaps with length ≥ K] = N_gaps · Σ_{k≥K} (1-p)^(k-1) · p = N_gaps · (1-p)^(K-1)
+  ```
+
+The χ² statistic is:
+
+```
+χ² = Σ_{k=1}^{K} (Oₖ - Eₖ)² / Eₖ
+```
+
+Under the null (true geometric with parameter p), and assuming all Eₖ are reasonably large, χ² is approximately χ²_{K-1-m} distributed, where m is the number of estimated parameters (often m=1 if you estimate p̂ from data).
+
+#### 16.1.4 Implementation Details
 
 ```r
 # Expected frequencies for gaps of length 1, 2, ..., max_gap
@@ -828,31 +981,113 @@ expected_freq[max_gap] = n_gaps * (1-p)^(max_gap-1)
 χ² = Σ((observed[k] - expected[k])²/expected[k])
 ```
 
-### 13.2 Spectral Test
+### 16.2 Spectral Test
 
 The spectral test analyzes the frequency domain characteristics of the random sequence using the periodogram and tests whether the spectral densities follow the expected distribution for white noise.
 
-#### 13.2.1 Algorithm
+#### 16.2.1 Algorithm
 
 1. **Compute periodogram**: Use Fast Fourier Transform (FFT) to calculate power spectral density
 2. **Normalize spectrum**: Scale spectral values by their mean
 3. **Expected distribution**: For white noise, normalized spectral densities follow an exponential distribution with rate parameter 1
 4. **Test goodness-of-fit**: Use Kolmogorov-Smirnov test to compare with exponential(1) distribution
 
-#### 12.2.2 Mathematical Foundation
+#### 16.2.2 Mathematical Foundation (Rigorous Proof)
 
-For a truly random sequence (white noise), the periodogram ordinates are approximately:
+**Setup**: Let (Xₜ)_{t=0}^{N-1} be i.i.d. with mean 0 and variance σ². For spectral arguments, assume either:
+- Xₜ is Gaussian, or
+- Xₜ is a general i.i.d. sequence with finite second moment (CLT applies asymptotically)
 
-- Independent
-- Exponentially distributed with mean equal to the true spectral density
-
-After normalization by the mean, they follow an exponential distribution with rate parameter 1:
+Define the discrete Fourier transform (DFT):
 
 ```
-f(x) = e^(-x) for x ≥ 0
+X̃(ωₖ) := Σ_{t=0}^{N-1} Xₜ exp(-2πikt/N),    k = 0, 1, ..., N-1
 ```
 
-#### 12.2.3 Implementation Details
+The (raw) periodogram at frequency ωₖ is:
+
+```
+I(ωₖ) := (1/2πN) |X̃(ωₖ)|²
+```
+
+For white noise, the true spectral density is constant: f(ω) ≡ σ²/2π.
+
+We focus on 1 ≤ k ≤ N/2-1, the "interior" frequencies (excluding 0 and Nyquist).
+
+**Distribution of the DFT under Gaussian white noise**:
+
+Assume Xₜ ~ N(0, σ²) i.i.d. Each X̃(ωₖ) is a linear combination of Gaussian variables, hence Gaussian. For 1 ≤ k ≤ N/2-1, the real and imaginary parts are (asymptotically) independent, each with variance Nσ²/2.
+
+More explicitly:
+```
+Re(X̃(ωₖ)) = Σ_{t=0}^{N-1} Xₜ cos(2πkt/N)
+Im(X̃(ωₖ)) = -Σ_{t=0}^{N-1} Xₜ sin(2πkt/N)
+```
+
+By independence and zero mean:
+```
+Var(Re(X̃(ωₖ))) = Σ_{t=0}^{N-1} σ² cos²(2πkt/N) ≈ Nσ²/2
+```
+(similarly for the imaginary part).
+
+Thus, for large N:
+```
+Re(X̃(ωₖ)), Im(X̃(ωₖ)) ≈ N(0, Nσ²/2), independent
+```
+
+So we can write approximately:
+```
+X̃(ωₖ) ≈ √(Nσ²/2) (Z₁ + iZ₂)
+```
+with Z₁, Z₂ i.i.d. N(0,1).
+
+Then:
+```
+|X̃(ωₖ)|² = (Nσ²/2)(Z₁² + Z₂²)
+```
+
+Hence the periodogram:
+```
+I(ωₖ) = (1/2πN)|X̃(ωₖ)|² ≈ (1/2πN) · (Nσ²/2)(Z₁² + Z₂²) = (σ²/4π)(Z₁² + Z₂²)
+```
+
+But Z₁² + Z₂² has a χ²₂ distribution, and χ²₂ ~ 2·Exp(1). So:
+```
+Z₁² + Z₂² = 2E,    E ~ Exp(1)
+```
+
+Thus:
+```
+I(ωₖ) ≈ (σ²/4π) · 2E = (σ²/2π) · E
+```
+
+Recall the true spectral density f(ωₖ) = σ²/2π. Therefore:
+
+**Theorem (Spectral Ordinates)**: For i.i.d. white noise Xₜ with variance σ², the normalized periodogram ordinates satisfy:
+```
+I(ωₖ)/f(ωₖ) ≈ E ~ Exp(1)
+```
+
+#### 16.2.3 Normalizing by the Sample Mean
+
+In practice, we normalize by the empirical mean of the periodogram ordinates:
+```
+Ī := (1/M) Σ_{k=1}^{M} I(ωₖ)
+```
+
+and form:
+```
+Sₖ := I(ωₖ)/Ī
+```
+
+For large M, the law of large numbers implies Ī → f(ω) almost surely, so Sₖ converges in distribution to Exp(1):
+```
+Sₖ ⇒ Exp(1)
+```
+
+This justifies the KS test against the exponential distribution.
+
+#### 16.2.4 Implementation Details
 
 ```r
 # Compute spectrum using R's spectrum function
@@ -865,9 +1100,9 @@ scaled_spec <- spec_result$spec / mean(spec_result$spec)
 ks_result <- ks.test(scaled_spec, "pexp", rate = 1)
 ```
 
-The Kolmogorov-Smirnov test statistic measures the maximum distance between the empirical distribution function of the scaled spectral values and the theoretical exponential CDF.
+The Kolmogorov-Smirnov test compares the empirical CDF of the {Sₖ} to the theoretical CDF F(x) = 1 - e^(-x) of Exp(1).
 
-#### 12.2.4 Interpretation
+#### 16.2.5 Interpretation
 
 - **High p-value**: Spectral characteristics consistent with white noise
 - **Low p-value**: Presence of periodic patterns or non-random structure

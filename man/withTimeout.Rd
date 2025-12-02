@@ -2,7 +2,7 @@
 % Please edit documentation in R/validation_suite.R
 \name{withTimeout}
 \alias{withTimeout}
-\title{Timeout helper function}
+\title{Execute Expression with Timeout}
 \usage{
 withTimeout(expr, timeout)
 }
@@ -11,6 +11,10 @@ withTimeout(expr, timeout)
 
 \item{timeout}{Timeout in seconds}
 }
+\value{
+Result of the expression, or throws an error on timeout
+}
 \description{
-Timeout helper function
+Evaluates an expression with a specified timeout, returning an error
+if the expression takes longer than the specified time.
 }

@@ -47,7 +47,7 @@
 #' Package unload function
 #'
 #' Called when the package is unloaded. Cleans up package resources including
-#' the PRNG instance to prevent memory leaks and ensure proper shutdown.
+#' the PRNG instance and thread pool to prevent memory leaks and ensure proper shutdown.
 #'
 #' @param libpath The library path where the package is installed
 #' @keywords internal
@@ -56,4 +56,11 @@
   if (exists("g_prng", envir = .pkgenv)) {
     rm("g_prng", envir = .pkgenv)
   }
+
+  # Safely shut down C++ thread pool before library unload
+  # This prevents static destruction order issues
+  try(.shutdown_thread_pool_(), silent = TRUE)
+
+  # Unload the shared library
+  library.dynam.unload("qiprng", libpath)
 }

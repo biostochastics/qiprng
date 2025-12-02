@@ -2,7 +2,7 @@
 
 <img src="images/qiprng_logo.png" alt="QIPRNG Logo" width="300"/>
 
-[![Version](https://img.shields.io/badge/Version-0.6.5-blue)](https://github.com/biostochastics/qiprng)
+[![Version](https://img.shields.io/badge/Version-0.7.0-blue)](https://github.com/biostochastics/qiprng)
 [![ThreadSafe](https://img.shields.io/badge/Thread%20Safe-Yes-brightgreen)](https://github.com/biostochastics/qiprng)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen)](https://github.com/biostochastics/qiprng)
@@ -25,6 +25,24 @@ hist(x, breaks = 50, main = "qiprng uniform distribution", col = "skyblue")
 ```
 
 ## What's New
+
+### Version 0.7.0 - Critical Thread Safety & Build Fixes
+
+This release addresses critical thread safety issues and improves cross-platform build support:
+
+- **Thread Safety**: Fixed ThreadPool shutdown race condition, static destruction ordering, and OpenMP TLS cleanup issues
+- **Build Portability**: Improved configure script with platform-aware pkg-config discovery for macOS, Linux, and various package managers
+- **Validation Suite**: Fixed paths for installed packages using `system.file()`, exported `withTimeout` function
+- **Algorithm Fixes**: Corrected CFE period bounds to `O(sqrt(D) * log(D))`, improved fallback entropy, fixed MPFRWrapper swap
+- **Config Alignment**: Synchronized R and C++ default configuration values
+
+### Version 0.6.6 - Mathematical Documentation Improvements
+
+This release adds rigorous mathematical proofs and corrects documentation errors:
+
+- **Bug Fixes**: Corrected false claim about square-free discriminants; fixed overstated fixed-point avoidance claim
+- **Proofs Added**: Gap test (geometric distribution), spectral test (Exp(1) ordinates), crypto mixing uniformity, CFE periodicity
+- **Documentation**: Complete section renumbering and clarified matrix jump-ahead foundation
 
 ### Version 0.6.5 - Deterministic Mode Enhancements
 
@@ -454,7 +472,7 @@ jump-ahead functionality uses matrix exponentiation with MPFR arithmetic to achi
 O(log n) complexity, enabling efficient advancement by astronomical distances (10^18+ steps)
 for parallel stream generation.
 
-For detailed mathematical theory and proofs, see [MATH.Md](MATH.Md).
+For detailed mathematical theory and proofs, see [MATH.md](MATH.md).
 
 ## Performance Considerations
 
@@ -571,7 +589,7 @@ If you use this package in your research, please cite:
   title = {qiprng: Quadratic Irrational Pseudo-Random Number Generator for R},
   author = {Sergey Kornilov},
   year = {2025},
-  note = {R package version 0.6.3},
+  note = {R package version 0.7.0},
   url = {https://github.com/biostochastics/qiprng}
 }
 ```

@@ -22,6 +22,7 @@ This function performs statistical tests on the PRNG output to verify
 its quality.
 }
 \examples{
+\dontrun{
 # Run tests with default configuration
 results <- test_qiprng()
 
@@ -35,4 +36,5 @@ cfg <- list(
   buffer_size = 1024L
 )
 results <- test_qiprng(10000, cfg)
+}
 }
