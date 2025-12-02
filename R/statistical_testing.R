@@ -31,12 +31,30 @@
 #' @importFrom grDevices png dev.off
 NULL
 
-# Source parallel runner if available
-if (file.exists(system.file("R/statisticaltests/parallel_runner.R", package = "qiprng"))) {
-  source(system.file("R/statisticaltests/parallel_runner.R", package = "qiprng"))
-} else if (file.exists("R/statisticaltests/parallel_runner.R")) {
-  source("R/statisticaltests/parallel_runner.R")
+# Helper function to source package files
+.source_stat_file <- function(relative_path) {
+  # Try installed package first
+  full_path <- system.file(relative_path, package = "qiprng")
+  if (nzchar(full_path) && file.exists(full_path)) {
+    source(full_path, local = FALSE)
+    return(invisible(TRUE))
+  }
+  # Fallback for development
+  dev_paths <- c(
+    file.path("inst", relative_path),
+    relative_path
+  )
+  for (dev_path in dev_paths) {
+    if (file.exists(dev_path)) {
+      source(dev_path, local = FALSE)
+      return(invisible(TRUE))
+    }
+  }
+  invisible(FALSE)
 }
+
+# Source parallel runner if available
+.source_stat_file("statisticaltests/parallel_runner.R")
 
 # Source caching framework if available
 if (file.exists(system.file("R/caching_framework.R", package = "qiprng"))) {
@@ -547,21 +565,21 @@ save_test_report <- function(suite, filename = NULL) {
 }
 
 # Include test modules
-source("R/statisticaltests/basic_tests.R")
-source("R/statisticaltests/runs_tests.R")
-source("R/statisticaltests/correlation_tests.R")
-source("R/statisticaltests/binary_tests.R")
-source("R/statisticaltests/classical_tests.R")
-source("R/statisticaltests/compression_tests.R")
-source("R/statisticaltests/external_tests.R")
+.source_stat_file("statisticaltests/basic_tests.R")
+.source_stat_file("statisticaltests/runs_tests.R")
+.source_stat_file("statisticaltests/correlation_tests.R")
+.source_stat_file("statisticaltests/binary_tests.R")
+.source_stat_file("statisticaltests/classical_tests.R")
+.source_stat_file("statisticaltests/compression_tests.R")
+.source_stat_file("statisticaltests/external_tests.R")
 
 # Include visualization modules
-source("R/statisticaltests/visualization_basic.R")
-source("R/statisticaltests/visualization_runs.R")
-source("R/statisticaltests/visualization_correlation.R")
-source("R/statisticaltests/visualization_binary.R")
-source("R/statisticaltests/visualization_classical.R")
-source("R/statisticaltests/visualization.R")
+.source_stat_file("statisticaltests/visualization_basic.R")
+.source_stat_file("statisticaltests/visualization_runs.R")
+.source_stat_file("statisticaltests/visualization_correlation.R")
+.source_stat_file("statisticaltests/visualization_binary.R")
+.source_stat_file("statisticaltests/visualization_classical.R")
+.source_stat_file("statisticaltests/visualization.R")
 
 #' Run statistical tests on the current PRNG configuration
 #'

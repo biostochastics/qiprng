@@ -461,7 +461,8 @@ test_moments <- function(samples) {
   sample_mean <- mean(samples)
   sample_var <- var(samples)
   sample_skew <- skewness(samples)
-  sample_kurt <- kurtosis(samples, excess = FALSE) # Use non-excess kurtosis
+  # kurtosis() returns excess kurtosis by default, add 3 for non-excess kurtosis
+  sample_kurt <- kurtosis(samples) + 3
 
   # For uniform [0,1]: mean=0.5, var=1/12≈0.0833, skew=0, kurt=1.8
   expected_mean <- 0.5

@@ -1,5 +1,108 @@
 # CHANGELOG
 
+## Version 0.7.0 (2025-12-02)
+
+### Critical Distribution Bug Fixes
+
+#### Normal Distribution Double-Scaling Bug (CRITICAL)
+
+- **Issue**: When using Ziggurat method, mean/sd transformation was applied twice
+  - Ziggurat's `generate()` returns: `mean_ + stddev_ * std_normal_val`
+  - `generate_normal()` then applied: `config_.normal_mean + config_.normal_sd * result`
+  - Result: Double-transformed values with incorrect mean and inflated variance
+- **Fix**: Removed duplicate transformation in `enhanced_prng.cpp:1218`
+  - Ziggurat already applies mean/sd, so return result directly
+- **Impact**: All Ziggurat-based normal samples were mathematically incorrect
+
+#### Derived Distributions Using Wrong Normal (CRITICAL)
+
+- **Issue**: Several distributions called `generate_normal()` expecting N(0,1) but received N(normal_mean, normal_sd)
+- **Fix**: Added `generate_standard_normal()` method that always returns N(0,1)
+- **Affected distributions fixed**:
+  - **Lognormal**: Now uses `generate_standard_normal()` for correct exp(μ + σZ) formula
+  - **Chi-squared** (normal approx for df>100): Now uses standard normal
+  - **Binomial** (normal approx): Now uses standard normal for N(np, sqrt(np(1-p)))
+  - **Student-t**: Now uses standard normal for Z/sqrt(χ²/df) ratio
+- **Impact**: All derived distributions now produce mathematically correct samples
+
+#### Student-t Non-Integer Degrees of Freedom (HIGH)
+
+- **Issue**: In `extended_distributions.hpp`, chi-squared generation used integer loop `for (int i = 0; i < df_; ++i)` which truncated non-integer df values
+- **Fix**: Replaced with proper gamma-based chi-squared generation
+  - Chi-squared(df) = Gamma(df/2, 2) for any positive df
+  - Implemented Ahrens-Dieter (α<1) and Marsaglia-Tsang (α≥1) algorithms
+- **Impact**: Non-integer degrees of freedom now handled correctly
+
+#### Pareto Edge Case Handling (MEDIUM)
+
+- **Issue**: If uniform u=1.0, Pareto formula `xm_ / pow(1-u, 1/alpha)` returned infinity
+- **Fix**: Added clamping to prevent u=1.0 exactly
+- **Impact**: Edge case no longer produces infinity
+
+### New Features
+
+- **`generate_standard_normal()`**: New internal method for generating N(0,1) samples
+  - Uses Box-Muller transform directly
+  - Isolated from config_.normal_mean/sd settings
+  - Used by all derived distributions requiring standard normal input
+
+### Files Modified
+
+- `src/enhanced_prng.hpp`: Added `generate_standard_normal()` declaration
+- `src/enhanced_prng.cpp`:
+  - Fixed Ziggurat double-scaling bug
+  - Added `generate_standard_normal()` implementation
+  - Fixed `generate_lognormal_dispatch()` to use standard normal
+  - Fixed `generate_chisquared_dispatch()` normal approximation
+  - Fixed `generate_binomial_dispatch()` normal approximation
+  - Fixed `generate_student_t_dispatch()` to use standard normal
+- `src/extended_distributions.hpp`:
+  - Fixed `Pareto::sample()` edge case handling
+  - Rewrote `StudentT::sample()` with gamma-based chi-squared for non-integer df
+
+## Version 0.6.6 (2025-12-02)
+
+### Mathematical Documentation Improvements
+
+#### Bug Fixes in MATH.md
+
+- **Fixed incorrect square-free claim**: Corrected the false statement that "D = k² + 1 is always square-free"
+  - Added counterexample: k = 7 yields 50 = 2 × 5², which is not square-free
+  - Clarified that square-freeness must be validated, not assumed
+
+- **Fixed overstated fixed-point avoidance claim**: Corrected the claim that "a > 0, c < 0 ensures no fixed points"
+  - Added mathematical analysis showing why this is not guaranteed
+  - Documented practical mitigations (crypto mixing, reseeding) that prevent convergence
+
+#### Rigorous Mathematical Proofs Added
+
+- **Gap Test (§16.1)**: Added complete proof that gaps between hits in [α, β] follow geometric distribution
+  - Formal setup with indicator variables and stopping times
+  - Full derivation of P(G = k) = (1-p)^(k-1) · p
+  - Expected frequencies for χ² test bins
+
+- **Spectral Test (§16.2)**: Added rigorous proof for periodogram ordinate distribution
+  - DFT distribution under Gaussian white noise
+  - Derivation showing I(ωₖ)/f(ωₖ) ~ Exp(1)
+  - Justification for sample mean normalization
+
+- **Crypto Mixing Uniformity (§7.2.1)**: Added measure-theoretic proof that (U + C) mod 1 ~ Unif[0,1)
+  - Circle rotation argument preserving Lebesgue measure
+  - Note that averaging does NOT preserve uniformity (produces triangular distribution)
+
+- **CFE Periodicity (§5)**: Added proof of Lagrange's theorem application
+  - Boundedness argument for (Pₙ, Qₙ) state space
+  - Pigeonhole argument establishing eventual periodicity
+
+- **Matrix Jump-Ahead (§4)**: Clarified mathematical foundation
+  - Explanation of polynomial composition semigroup
+  - Conditions for validity of matrix exponentiation approach
+
+#### Section Numbering Corrections
+
+- Fixed inconsistent section numbering throughout the document
+- Renumbered sections 8-16 for proper sequential ordering
+
 ## Version 0.6.5 (2025-09-25)
 
 ### Deterministic Mode Complete Fix

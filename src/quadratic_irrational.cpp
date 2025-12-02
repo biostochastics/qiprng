@@ -31,6 +31,11 @@ Matrix2x2 Matrix2x2::power(uint64_t n) const {
 }
 
 // Check if a number is square-free (no repeated prime factors)
+// WARNING: This function has data-dependent timing due to the trial division loop.
+// The number of iterations varies based on the input value. Do not use
+// discriminant values as secrets. For PRNG parameter selection during
+// initialization, this timing variation is acceptable since discriminants
+// are not sensitive data.
 bool QuadraticIrrational::is_square_free(long long n) {
     if (n <= 1)
         return false;
@@ -127,10 +132,11 @@ void QuadraticIrrational::compute_cfe_period() {
     // Based on theoretical bounds for continued fraction periods
     const size_t BASE_MAX_PERIOD = 100000;          // Base maximum period length for safety
     const size_t DISCRIMINANT_SCALING_FACTOR = 10;  // Scaling factor based on Lagrange's theorem
-    // Period length is O(sqrt(D) * log(D)) in worst case, we use conservative estimate
+    // Period length is O(sqrt(D) * log(D)) in worst case, include log term for large D
     const size_t MAX_PERIOD =
         std::max(BASE_MAX_PERIOD, static_cast<size_t>(DISCRIMINANT_SCALING_FACTOR *
-                                                      std::sqrt(static_cast<double>(D))));
+                                                      std::sqrt(static_cast<double>(D)) *
+                                                      std::log(static_cast<double>(D) + 1.0)));
 
     while (index < MAX_PERIOD) {
         // Gauss-Legendre recurrence formulas
@@ -281,9 +287,9 @@ void QuadraticIrrational::step_once() {
 
 QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t prec, uint64_t seed,
                                          bool has_seed)
-    : a_(a), b_(b), c_(c), discriminant_(0), mpfr_prec_(prec), cfe_period_length_(0),
-      cfe_computed_(false), P_n_(0), Q_n_(1), use_fast_path_(false), fast_value_(0.0),
-      fast_value_dirty_(false), seed_(seed), has_seed_(has_seed) {
+    : a_(a), b_(b), c_(c), discriminant_(0), mpfr_prec_(prec), use_fast_path_(false),
+      fast_value_(0.0), fast_value_dirty_(false), cfe_period_length_(0), cfe_computed_(false),
+      P_n_(0), Q_n_(1), seed_(seed), has_seed_(has_seed) {
     // Validate parameters more comprehensively
     if (a == 0) {
         throw std::invalid_argument("QuadraticIrrational: 'a' parameter cannot be zero");

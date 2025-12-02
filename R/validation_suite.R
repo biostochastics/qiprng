@@ -9,6 +9,33 @@
 #'
 #' @name validation_suite
 
+#' Source a test file from the installed package
+#'
+#' @param relative_path Relative path within inst/ directory
+#' @return Invisible NULL
+#' @noRd
+source_pkg_file <- function(relative_path) {
+  full_path <- system.file(relative_path, package = "qiprng")
+  if (nzchar(full_path) && file.exists(full_path)) {
+    source(full_path, local = FALSE)
+  } else {
+    # Fallback for development: try relative paths
+    dev_paths <- c(
+      file.path("inst", relative_path),
+      relative_path,
+      file.path("R", relative_path)
+    )
+    for (dev_path in dev_paths) {
+      if (file.exists(dev_path)) {
+        source(dev_path, local = FALSE)
+        return(invisible(NULL))
+      }
+    }
+    warning(paste("Could not find test file:", relative_path))
+  }
+  invisible(NULL)
+}
+
 # Source required test files
 source_test_files <- function() {
   test_files <- c(
@@ -24,12 +51,8 @@ source_test_files <- function() {
     "statisticaltests/edge_case_tests.R"
   )
 
-  for (file in test_files) {
-    if (file.exists(file)) {
-      source(file)
-    } else if (file.exists(file.path("R", file))) {
-      source(file.path("R", file))
-    }
+  for (file_path in test_files) {
+    source_pkg_file(file_path)
   }
 }
 
@@ -129,11 +152,7 @@ validate_qiprng_framework <- function(level = "standard",
     if (verbose) cat("\nRunning performance benchmarks...\n")
 
     # Use comprehensive performance benchmarking if available
-    if (file.exists("R/statisticaltests/performance_benchmarking.R")) {
-      source("R/statisticaltests/performance_benchmarking.R")
-    } else if (file.exists("statisticaltests/performance_benchmarking.R")) {
-      source("statisticaltests/performance_benchmarking.R")
-    }
+    source_pkg_file("statisticaltests/performance_benchmarking.R")
 
     if (exists("run_performance_benchmarks")) {
       perf_results <- run_performance_benchmarks(config, verbose)
@@ -177,11 +196,7 @@ validate_qiprng_framework <- function(level = "standard",
     if (verbose) cat("\nGenerating validation reports...\n")
 
     # Source reporting module if available
-    if (file.exists("R/statisticaltests/validation_reporting.R")) {
-      source("R/statisticaltests/validation_reporting.R")
-    } else if (file.exists("statisticaltests/validation_reporting.R")) {
-      source("statisticaltests/validation_reporting.R")
-    }
+    source_pkg_file("statisticaltests/validation_reporting.R")
 
     if (exists("generate_validation_report")) {
       report_formats <- if (!is.null(config$report_formats)) {
@@ -1077,10 +1092,15 @@ modifyList <- function(x, val) {
   modifyList(x, val)
 }
 
-#' Timeout helper function
+#' Execute Expression with Timeout
+#'
+#' Evaluates an expression with a specified timeout, returning an error
+#' if the expression takes longer than the specified time.
 #'
 #' @param expr Expression to evaluate
 #' @param timeout Timeout in seconds
+#' @return Result of the expression, or throws an error on timeout
+#' @export
 withTimeout <- function(expr, timeout) {
   setTimeLimit(cpu = timeout, elapsed = timeout)
   on.exit(setTimeLimit(cpu = Inf, elapsed = Inf))

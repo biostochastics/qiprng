@@ -14,6 +14,10 @@
 src/*.o
 src/*.so
 src/*.dll
+src/*.dylib
+
+# Generated Makevars (created by configure script)
+src/Makevars
 
 # Test results
 test_results/*

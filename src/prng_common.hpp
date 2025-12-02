@@ -6,6 +6,7 @@
 #include <mpfr.h>
 
 #include <atomic>  // For std::atomic
+#include <chrono>  // For high_resolution_clock
 #include <cmath>   // For sqrt
 #include <limits>  // For numeric_limits
 #include <memory>
@@ -254,7 +255,8 @@ struct PRNGDefaults {
     static constexpr double range_min = 0.0;
     static constexpr double range_max = 1.0;
     static constexpr double exponential_lambda = 1.0;
-    static constexpr bool use_csv_discriminants = false;  // default to not using CSV discriminants
+    static constexpr bool use_csv_discriminants =
+        true;  // default to using high-quality CSV discriminants
     static constexpr NormalMethod normal_method = ZIGGURAT;  // default to faster algorithm
 };
 
@@ -626,12 +628,18 @@ class MPFRWrapper {
 
     inline int compare_si(long val) const { return mpfr_cmp_si(*get(), val); }
 
-    // Efficient swap operation
+    // Efficient swap operation - handles all initialization states
     inline void swap(MPFRWrapper& other) noexcept {
+        // Swap initialization flags
+        std::swap(initialized_, other.initialized_);
+        std::swap(cached_precision_, other.cached_precision_);
+        // Only swap MPFR values if both are initialized (after flag swap)
+        // This works because mpfr_swap requires both to be initialized
         if (initialized_ && other.initialized_) {
             mpfr_swap(value, other.value);
-            std::swap(cached_precision_, other.cached_precision_);
         }
+        // Note: If only one was initialized before swap, the initialized_
+        // flag is now correctly swapped to indicate the new state
     }
 };
 
@@ -769,23 +777,40 @@ class SecureBuffer {
     typename std::vector<T, AlignedAllocator<T>>::const_iterator end() const { return data_.end(); }
 };
 
-// Deterministic fallback RNG seeding helper
-// Simplified version to avoid thread_local linker issues
+// Fallback RNG seeding helper with improved entropy
+// Uses hardware entropy when available, with time-based fallback
 class DeterministicSeedHelper {
    public:
-    // Get a seed for a fallback RNG - always deterministic for testing
+    // Get a seed for a fallback RNG - uses best available entropy
     static uint64_t get_fallback_seed() {
-        // Use a fixed seed combined with thread ID for determinism
-        // This avoids the thread_local storage issues that cause duplicate symbols
         uint64_t thread_id = std::hash<std::thread::id>{}(std::this_thread::get_id());
+        uint64_t base_seed;
 
-        // Use a fixed base seed for determinism during testing
-        const uint64_t base_seed = 12345;
+        // Try to use hardware entropy if available
+        try {
+            std::random_device rd;
+            if (rd.entropy() > 0) {
+                // Good hardware entropy available
+                base_seed = static_cast<uint64_t>(rd()) | (static_cast<uint64_t>(rd()) << 32);
+            } else {
+                // No hardware entropy - use high-resolution time
+                auto now = std::chrono::high_resolution_clock::now();
+                base_seed = static_cast<uint64_t>(
+                    std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch())
+                        .count());
+            }
+        } catch (...) {
+            // random_device failed - use time-based fallback
+            auto now = std::chrono::high_resolution_clock::now();
+            base_seed = static_cast<uint64_t>(
+                std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch())
+                    .count());
+        }
 
-        // Mix the values to create a unique but deterministic seed per thread
-        uint64_t seed = base_seed ^ (thread_id << 16);
+        // Mix with thread ID to create unique seed per thread
+        uint64_t seed = base_seed ^ (thread_id << 16) ^ (thread_id >> 48);
 
-        // Apply a simple mixing function to improve distribution
+        // Apply splitmix64 mixing function for better distribution
         seed ^= seed >> 33;
         seed *= 0xff51afd7ed558ccdULL;
         seed ^= seed >> 33;
@@ -802,9 +827,7 @@ class DeterministicSeedHelper {
         (void)seed;
     }
 
-    static bool has_seed() {
-        return true;  // Always in deterministic mode for testing
-    }
+    static bool has_seed() { return true; }
 };
 
 // Convenience macro for creating deterministic fallback RNGs

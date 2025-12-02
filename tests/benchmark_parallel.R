@@ -112,7 +112,7 @@ test_workload <- function(use_work_stealing = TRUE) {
     buffer_size = 10000,
     use_parallel_filling = TRUE,
     use_threading = TRUE,
-    mixing_strategy = ifelse(use_work_stealing, "CASCADE_MIX", "ROUND_ROBIN")
+    mixing_strategy = ifelse(use_work_stealing, "cascade_mix", "round_robin")
   )
 
   createPRNG(cfg)

@@ -6,6 +6,7 @@
 #include "multi_qi.hpp"            // For ThreadLocalPRNG and thread-local variables
 #include "multi_qi_optimized.hpp"  // For MultiQIOptimized
 #include "prng_utils.hpp"
+#include "thread_pool.hpp"  // For shutdown_global_thread_pool
 #include "ziggurat_normal.hpp"
 
 using namespace Rcpp;
@@ -122,8 +123,11 @@ void validatePRNGConfig(const PRNGConfig& cfg) {
     }
 
     // Validate MPFR precision
-    if (cfg.mpfr_precision < MPFR_PREC_MIN || cfg.mpfr_precision > MPFR_PREC_MAX) {
-        throw std::invalid_argument("Invalid config: mpfr_precision out of valid range");
+    // Note: Use practical maximum of 10000 bits instead of MPFR_PREC_MAX
+    // since MPFR_PREC_MAX doesn't fit in unsigned int on most platforms
+    constexpr unsigned int PRACTICAL_PREC_MAX = 10000;
+    if (cfg.mpfr_precision < MPFR_PREC_MIN || cfg.mpfr_precision > PRACTICAL_PREC_MAX) {
+        throw std::invalid_argument("Invalid config: mpfr_precision out of valid range (2-10000)");
     }
 }
 
@@ -210,10 +214,11 @@ PRNGConfig parsePRNGConfig(Rcpp::List rcfg) {
         if (TYPEOF(prec_sexp) == INTSXP || TYPEOF(prec_sexp) == REALSXP) {
             unsigned int prec = Rcpp::as<unsigned int>(prec_sexp);
             // SECURITY FIX: Validate MPFR precision bounds
-            if (prec < MPFR_PREC_MIN || prec > MPFR_PREC_MAX) {
+            // Note: Use practical maximum of 10000 bits (matches validatePRNGConfig)
+            constexpr unsigned int PRACTICAL_PREC_MAX = 10000;
+            if (prec < MPFR_PREC_MIN || prec > PRACTICAL_PREC_MAX) {
                 throw std::invalid_argument("Invalid mpfr_precision: must be between " +
-                                            std::to_string(MPFR_PREC_MIN) + " and " +
-                                            std::to_string(MPFR_PREC_MAX));
+                                            std::to_string(MPFR_PREC_MIN) + " and 10000");
             }
             cfg.mpfr_precision = prec;
         }
@@ -1213,5 +1218,16 @@ bool cleanupPRNG_Final_() {
     } catch (...) {
         // We don't even try to log errors in the final cleanup
         return false;
+    }
+}
+
+// [[Rcpp::export(".shutdown_thread_pool_")]]
+void shutdown_thread_pool_() {
+    // Safely shut down the global thread pool
+    // This should be called from R's .onUnload before library unload
+    try {
+        qiprng::shutdown_global_thread_pool();
+    } catch (...) {
+        // Silently ignore errors during shutdown
     }
 }
