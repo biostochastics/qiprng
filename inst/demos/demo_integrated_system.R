@@ -33,11 +33,11 @@ monitor$start(total_tests, categories)
 
 # Simulate running tests
 set.seed(123)
-for (cat in categories) {
-  monitor$update_category(cat, total = 7, status = "running")
+for (category in categories) {
+  monitor$update_category(category, total = 7, status = "running")
 
   for (i in 1:7) {
-    test_name <- paste0(cat, "_test_", i)
+    test_name <- paste0(category, "_test_", i)
 
     # Start test
     monitor$update_test(test_name, "running")
@@ -61,9 +61,9 @@ aggregator <- ResultAggregator$new()
 
 # Add simulated test results
 set.seed(123)
-for (cat in categories) {
+for (category in categories) {
   for (i in 1:7) {
-    test_name <- paste0(cat, "_test_", i)
+    test_name <- paste0(category, "_test_", i)
     p_value <- runif(1)
 
     result <- list(
@@ -71,12 +71,12 @@ for (cat in categories) {
       p_value = p_value,
       statistic = rnorm(1),
       details = list(
-        method = paste("Simulated", cat, "test"),
+        method = paste("Simulated", category, "test"),
         sample_size = get_test_param("global.default_sample_size", config)
       )
     )
 
-    aggregator$add_result(cat, test_name, result)
+    aggregator$add_result(category, test_name, result)
   }
 }
 

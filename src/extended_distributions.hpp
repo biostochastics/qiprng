@@ -54,7 +54,13 @@ class LevyStable : public Distribution {
     double sample(std::function<double()> uniform_gen) override {
         // Chambers-Mallows-Stuck algorithm
         double u = M_PI * (uniform_gen() - 0.5);
-        double w = -std::log(uniform_gen());
+        double w_input = uniform_gen();
+        // Clamp to (0,1) to avoid log(0) = -infinity
+        if (w_input <= 0.0)
+            w_input = std::numeric_limits<double>::epsilon();
+        if (w_input >= 1.0)
+            w_input = 1.0 - std::numeric_limits<double>::epsilon();
+        double w = -std::log(w_input);
 
         if (alpha_ == 1.0) {
             // Cauchy case
@@ -94,6 +100,11 @@ class Pareto : public Distribution {
 
     double sample(std::function<double()> uniform_gen) override {
         double u = uniform_gen();
+        // Clamp u to avoid edge case: if u = 1, then (1-u) = 0 causes infinity
+        if (u >= 1.0)
+            u = 1.0 - std::numeric_limits<double>::epsilon();
+        if (u <= 0.0)
+            u = std::numeric_limits<double>::epsilon();
         return xm_ / std::pow(1.0 - u, 1.0 / alpha_);
     }
 };
@@ -307,21 +318,87 @@ class StudentT : public Distribution {
 
     double sample(std::function<double()> uniform_gen) override {
         // Generate using ratio of normal to chi-square
-        // First generate standard normal using Box-Muller
+        // Student's t = Z / sqrt(chi²/df) where Z ~ N(0,1)
+
+        // Generate standard normal using Box-Muller
         double u1 = uniform_gen();
         double u2 = uniform_gen();
+        // Clamp uniforms to avoid log(0)
+        if (u1 <= 0.0)
+            u1 = std::numeric_limits<double>::epsilon();
+        if (u1 >= 1.0)
+            u1 = 1.0 - std::numeric_limits<double>::epsilon();
         double z = std::sqrt(-2.0 * std::log(u1)) * std::cos(2.0 * M_PI * u2);
 
-        // Generate chi-square with df degrees of freedom
-        double chi_sq = 0;
-        for (int i = 0; i < df_; ++i) {
-            double u3 = uniform_gen();
-            double u4 = uniform_gen();
-            double n = std::sqrt(-2.0 * std::log(u3)) * std::cos(2.0 * M_PI * u4);
-            chi_sq += n * n;
+        // Generate chi-square with df degrees of freedom using Gamma(df/2, 2)
+        // This correctly handles non-integer df values
+        // Chi-squared(df) = Gamma(df/2, 2)
+        double shape = df_ / 2.0;
+        double chi_sq;
+
+        if (shape < 1.0) {
+            // Ahrens-Dieter method for shape < 1
+            double b = (shape + M_E) / M_E;
+            while (true) {
+                double u3 = uniform_gen();
+                double u4 = uniform_gen();
+                // Clamp u3 to (0,1) to avoid log(0) in the else branch
+                if (u3 <= 0.0)
+                    u3 = std::numeric_limits<double>::epsilon();
+                if (u3 >= 1.0)
+                    u3 = 1.0 - std::numeric_limits<double>::epsilon();
+                double p = b * u3;
+                if (p <= 1.0) {
+                    double x = std::pow(p, 1.0 / shape);
+                    if (u4 <= std::exp(-x)) {
+                        chi_sq = 2.0 * x;  // scale = 2
+                        break;
+                    }
+                } else {
+                    double x = -std::log((b - p) / shape);
+                    if (u4 <= std::pow(x, shape - 1.0)) {
+                        chi_sq = 2.0 * x;  // scale = 2
+                        break;
+                    }
+                }
+            }
+        } else {
+            // Marsaglia-Tsang method for shape >= 1
+            double d = shape - 1.0 / 3.0;
+            double c = 1.0 / std::sqrt(9.0 * d);
+            while (true) {
+                double v, n;
+                do {
+                    double u3 = uniform_gen();
+                    double u4 = uniform_gen();
+                    if (u3 <= 0.0)
+                        u3 = std::numeric_limits<double>::epsilon();
+                    n = std::sqrt(-2.0 * std::log(u3)) * std::cos(2.0 * M_PI * u4);
+                    v = 1.0 + c * n;
+                } while (v <= 0.0);
+                v = v * v * v;
+                double u5 = uniform_gen();
+                // Clamp u5 to (0,1) to avoid log(0) in acceptance test
+                if (u5 <= 0.0)
+                    u5 = std::numeric_limits<double>::epsilon();
+                if (u5 >= 1.0)
+                    u5 = 1.0 - std::numeric_limits<double>::epsilon();
+                if (u5 < 1.0 - 0.0331 * (n * n) * (n * n)) {
+                    chi_sq = 2.0 * d * v;  // scale = 2
+                    break;
+                }
+                if (std::log(u5) < 0.5 * n * n + d * (1.0 - v + std::log(v))) {
+                    chi_sq = 2.0 * d * v;  // scale = 2
+                    break;
+                }
+            }
         }
 
-        // Student's t = normal / sqrt(chi-square/df)
+        if (chi_sq <= 0.0) {
+            chi_sq = std::numeric_limits<double>::epsilon();
+        }
+
+        // Student's t = Z / sqrt(chi²/df)
         double t = z / std::sqrt(chi_sq / df_);
         return mu_ + sigma_ * t;
     }

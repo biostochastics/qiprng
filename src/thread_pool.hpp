@@ -124,8 +124,8 @@ class ThreadPool {
         }
     }
 
-    // Destructor stops all threads with timeout
-    ~ThreadPool() { shutdown(std::chrono::seconds(5)); }
+    // Destructor - calls safe shutdown
+    ~ThreadPool() { shutdown(); }
 
     // Add a task to the pool
     template <typename F, typename... Args>
@@ -158,80 +158,61 @@ class ThreadPool {
         all_done_.wait(lock, [this] { return tasks_.empty() && active_threads_ == 0; });
     }
 
-    // Stop the thread pool (deprecated, use shutdown instead)
-    void stop() {
-        shutdown(std::chrono::seconds(0));  // No timeout for backward compatibility
-    }
-
-    // Shutdown with timeout - returns true if all threads joined successfully
-    template <typename Rep, typename Period>
-    bool shutdown(std::chrono::duration<Rep, Period> timeout) {
-        if (stop_)
-            return true;
-        stop_ = true;
-        tasks_.done();
-
-        bool all_joined = true;
-        auto deadline = std::chrono::steady_clock::now() + timeout;
-
-        // Try to join all worker threads with timeout
-        for (auto& worker : workers_) {
-            if (worker.joinable()) {
-                if (timeout.count() > 0) {
-                    // Simplified timeout approach: try join with periodic checks
-                    auto remaining = deadline - std::chrono::steady_clock::now();
-                    if (remaining > std::chrono::milliseconds(0)) {
-                        // Wait a short time and check if thread finished
-                        auto wait_time = std::chrono::milliseconds(100);
-                        if (remaining < wait_time) {
-                            wait_time =
-                                std::chrono::duration_cast<std::chrono::milliseconds>(remaining);
-                        }
-                        std::this_thread::sleep_for(wait_time);
-
-                        // Try join with zero timeout (non-blocking check)
-                        if (worker.joinable()) {
-                            // If still joinable after wait, detach it
-                            if (std::chrono::steady_clock::now() >= deadline) {
-                                worker.detach();
-                                all_joined = false;
-                            } else {
-                                worker.join();  // Try joining again
-                            }
-                        }
-                    } else {
-                        // Timeout already expired, detach
-                        worker.detach();
-                        all_joined = false;
-                    }
-                } else {
-                    // No timeout, just join
-                    worker.join();
-                }
-            }
+    // Safe blocking shutdown - always joins all threads
+    void shutdown() {
+        // Atomic exchange ensures shutdown runs only once
+        bool already_stopping = stop_.exchange(true, std::memory_order_acq_rel);
+        if (already_stopping) {
+            return;
         }
 
-        // Clear the workers
+        // Signal all threads to wake up and exit
+        tasks_.done();
+
+        // Block until all threads complete - the ONLY safe approach
+        // Never use detach() as it can cause use-after-free
+        for (auto& worker : workers_) {
+            if (worker.joinable()) {
+                worker.join();
+            }
+        }
         workers_.clear();
-        return all_joined;
+    }
+
+    // Stop the thread pool (deprecated, calls shutdown)
+    void stop() { shutdown(); }
+
+    // API compatibility - ignores timeout, always blocks safely
+    template <typename Rep, typename Period>
+    bool shutdown(std::chrono::duration<Rep, Period> /*timeout*/) {
+        shutdown();
+        return true;  // Always "successful" since we block until complete
     }
 
     // Get the number of threads in the pool
     size_t size() const { return workers_.size(); }
 
-    // Reset the pool for reuse
-    void reset() {
-        if (!stop_)
-            return;
+    // Reset the pool for reuse with specified or default thread count
+    void reset(size_t num_threads = 0) {
+        // Always call shutdown - it handles being called multiple times safely
+        // via atomic exchange. This ensures we wait for any in-progress shutdown
+        // to complete before resetting.
+        shutdown();
 
         // Reset the stop flag
-        stop_ = false;
+        stop_.store(false, std::memory_order_release);
 
         // Reset the task queue
         tasks_.reset();
 
+        // Determine thread count
+        size_t target = (num_threads > 0) ? num_threads : std::thread::hardware_concurrency();
+        target = std::min(target, size_t(16));  // Limit to reasonable maximum
+        target = std::max(target, size_t(1));   // At least one thread
+
         // Create new workers
-        for (size_t i = 0; i < workers_.capacity(); ++i) {
+        workers_.reserve(target);
+        for (size_t i = 0; i < target; ++i) {
             workers_.emplace_back([this] {
                 while (true) {
                     std::function<void()> task;
@@ -265,6 +246,12 @@ inline ThreadPool& global_thread_pool() {
     // Create a persistent thread pool with hardware concurrency
     static ThreadPool pool(std::thread::hardware_concurrency());
     return pool;
+}
+
+// Explicit shutdown for global thread pool
+// Call this from R's .onUnload to ensure proper cleanup before static destruction
+inline void shutdown_global_thread_pool() {
+    global_thread_pool().shutdown();
 }
 
 }  // namespace qiprng

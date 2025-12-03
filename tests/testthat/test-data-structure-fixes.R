@@ -4,15 +4,21 @@
 library(testthat)
 library(qiprng)
 
-# Source the necessary files
-if (file.exists("../../R/statisticaltests/classical_tests.R")) {
-  source("../../R/statisticaltests/classical_tests.R")
+# Source the necessary files from inst/statisticaltests
+# Use system.file() to locate files in the installed package structure
+classical_tests_file <- system.file("statisticaltests", "classical_tests.R", package = "qiprng")
+if (file.exists(classical_tests_file)) {
+  source(classical_tests_file)
 }
-if (file.exists("../../R/statisticaltests/external_tests.R")) {
-  source("../../R/statisticaltests/external_tests.R")
+
+external_tests_file <- system.file("statisticaltests", "external_tests.R", package = "qiprng")
+if (file.exists(external_tests_file)) {
+  source(external_tests_file)
 }
-if (file.exists("../../R/statisticaltests/external_wrappers.R")) {
-  source("../../R/statisticaltests/external_wrappers.R")
+
+external_wrappers_file <- system.file("statisticaltests", "external_wrappers.R", package = "qiprng")
+if (file.exists(external_wrappers_file)) {
+  source(external_wrappers_file)
 }
 
 # Helper function to create test suite
@@ -181,6 +187,9 @@ test_that("Visualization function works without errors", {
 })
 
 test_that("External wrapper integration works correctly", {
+  # Skip test if external wrapper functions are not available
+  skip_if_not(exists("run_external_wrapper_tests"), "External wrapper functions not available")
+
   # This tests that the wrapper functions are properly integrated
   suite <- create_test_suite(
     prng_func = function(n) runif(n),

@@ -146,6 +146,7 @@ class EnhancedPRNG {
     double generate_uniform_range(double u);
     double generate_normal(double u);             // u is first uniform, may need more from buffer
     double generate_normal_box_muller(double u);  // Box-Muller implementation
+    double generate_standard_normal();  // Returns N(0,1) for internal use by other distributions
     double generate_exponential(double u);
     double generate_poisson_dispatch(double u);  // u is first uniform
     double generate_gamma_dispatch(double u);    // u is first uniform

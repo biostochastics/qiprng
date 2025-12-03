@@ -1,15 +1,15 @@
 # Test suite for external wrapper functions
 # Tests the integration of CryptRndTest and randtests packages
 
+# Source external wrapper functions
+ext_wrappers_file <- system.file("statisticaltests", "external_wrappers.R", package = "qiprng")
+if (file.exists(ext_wrappers_file)) {
+  source(ext_wrappers_file)
+} else {
+  skip("External wrappers file not found")
+}
+
 test_that("external wrapper functions handle package availability correctly", {
-  # Source the wrapper functions
-  source_path <- system.file("R/statisticaltests/external_wrappers.R", package = "qiprng")
-  if (source_path == "") {
-    source_path <- "../../R/statisticaltests/external_wrappers.R"
-  }
-  if (file.exists(source_path)) {
-    source(source_path)
-  }
 
   # Test error handling when packages are not available
   if (!requireNamespace("CryptRndTest", quietly = TRUE)) {
@@ -32,15 +32,6 @@ test_that("CryptRndTest wrapper functions work correctly", {
     requireNamespace("CryptRndTest", quietly = TRUE),
     "CryptRndTest package not available"
   )
-
-  # Source the wrapper functions
-  source_path <- system.file("R/statisticaltests/external_wrappers.R", package = "qiprng")
-  if (source_path == "") {
-    source_path <- "../../R/statisticaltests/external_wrappers.R"
-  }
-  if (file.exists(source_path)) {
-    source(source_path)
-  }
 
   # Test with random data
   set.seed(42)
@@ -69,15 +60,6 @@ test_that("randtests wrapper functions work correctly", {
     requireNamespace("randtests", quietly = TRUE),
     "randtests package not available"
   )
-
-  # Source the wrapper functions
-  source_path <- system.file("R/statisticaltests/external_wrappers.R", package = "qiprng")
-  if (source_path == "") {
-    source_path <- "../../R/statisticaltests/external_wrappers.R"
-  }
-  if (file.exists(source_path)) {
-    source(source_path)
-  }
 
   # Test with random data
   set.seed(42)
@@ -109,15 +91,6 @@ test_that("external wrapper integration function works correctly", {
     "No external packages available"
   )
 
-  # Source necessary files
-  source_path <- system.file("R/statisticaltests/external_wrappers.R", package = "qiprng")
-  if (source_path == "") {
-    source_path <- "../../R/statisticaltests/external_wrappers.R"
-  }
-  if (file.exists(source_path)) {
-    source(source_path)
-  }
-
   # Create a mock test suite
   suite <- list(
     config = list(
@@ -147,15 +120,6 @@ test_that("external wrapper integration function works correctly", {
 })
 
 test_that("external wrappers handle edge cases correctly", {
-  # Source the wrapper functions
-  source_path <- system.file("R/statisticaltests/external_wrappers.R", package = "qiprng")
-  if (source_path == "") {
-    source_path <- "../../R/statisticaltests/external_wrappers.R"
-  }
-  if (file.exists(source_path)) {
-    source(source_path)
-  }
-
   # Test with very small sample
   if (requireNamespace("randtests", quietly = TRUE)) {
     x_small <- runif(10)
@@ -184,15 +148,6 @@ test_that("external wrappers produce consistent results", {
       requireNamespace("randtests", quietly = TRUE),
     "No external packages available"
   )
-
-  # Source the wrapper functions
-  source_path <- system.file("R/statisticaltests/external_wrappers.R", package = "qiprng")
-  if (source_path == "") {
-    source_path <- "../../R/statisticaltests/external_wrappers.R"
-  }
-  if (file.exists(source_path)) {
-    source(source_path)
-  }
 
   # Generate deterministic data
   set.seed(12345)

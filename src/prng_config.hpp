@@ -70,17 +70,18 @@ struct PRNGConfig {
     double negative_binomial_p = 0.5;
 
     // Crypto & advanced
-    bool use_crypto_mixing = false;
+    // NOTE: Defaults aligned with R interface (R/prng_interface.R default_config)
+    bool use_crypto_mixing = true;  // Default to true for cryptographic security
     bool adhoc_corrections = false;
     bool use_tie_breaking = true;
     unsigned long reseed_interval = 1000;
 
     // Discriminant options
-    bool use_csv_discriminants = PRNGDefaults::use_csv_discriminants;
+    bool use_csv_discriminants = true;  // Default to true for higher quality discriminants
 
     // Performance and threading options
     bool use_parallel_filling = false;  // Default to false for stability
-    bool use_threading = true;          // Default to true for thread safety
+    bool use_threading = false;         // Default to false for simplicity (matches R)
 
     // Additional offset
     size_t offset = 0;

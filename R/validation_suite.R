@@ -9,6 +9,33 @@
 #'
 #' @name validation_suite
 
+#' Source a test file from the installed package
+#'
+#' @param relative_path Relative path within inst/ directory
+#' @return Invisible NULL
+#' @noRd
+source_pkg_file <- function(relative_path) {
+  full_path <- system.file(relative_path, package = "qiprng")
+  if (nzchar(full_path) && file.exists(full_path)) {
+    source(full_path, local = FALSE)
+  } else {
+    # Fallback for development: try relative paths
+    dev_paths <- c(
+      file.path("inst", relative_path),
+      relative_path,
+      file.path("R", relative_path)
+    )
+    for (dev_path in dev_paths) {
+      if (file.exists(dev_path)) {
+        source(dev_path, local = FALSE)
+        return(invisible(NULL))
+      }
+    }
+    warning(paste("Could not find test file:", relative_path))
+  }
+  invisible(NULL)
+}
+
 # Source required test files
 source_test_files <- function() {
   test_files <- c(
@@ -24,12 +51,8 @@ source_test_files <- function() {
     "statisticaltests/edge_case_tests.R"
   )
 
-  for (file in test_files) {
-    if (file.exists(file)) {
-      source(file)
-    } else if (file.exists(file.path("R", file))) {
-      source(file.path("R", file))
-    }
+  for (file_path in test_files) {
+    source_pkg_file(file_path)
   }
 }
 
@@ -129,11 +152,7 @@ validate_qiprng_framework <- function(level = "standard",
     if (verbose) cat("\nRunning performance benchmarks...\n")
 
     # Use comprehensive performance benchmarking if available
-    if (file.exists("R/statisticaltests/performance_benchmarking.R")) {
-      source("R/statisticaltests/performance_benchmarking.R")
-    } else if (file.exists("statisticaltests/performance_benchmarking.R")) {
-      source("statisticaltests/performance_benchmarking.R")
-    }
+    source_pkg_file("statisticaltests/performance_benchmarking.R")
 
     if (exists("run_performance_benchmarks")) {
       perf_results <- run_performance_benchmarks(config, verbose)
@@ -177,11 +196,7 @@ validate_qiprng_framework <- function(level = "standard",
     if (verbose) cat("\nGenerating validation reports...\n")
 
     # Source reporting module if available
-    if (file.exists("R/statisticaltests/validation_reporting.R")) {
-      source("R/statisticaltests/validation_reporting.R")
-    } else if (file.exists("statisticaltests/validation_reporting.R")) {
-      source("statisticaltests/validation_reporting.R")
-    }
+    source_pkg_file("statisticaltests/validation_reporting.R")
 
     if (exists("generate_validation_report")) {
       report_formats <- if (!is.null(config$report_formats)) {
@@ -363,7 +378,7 @@ validate_classical_tests <- function(config, verbose = TRUE) {
       for (test_name in expected_tests) {
         results$total_tests <- results$total_tests + 1
         if (test_name %in% names(classical_results) &&
-          validate_test_structure(classical_results[[test_name]])) {
+              validate_test_structure(classical_results[[test_name]])) {
           results$passed <- results$passed + 1
         } else {
           results$failed <- results$failed + 1
@@ -434,7 +449,7 @@ validate_external_tests <- function(config, verbose = TRUE) {
       for (test_name in base_tests) {
         results$total_tests <- results$total_tests + 1
         if (test_name %in% names(external_results) &&
-          validate_test_structure(external_results[[test_name]])) {
+              validate_test_structure(external_results[[test_name]])) {
           results$passed <- results$passed + 1
         } else {
           results$failed <- results$failed + 1
@@ -808,7 +823,7 @@ validate_test_structure <- function(test_result) {
 
   # Check p_value range when not NA
   if (!is.na(test_result$p_value) &&
-    (test_result$p_value < 0 || test_result$p_value > 1)) {
+        (test_result$p_value < 0 || test_result$p_value > 1)) {
     return(FALSE)
   }
 
@@ -1066,7 +1081,6 @@ print_validation_summary <- function(report) {
 modifyList <- function(x, val) {
   modifyList <- function(x, val, keep.null = FALSE) {
     stopifnot(is.list(x), is.list(val))
-    xnames <- names(x)
     vnames <- names(val)
     vnames <- vnames[nzchar(vnames)]
     for (v in vnames) {
@@ -1077,10 +1091,15 @@ modifyList <- function(x, val) {
   modifyList(x, val)
 }
 
-#' Timeout helper function
+#' Execute Expression with Timeout
+#'
+#' Evaluates an expression with a specified timeout, returning an error
+#' if the expression takes longer than the specified time.
 #'
 #' @param expr Expression to evaluate
 #' @param timeout Timeout in seconds
+#' @return Result of the expression, or throws an error on timeout
+#' @export
 withTimeout <- function(expr, timeout) {
   setTimeLimit(cpu = timeout, elapsed = timeout)
   on.exit(setTimeLimit(cpu = Inf, elapsed = Inf))

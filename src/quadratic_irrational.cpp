@@ -31,6 +31,11 @@ Matrix2x2 Matrix2x2::power(uint64_t n) const {
 }
 
 // Check if a number is square-free (no repeated prime factors)
+// WARNING: This function has data-dependent timing due to the trial division loop.
+// The number of iterations varies based on the input value. Do not use
+// discriminant values as secrets. For PRNG parameter selection during
+// initialization, this timing variation is acceptable since discriminants
+// are not sensitive data.
 bool QuadraticIrrational::is_square_free(long long n) {
     if (n <= 1)
         return false;
@@ -127,10 +132,16 @@ void QuadraticIrrational::compute_cfe_period() {
     // Based on theoretical bounds for continued fraction periods
     const size_t BASE_MAX_PERIOD = 100000;          // Base maximum period length for safety
     const size_t DISCRIMINANT_SCALING_FACTOR = 10;  // Scaling factor based on Lagrange's theorem
-    // Period length is O(sqrt(D) * log(D)) in worst case, we use conservative estimate
-    const size_t MAX_PERIOD =
-        std::max(BASE_MAX_PERIOD, static_cast<size_t>(DISCRIMINANT_SCALING_FACTOR *
-                                                      std::sqrt(static_cast<double>(D))));
+    // Period length is O(sqrt(D) * log(D)) in worst case, include log term for large D
+    // Guard against overflow: clamp to size_t max before casting
+    double max_period_double = static_cast<double>(DISCRIMINANT_SCALING_FACTOR) *
+                               std::sqrt(static_cast<double>(D)) *
+                               std::log(static_cast<double>(D) + 1.0);
+    const double max_size_t_double = static_cast<double>(std::numeric_limits<size_t>::max());
+    if (max_period_double > max_size_t_double) {
+        max_period_double = max_size_t_double;
+    }
+    const size_t MAX_PERIOD = std::max(BASE_MAX_PERIOD, static_cast<size_t>(max_period_double));
 
     while (index < MAX_PERIOD) {
         // Gauss-Legendre recurrence formulas
@@ -281,9 +292,9 @@ void QuadraticIrrational::step_once() {
 
 QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t prec, uint64_t seed,
                                          bool has_seed)
-    : a_(a), b_(b), c_(c), discriminant_(0), mpfr_prec_(prec), cfe_period_length_(0),
-      cfe_computed_(false), P_n_(0), Q_n_(1), use_fast_path_(false), fast_value_(0.0),
-      fast_value_dirty_(false), seed_(seed), has_seed_(has_seed) {
+    : a_(a), b_(b), c_(c), discriminant_(0), mpfr_prec_(prec), use_fast_path_(false),
+      fast_value_(0.0), fast_value_dirty_(false), cfe_period_length_(0), cfe_computed_(false),
+      P_n_(0), Q_n_(1), seed_(seed), has_seed_(has_seed) {
     // Validate parameters more comprehensively
     if (a == 0) {
         throw std::invalid_argument("QuadraticIrrational: 'a' parameter cannot be zero");
@@ -678,7 +689,29 @@ size_t QuadraticIrrational::size() const {
 }
 
 void QuadraticIrrational::fill(double* buffer, size_t count) {
+    if (!buffer || count == 0)
+        return;
+
+    // Use prefetching for larger buffers to hide memory latency
+    // Prefetch distance: 4 cache lines ahead (tuned for typical L1 latency)
+    constexpr size_t PREFETCH_DISTANCE = 32;  // 32 doubles = 4 cache lines
+
+    // For very small fills, skip prefetch overhead
+    if (count < PREFETCH_DISTANCE) {
+        for (size_t i = 0; i < count; i++) {
+            buffer[i] = next();
+        }
+        return;
+    }
+
+    // Main loop with prefetching
     for (size_t i = 0; i < count; i++) {
+        // Prefetch future write location to avoid write-miss stalls
+        if (i + PREFETCH_DISTANCE < count) {
+#if defined(__GNUC__) || defined(__clang__)
+            __builtin_prefetch(&buffer[i + PREFETCH_DISTANCE], 1, 3);
+#endif
+        }
         buffer[i] = next();
     }
 }
@@ -712,9 +745,11 @@ void QuadraticIrrational::reseed() {
         uint64_t skip_amount = dist(*rd_engine_);
         skip(skip_amount);
     } else {
-        // Without seed, just reset to initial state
-        mpfr_set_d(*state_->x.get(), 0.5, MPFR_RNDN);
-        mpfr_set_d(*state_->x_prev.get(), 0.25, MPFR_RNDN);
+        // Without seed, reset to a deterministic initial state using value_
+        // (state_ is not used in this class - value_ is the actual MPFR state)
+        mpfr_set_d(*value_->get(), 0.5, MPFR_RNDN);
+        // Perform a step to refresh next_ and the fast path state
+        step_once();
     }
 
     // Clear CFE cache if computed

@@ -2,77 +2,81 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 cpp_levy_stable <- function(n, alpha, beta = 0, mu = 0, sigma = 1) {
-  .Call(`_qiprng_cpp_levy_stable`, n, alpha, beta, mu, sigma)
+    .Call(`_qiprng_cpp_levy_stable`, n, alpha, beta, mu, sigma)
 }
 
 cpp_pareto <- function(n, xm, alpha) {
-  .Call(`_qiprng_cpp_pareto`, n, xm, alpha)
+    .Call(`_qiprng_cpp_pareto`, n, xm, alpha)
 }
 
 cpp_cauchy <- function(n, location = 0, scale = 1) {
-  .Call(`_qiprng_cpp_cauchy`, n, location, scale)
+    .Call(`_qiprng_cpp_cauchy`, n, location, scale)
 }
 
 cpp_multivariate_normal <- function(n, mean, covariance) {
-  .Call(`_qiprng_cpp_multivariate_normal`, n, mean, covariance)
+    .Call(`_qiprng_cpp_multivariate_normal`, n, mean, covariance)
 }
 
 cpp_gaussian_copula <- function(n, correlation, marginal_params) {
-  .Call(`_qiprng_cpp_gaussian_copula`, n, correlation, marginal_params)
+    .Call(`_qiprng_cpp_gaussian_copula`, n, correlation, marginal_params)
 }
 
 .initialize_libsodium_ <- function() {
-  invisible(.Call(`_qiprng_initialize_libsodium_`))
+    invisible(.Call(`_qiprng_initialize_libsodium_`))
 }
 
 .createPRNG_ <- function(rcfg) {
-  invisible(.Call(`_qiprng_createPRNG_`, rcfg))
+    invisible(.Call(`_qiprng_createPRNG_`, rcfg))
 }
 
 .updatePRNG_ <- function(rcfg) {
-  invisible(.Call(`_qiprng_updatePRNG_`, rcfg))
+    invisible(.Call(`_qiprng_updatePRNG_`, rcfg))
 }
 
 .getPRNGConfig_ <- function() {
-  .Call(`_qiprng_getPRNGConfig_`)
+    .Call(`_qiprng_getPRNGConfig_`)
 }
 
 .dumpPRNGConfig_ <- function() {
-  invisible(.Call(`_qiprng_dumpPRNGConfig_`))
+    invisible(.Call(`_qiprng_dumpPRNGConfig_`))
 }
 
 .generatePRNG_ <- function(n) {
-  .Call(`_qiprng_generatePRNG_`, n)
+    .Call(`_qiprng_generatePRNG_`, n)
 }
 
 .reseedPRNG_ <- function() {
-  invisible(.Call(`_qiprng_reseedPRNG_`))
+    invisible(.Call(`_qiprng_reseedPRNG_`))
 }
 
 .cleanup_prng_ <- function() {
-  invisible(.Call(`_qiprng_cleanup_prng_`))
+    invisible(.Call(`_qiprng_cleanup_prng_`))
 }
 
 .skipPRNG_ <- function(n) {
-  invisible(.Call(`_qiprng_skipPRNG_`, n))
+    invisible(.Call(`_qiprng_skipPRNG_`, n))
 }
 
 .jumpAheadPRNG_ <- function(n) {
-  invisible(.Call(`_qiprng_jumpAheadPRNG_`, n))
+    invisible(.Call(`_qiprng_jumpAheadPRNG_`, n))
 }
 
 .suppress_mpfr_warnings_ <- function() {
-  .Call(`_qiprng_suppress_mpfr_warnings_`)
+    .Call(`_qiprng_suppress_mpfr_warnings_`)
 }
 
 .set_mpfr_warnings_ <- function(show_warnings) {
-  invisible(.Call(`_qiprng_set_mpfr_warnings_`, show_warnings))
+    invisible(.Call(`_qiprng_set_mpfr_warnings_`, show_warnings))
 }
 
 .cleanupPRNG_ThreadSafe_ <- function() {
-  .Call(`_qiprng_cleanupPRNG_ThreadSafe_`)
+    .Call(`_qiprng_cleanupPRNG_ThreadSafe_`)
 }
 
 .cleanupPRNG_Final_ <- function() {
-  .Call(`_qiprng_cleanupPRNG_Final_`)
+    .Call(`_qiprng_cleanupPRNG_Final_`)
+}
+
+.shutdown_thread_pool_ <- function() {
+    invisible(.Call(`_qiprng_shutdown_thread_pool_`))
 }

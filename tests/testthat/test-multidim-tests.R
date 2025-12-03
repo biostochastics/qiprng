@@ -3,12 +3,12 @@
 
 context("Multidimensional Statistical Tests")
 
-# Load required functions
-source("../../R/statisticaltests/multidim_tests.R")
-source("../../R/statisticaltests/multidim_specific_tests.R")
-source("../../R/statisticaltests/multidim_tests_fixes.R")
-source("../../R/statisticaltests/multidim_wrapper.R")
-source("../../R/statisticaltests/multidim_reftools_compat.R")
+# Load required functions from inst/statisticaltests/
+source(system.file("statisticaltests", "multidim_tests.R", package = "qiprng"))
+source(system.file("statisticaltests", "multidim_specific_tests.R", package = "qiprng"))
+source(system.file("statisticaltests", "multidim_tests_fixes.R", package = "qiprng"))
+source(system.file("statisticaltests", "multidim_wrapper.R", package = "qiprng"))
+source(system.file("statisticaltests", "multidim_reftools_compat.R", package = "qiprng"))
 
 # Helper function to create test suite
 create_test_suite <- function(prng_func = runif) {

@@ -5,10 +5,10 @@ library(testthat)
 library(qiprng)
 
 # Source required files
-source("../../R/statisticaltests/effect_sizes.R")
-source("../../R/statisticaltests/unified_reporting.R")
-source("../../R/statisticaltests/comprehensive_generator_comparison.R")
-source("../../R/statisticaltests/comprehensive_reporting.R")
+source(system.file("statisticaltests", "effect_sizes.R", package = "qiprng"))
+source(system.file("statisticaltests", "unified_reporting.R", package = "qiprng"))
+source(system.file("statisticaltests", "comprehensive_generator_comparison.R", package = "qiprng"))
+source(system.file("statisticaltests", "comprehensive_reporting.R", package = "qiprng"))
 
 context("Comprehensive Improvements Test Suite")
 

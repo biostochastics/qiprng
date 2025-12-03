@@ -773,17 +773,18 @@ void EnhancedPRNG::fill_buffer_openmp() {
 }
 
 // Clean up thread-local caches when PRNG is destroyed
+// WARNING: NO OpenMP here - using parallel constructs during cleanup
+// can create new TLS entries leading to use-after-free
 void EnhancedPRNG::cleanup_thread_caches() {
-#    pragma omp parallel
-    {
-        struct MultiQICache {
-            std::unordered_map<int, std::unique_ptr<MultiQIOptimized>> cache;
-            std::unordered_map<int, std::vector<std::tuple<long, long, long>>> abc_cache;
-        };
-        static thread_local MultiQICache tl_cache;
-        tl_cache.cache.clear();
-        tl_cache.abc_cache.clear();
-    }
+    // Single-threaded cleanup only - clean main thread's cache
+    // Other threads' caches are cleaned by their exit handlers
+    struct MultiQICache {
+        std::unordered_map<int, std::unique_ptr<MultiQIOptimized>> cache;
+        std::unordered_map<int, std::vector<std::tuple<long, long, long>>> abc_cache;
+    };
+    static thread_local MultiQICache tl_cache;
+    tl_cache.cache.clear();
+    tl_cache.abc_cache.clear();
 }
 #endif
 
@@ -1199,6 +1200,9 @@ double EnhancedPRNG::generate_normal(double u) {
                 }
 
                 // Get the normal value using Ziggurat
+                // NOTE: Ziggurat's generate() already applies mean_ and stddev_ transformation
+                // internally (mean_ + stddev_ * std_normal_val), so we return the result directly.
+                // Do NOT apply mean/sd again here - that would cause double-scaling!
                 double result = ziggurat_->generate();
 
                 // Validate the result
@@ -1211,8 +1215,8 @@ double EnhancedPRNG::generate_normal(double u) {
                     return generate_normal_box_muller(u);
                 }
 
-                // Apply mean and SD from config to the N(0,1) value from Ziggurat
-                return config_.normal_mean + config_.normal_sd * result;
+                // Return result directly - Ziggurat already applies mean/sd
+                return result;
             } catch (const std::exception& e) {
                 if (config_.debug) {
                     static thread_local int warning_count = 0;
@@ -1417,6 +1421,39 @@ double EnhancedPRNG::generate_normal_box_muller(double u) {
     }
 }
 
+// Generate standard normal N(0,1) for internal use by other distributions
+// This method ALWAYS returns N(0,1) regardless of config_.normal_mean/sd settings
+// Used by: lognormal, chi-squared (normal approx), binomial (normal approx), student-t
+double EnhancedPRNG::generate_standard_normal() {
+    // Get two uniform values for Box-Muller
+    double u1 = next_raw_uniform();
+    double u2 = next_raw_uniform();
+
+    // Ensure uniforms are in valid range
+    if (u1 <= 0.0)
+        u1 = std::numeric_limits<double>::min();
+    if (u1 >= 1.0)
+        u1 = 1.0 - std::numeric_limits<double>::epsilon();
+    if (u2 <= 0.0)
+        u2 = std::numeric_limits<double>::min();
+    if (u2 >= 1.0)
+        u2 = 1.0 - std::numeric_limits<double>::epsilon();
+
+    // Box-Muller transform for N(0,1)
+    double r = std::sqrt(-2.0 * std::log(u1));
+    double theta = 2.0 * M_PI * u2;
+    double z = r * std::cos(theta);
+
+    // Validate result
+    if (std::isnan(z) || std::isinf(z)) {
+        DETERMINISTIC_FALLBACK_RNG(fallback_rng, std::mt19937);
+        std::normal_distribution<double> fallback_dist(0.0, 1.0);
+        return fallback_dist(fallback_rng);
+    }
+
+    return z;
+}
+
 double EnhancedPRNG::generate_exponential(double u) {
     return uniform_to_exponential(u);
 }
@@ -1479,13 +1516,16 @@ double EnhancedPRNG::generate_weibull_dispatch(double u) {
     return result;
 }
 
-double EnhancedPRNG::generate_lognormal_dispatch(double u) {
+double EnhancedPRNG::generate_lognormal_dispatch(double /* u */) {
     if (config_.lognormal_sigma <= 0.0) {
         throw std::invalid_argument("Log-normal sigma must be positive");
     }
 
-    // Pass u to normal generator, which will use it as first uniform
-    double normal_val = generate_normal(u) * config_.lognormal_sigma + config_.lognormal_mu;
+    // Lognormal: if X ~ N(mu, sigma), then exp(X) ~ LogNormal(mu, sigma)
+    // We need a standard normal N(0,1), NOT generate_normal() which returns N(normal_mean,
+    // normal_sd)
+    double z = generate_standard_normal();
+    double normal_val = config_.lognormal_mu + config_.lognormal_sigma * z;
     double result = std::exp(normal_val);
 
     if (std::isnan(result) || std::isinf(result) || result <= 0.0) {
@@ -1505,10 +1545,13 @@ double EnhancedPRNG::generate_chisquared_dispatch(double u) {
     double scale = 2.0;
 
     // For very large df, use normal approximation for efficiency
+    // Chi-squared(df) ~ N(df, sqrt(2*df)) for large df
     if (config_.chisquared_df > 100.0) {
         double mean = config_.chisquared_df;
         double sd = std::sqrt(2.0 * config_.chisquared_df);
-        double result = generate_normal(u) * sd + mean;
+        // Use standard normal N(0,1), NOT generate_normal() which returns N(normal_mean, normal_sd)
+        double z = generate_standard_normal();
+        double result = mean + sd * z;
         return std::max(0.0, result);
     }
 
@@ -1544,10 +1587,13 @@ double EnhancedPRNG::generate_binomial_dispatch(double u) {
     double p = config_.binomial_p;
 
     // Use normal approximation for n >= 50 and moderate p values
+    // Binomial(n, p) ~ N(np, sqrt(np(1-p))) for large n
     if (n >= 50 && p > 0.1 && p < 0.9) {
         double mu = n * p;
         double sigma = std::sqrt(n * p * (1.0 - p));
-        double result = std::round(generate_normal(u) * sigma + mu);
+        // Use standard normal N(0,1), NOT generate_normal() which returns N(normal_mean, normal_sd)
+        double z = generate_standard_normal();
+        double result = std::round(mu + sigma * z);
         return std::max(0.0, std::min(static_cast<double>(n), result));
     }
 
@@ -1555,7 +1601,9 @@ double EnhancedPRNG::generate_binomial_dispatch(double u) {
     if (n * p > 5.0 && n * (1.0 - p) > 5.0) {
         double mu = n * p;
         double sigma = std::sqrt(n * p * (1.0 - p));
-        double approx = generate_normal(u) * sigma + mu;
+        // Use standard normal N(0,1), NOT generate_normal() which returns N(normal_mean, normal_sd)
+        double z = generate_standard_normal();
+        double approx = mu + sigma * z;
         double result = std::round(approx);
         if (std::isnan(result) || std::isinf(result))
             return mu;
@@ -1571,20 +1619,24 @@ double EnhancedPRNG::generate_binomial_dispatch(double u) {
     return sum;
 }
 
-double EnhancedPRNG::generate_student_t_dispatch(double u) {
+double EnhancedPRNG::generate_student_t_dispatch(double /* u */) {
     if (config_.student_t_df <= 0.0) {
         throw std::invalid_argument("Student's t df must be positive");
     }
 
-    // For large df, converges to normal
+    // For large df, Student-t converges to standard normal N(0,1)
+    // NOT to N(normal_mean, normal_sd) - use generate_standard_normal()
     if (config_.student_t_df > 100.0) {
-        return generate_normal(u);
+        return generate_standard_normal();
     }
 
-    // Student's t = Normal / sqrt(ChiSquared/df)
-    double norm = generate_normal(u);
+    // Student's t = Z / sqrt(chi²/df) where Z ~ N(0,1)
+    // Must use standard normal N(0,1), NOT generate_normal() which returns N(normal_mean,
+    // normal_sd)
+    double z = generate_standard_normal();
 
-    // Generate chi-squared (will use its own uniforms)
+    // Generate chi-squared with student_t_df degrees of freedom
+    // Save current chi-squared df, use student-t df, then restore
     double saved_df = config_.chisquared_df;
     const_cast<PRNGConfig&>(config_).chisquared_df = config_.student_t_df;
     double chisq = generate_chisquared_dispatch(next_raw_uniform());
@@ -1594,7 +1646,7 @@ double EnhancedPRNG::generate_student_t_dispatch(double u) {
         chisq = std::numeric_limits<double>::epsilon();
     }
 
-    double result = norm / std::sqrt(chisq / config_.student_t_df);
+    double result = z / std::sqrt(chisq / config_.student_t_df);
 
     if (std::isnan(result) || std::isinf(result)) {
         return 0.0;  // Fallback to median

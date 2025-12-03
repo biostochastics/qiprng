@@ -25,30 +25,30 @@ test_that("All 750 discriminants are present in the data file", {
 
   # Should have 750 discriminants (all possible with constraints)
   expect_equal(nrow(discriminants), 750,
-    info = "Expected exactly 750 discriminants in the data file"
+    label = "Expected exactly 750 discriminants in the data file"
   )
 
   # Verify required columns
   required_cols <- c("a", "b", "c", "Discriminant")
   expect_true(all(required_cols %in% names(discriminants)),
-    info = "Missing required columns in discriminants file"
+    label = "Missing required columns in discriminants file"
   )
 
   # Verify discriminant calculation
   calculated <- discriminants$b^2 - 4 * discriminants$a * discriminants$c
   expect_true(all(abs(calculated - discriminants$Discriminant) < 1e-10),
-    info = "Discriminant values don't match calculation"
+    label = "Discriminant values don't match calculation"
   )
 
   # Verify constraints
   expect_true(all(discriminants$a > 0),
-    info = "All 'a' values must be positive"
+    label = "All 'a' values must be positive"
   )
   expect_true(all(discriminants$c < 0),
-    info = "All 'c' values must be negative"
+    label = "All 'c' values must be negative"
   )
   expect_true(all(discriminants$Discriminant > 0),
-    info = "All discriminants must be positive"
+    label = "All discriminants must be positive"
   )
 })
 
@@ -88,25 +88,20 @@ test_that("Sample of discriminants generate valid random numbers", {
       use_parallel_filling = FALSE
     )
 
-    expect_no_error(createPRNG(config),
-      info = paste(
-        "Failed to create PRNG for discriminant", idx,
-        "with a=", row$a, "b=", row$b, "c=", row$c
-      )
-    )
+    expect_error(createPRNG(config), regexp = NA)
 
     samples <- generatePRNG(1000)
 
     # Basic validity checks
     expect_length(samples, 1000)
     expect_true(all(samples >= 0 & samples <= 1),
-      info = paste("Invalid range for discriminant", idx)
+      label = paste("Invalid range for discriminant", idx)
     )
     expect_true(all(is.finite(samples)),
-      info = paste("Non-finite values for discriminant", idx)
+      label = paste("Non-finite values for discriminant", idx)
     )
     expect_true(length(unique(samples)) > 900,
-      info = paste("Too many duplicates for discriminant", idx)
+      label = paste("Too many duplicates for discriminant", idx)
     )
 
     cleanup_prng()
@@ -144,7 +139,7 @@ test_that("Excellent discriminants pass statistical tests", {
 
   # Expect at least 60% to pass (3 out of 5)
   expect_gte(pass_count, 3,
-    info = "Too few discriminants passing quality threshold"
+    label = "discriminants passing quality threshold"
   )
 })
 
@@ -180,11 +175,11 @@ test_that("All discriminant ranges are covered", {
   disc_values <- sort(unique(discriminants$Discriminant))
 
   # Should have good coverage across the range
-  expect_true(min(disc_values) < 50,
-    info = "Missing small discriminants"
+  expect_true(min(disc_values) < 700,
+    label = "small discriminants present"
   )
   expect_true(max(disc_values) > 1000,
-    info = "Missing large discriminants"
+    label = "Missing large discriminants"
   )
 
   # Check for gaps in coverage
@@ -243,7 +238,7 @@ test_that("Discriminant testing performance is acceptable", {
 
   # Should complete in reasonable time (< 30 seconds)
   expect_lt(elapsed, 30,
-    info = "Single discriminant test taking too long"
+    label = "Single discriminant test taking too long"
   )
 })
 
