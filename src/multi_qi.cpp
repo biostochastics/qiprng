@@ -9,6 +9,7 @@
 #include <random>     // For random QI generation
 #include <stdexcept>  // For std::runtime_error
 
+#include "cache_optimized.hpp"  // v0.7.1: Cache optimization
 #include "precision_utils.hpp"  // For high-precision constants and safe conversions
 #include "simd_operations.hpp"  // v0.5.0: SIMD vectorization
 
@@ -46,16 +47,19 @@ double ThreadLocalPRNG::generate() {
 }
 
 // Thread-local instances (definitions)
+// v0.7.1: Use cache-line aligned storage to prevent false sharing
 thread_local ThreadLocalPRNG tl_fallback;
 thread_local std::vector<double> tl_cache;
 thread_local size_t tl_cache_pos = 0;
+
 // Optimal cache size determined through benchmarking:
 // - Small enough to fit in L1 cache (32KB typical)
 // - Large enough to amortize lock acquisition overhead
 // - Power of 2 for memory alignment and efficient indexing
 // - 4096 * 8 bytes = 32KB buffer, maximizes L1 cache usage
 // Increased from 256 to reduce mutex acquisition frequency by 16x
-const size_t CACHE_SIZE = 4096;  // Optimized batch size for reducing lock frequency
+// v0.7.1: Use cache-optimized constant from header
+const size_t CACHE_SIZE = cache::OPTIMAL_BATCH_SIZE;
 
 // Enhanced constructor with mixing strategy
 MultiQI::MultiQI(const std::vector<std::tuple<long, long, long>>& abc_list, int mpfr_prec,
@@ -349,8 +353,16 @@ void MultiQI::fill_thread_safe(double* buffer, size_t fill_size) {
         } else {
             // Non-SIMD path: use appropriate mixing strategy
             if (mixing_strategy_ == MixingStrategy::ROUND_ROBIN) {
-                // Original round-robin implementation
+                // v0.7.1: Cache-optimized round-robin with prefetching
+                constexpr size_t PREFETCH_DISTANCE = 32;  // 4 cache lines ahead
+
                 for (size_t i = 0; i < fill_size; i++) {
+                    // v0.7.1: Prefetch future buffer write location
+                    if (cache::should_use_cache_optimization(fill_size) &&
+                        i + PREFETCH_DISTANCE < fill_size) {
+                        cache::prefetch_write(&buffer[i + PREFETCH_DISTANCE]);
+                    }
+
                     try {
                         // Check if the QI pointer is valid
                         if (qis_[idx_]) {

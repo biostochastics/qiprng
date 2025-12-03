@@ -689,7 +689,29 @@ size_t QuadraticIrrational::size() const {
 }
 
 void QuadraticIrrational::fill(double* buffer, size_t count) {
+    if (!buffer || count == 0)
+        return;
+
+    // Use prefetching for larger buffers to hide memory latency
+    // Prefetch distance: 4 cache lines ahead (tuned for typical L1 latency)
+    constexpr size_t PREFETCH_DISTANCE = 32;  // 32 doubles = 4 cache lines
+
+    // For very small fills, skip prefetch overhead
+    if (count < PREFETCH_DISTANCE) {
+        for (size_t i = 0; i < count; i++) {
+            buffer[i] = next();
+        }
+        return;
+    }
+
+    // Main loop with prefetching
     for (size_t i = 0; i < count; i++) {
+        // Prefetch future write location to avoid write-miss stalls
+        if (i + PREFETCH_DISTANCE < count) {
+#if defined(__GNUC__) || defined(__clang__)
+            __builtin_prefetch(&buffer[i + PREFETCH_DISTANCE], 1, 3);
+#endif
+        }
         buffer[i] = next();
     }
 }
