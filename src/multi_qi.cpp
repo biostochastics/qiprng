@@ -9,11 +9,10 @@
 #include <random>     // For random QI generation
 #include <stdexcept>  // For std::runtime_error
 
-#include "cache_optimized.hpp"  // v0.7.1: Cache optimization
-#include "precision_utils.hpp"  // For high-precision constants and safe conversions
-#include "simd_operations.hpp"  // v0.5.0: SIMD vectorization
+#include "cache_optimized.hpp"
+#include "precision_utils.hpp"
+#include "simd_operations.hpp"
 
-// v0.5.0: OpenMP support for parallel generation
 #ifdef _OPENMP
 #    include <omp.h>
 #    define QIPRNG_HAS_OPENMP 1
@@ -46,8 +45,7 @@ double ThreadLocalPRNG::generate() {
     return dist(rng);
 }
 
-// Thread-local instances (definitions)
-// v0.7.1: Use cache-line aligned storage to prevent false sharing
+// Thread-local instances (cache-line aligned to prevent false sharing)
 thread_local ThreadLocalPRNG tl_fallback;
 thread_local std::vector<double> tl_cache;
 thread_local size_t tl_cache_pos = 0;
@@ -58,7 +56,6 @@ thread_local size_t tl_cache_pos = 0;
 // - Power of 2 for memory alignment and efficient indexing
 // - 4096 * 8 bytes = 32KB buffer, maximizes L1 cache usage
 // Increased from 256 to reduce mutex acquisition frequency by 16x
-// v0.7.1: Keep cache size consistent with optimized implementation (32KB buffer)
 constexpr size_t CACHE_SIZE = 4096;
 
 // Enhanced constructor with mixing strategy
@@ -88,7 +85,7 @@ MultiQI::MultiQI(const std::vector<std::tuple<long, long, long>>& abc_list, int 
     }
 }
 
-// Dynamic QI generation constructor for v0.5.0
+// Dynamic QI generation constructor
 MultiQI::MultiQI(size_t num_qis, int mpfr_prec, uint64_t seed, bool has_seed,
                  MixingStrategy strategy)
     : idx_(0), mixing_strategy_(strategy), mix_counter_(0) {
@@ -315,7 +312,7 @@ void MultiQI::fill_thread_safe(double* buffer, size_t fill_size) {
             idx_ = 0;
         }
 
-        // v0.5.0: Use SIMD for batch operations when possible
+        // Use SIMD for batch operations when possible
         const bool use_simd = simd::is_simd_available() &&
                               fill_size >= simd::get_optimal_batch_size() &&
                               mixing_strategy_ == MixingStrategy::XOR_MIX;
@@ -353,14 +350,10 @@ void MultiQI::fill_thread_safe(double* buffer, size_t fill_size) {
         } else {
             // Non-SIMD path: use appropriate mixing strategy
             if (mixing_strategy_ == MixingStrategy::ROUND_ROBIN) {
-                // v0.7.1: Cache-optimized round-robin with prefetching
+                // Cache-optimized round-robin with prefetching
                 constexpr size_t PREFETCH_DISTANCE = 32;  // 4 cache lines ahead
-
-                // v0.7.3: Hoist cache optimization check outside loop to avoid per-iteration
-                // overhead
                 bool use_cache_optimization = cache::should_use_cache_optimization(fill_size);
                 for (size_t i = 0; i < fill_size; i++) {
-                    // v0.7.1: Prefetch future buffer write location
                     if (use_cache_optimization && i + PREFETCH_DISTANCE < fill_size) {
                         cache::prefetch_write(&buffer[i + PREFETCH_DISTANCE]);
                     }
@@ -609,7 +602,7 @@ void MultiQI::fill_mixed(double* buffer, size_t fill_size) {
     }
 }
 
-// v0.5.0: Parallel fill using OpenMP
+// Parallel fill using OpenMP
 void MultiQI::fill_parallel(double* buffer, size_t fill_size) {
     if (!buffer || fill_size == 0)
         return;

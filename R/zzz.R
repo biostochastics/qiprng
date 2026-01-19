@@ -61,9 +61,7 @@
   # This ensures all thread-local storage, MPFR pools, and static objects
   # are cleaned up in the correct order to prevent segfaults.
 
-  # v0.7.3: Track cleanup success to conditionally unload library
-  # If cleanup fails, warn but still attempt unload to avoid leaving
-  # the package in an inconsistent state
+  # Track cleanup success to conditionally unload library
   cleanup_success <- FALSE
   cleanup_error <- NULL
 

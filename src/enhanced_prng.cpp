@@ -1274,7 +1274,6 @@ double EnhancedPRNG::generate_normal(double u) {
             return generate_normal_box_muller(u);
         }
     } catch (const std::exception& e) {
-        // Ultimate fallback - use std RNG instead of fixed mean
         if (config_.debug) {
             static thread_local int warning_count = 0;
             if (warning_count < 5) {
@@ -1286,7 +1285,6 @@ double EnhancedPRNG::generate_normal(double u) {
         std::normal_distribution<double> fallback_dist(config_.normal_mean, config_.normal_sd);
         return fallback_dist(fallback_rng);
     } catch (...) {
-        // Ultimate fallback for any other errors
         if (config_.debug) {
             static thread_local int warning_count = 0;
             if (warning_count < 5) {
@@ -1387,7 +1385,6 @@ double EnhancedPRNG::generate_normal_box_muller(double u) {
 
         return x1;
     } catch (const std::exception& e) {
-        // Ultimate fallback - use std RNG instead of fixed mean
         if (config_.debug) {
             Rcpp::warning("Box-Muller failed with error: %s", e.what());
         }
@@ -1395,7 +1392,6 @@ double EnhancedPRNG::generate_normal_box_muller(double u) {
         std::normal_distribution<double> fallback_dist(config_.normal_mean, config_.normal_sd);
         return fallback_dist(fallback_rng);
     } catch (...) {
-        // Ultimate fallback for any other errors
         if (config_.debug) {
             Rcpp::warning("Box-Muller failed with unknown error");
         }

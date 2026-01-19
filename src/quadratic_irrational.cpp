@@ -58,7 +58,7 @@ bool QuadraticIrrational::is_square_free(long long n) {
         // If n is still > 1, it's either prime or has larger factors
         // Check if it's a perfect square
 
-        // SECURITY FIX: Prevent integer overflow in sqrt_n * sqrt_n
+        // Prevent integer overflow in sqrt_n * sqrt_n
         double sqrt_n_dbl = std::sqrt(static_cast<double>(n));
 
         // Check if sqrt_n would overflow when squared
@@ -322,7 +322,7 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
         throw std::runtime_error("QuadraticIrrational: non-positive discriminant");
     }
 
-    // Check if discriminant is square-free for quality PRNG (v0.5.0 enhancement)
+    // Discriminant must be square-free for quality PRNG output
     if (!is_square_free(disc_ll)) {
         // Use exception for critical quality issues that affect PRNG correctness
         throw std::invalid_argument(
@@ -580,7 +580,7 @@ void QuadraticIrrational::jump_ahead(uint64_t n) {
     refresh_fast_state();
 }
 
-// Optimized O(log n) jump-ahead using matrix exponentiation (v0.5.0 enhancement)
+// Optimized O(log n) jump-ahead using matrix exponentiation
 /**
  * @brief Jumps ahead in the PRNG sequence by n steps in O(log n) time.
  *
@@ -778,9 +778,7 @@ void QuadraticIrrational::reseed() {
         skip(skip_amount);
     } else {
         // Without seed, reset to a deterministic initial state using value_
-        // (state_ is not used in this class - value_ is the actual MPFR state)
-        // v0.7.3: Flush any pending fast-path state before overriding value_
-        // to prevent ensure_mpfr_state() from overwriting our new starting value
+        // Flush fast-path state before overriding to prevent state corruption
         ensure_mpfr_state();
         mpfr_set_d(*value_->get(), 0.5, MPFR_RNDN);
         // Perform a step to refresh next_ and the fast path state

@@ -21,13 +21,13 @@ class EnhancedPRNG;  // Forward declaration for globals
 
 namespace qiprng {
 
-// LibSodium initialization - SECURITY FIX: Centralized thread-safe initialization
+// LibSodium initialization
 extern std::atomic<bool> sodium_initialized_flag;
 extern bool sodium_initialized;  // Legacy flag for CryptoMixer compatibility
 
-// Thread-safe libsodium initialization using std::call_once
+// Thread-safe libsodium initialization
 void initialize_libsodium_if_needed();
-void ensure_libsodium_initialized();  // SECURITY FIX: New unified initialization
+void ensure_libsodium_initialized();
 
 // Thread-local random engine
 std::mt19937_64& getThreadLocalEngine();

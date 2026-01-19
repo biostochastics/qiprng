@@ -5,7 +5,6 @@
 
 #include <mpfr.h>
 
-// v0.7.3: Include libsodium for secure memory zeroing (if available)
 #ifndef QIPRNG_NO_CRYPTO
 #    include <sodium.h>
 #endif
@@ -48,20 +47,19 @@
 
 namespace qiprng {
 
-// v0.5.0: Memory pool for MPFR allocations to reduce overhead
-// v0.7.3: Added heap fallback when pool is exhausted to prevent nullptr dereferences
+// Memory pool for MPFR allocations with heap fallback when exhausted
 template <typename T>
 class MemoryPool {
    private:
     struct Block {
         T data;
         bool in_use;
-        bool is_heap_allocated;  // v0.7.3: Track if block was heap-allocated as fallback
+        bool is_heap_allocated;  // Track heap-allocated fallback blocks
         Block() : in_use(false), is_heap_allocated(false) {}
     };
 
     std::vector<std::unique_ptr<Block>> blocks_;
-    std::vector<std::unique_ptr<Block>> heap_fallback_;  // v0.7.3: Track heap-allocated blocks
+    std::vector<std::unique_ptr<Block>> heap_fallback_;
     std::mutex mutex_;
     size_t max_blocks_;
 
@@ -88,8 +86,7 @@ class MemoryPool {
             return &blocks_.back()->data;
         }
 
-        // v0.7.3: Pool exhausted - fallback to heap allocation instead of returning nullptr
-        // This prevents null pointer dereferences in callers
+        // Pool exhausted - fallback to heap allocation
         auto heap_block = std::make_unique<Block>();
         heap_block->in_use = true;
         heap_block->is_heap_allocated = true;
@@ -112,7 +109,7 @@ class MemoryPool {
             }
         }
 
-        // v0.7.3: Check heap fallback blocks and remove if found
+        // Check heap fallback blocks and remove if found
         for (auto it = heap_fallback_.begin(); it != heap_fallback_.end(); ++it) {
             if (&(*it)->data == ptr) {
                 heap_fallback_.erase(it);
@@ -136,7 +133,6 @@ class MemoryPool {
         return count;
     }
 
-    // v0.7.3: Get count of heap-allocated fallback blocks (for diagnostics)
     size_t heap_fallback_count() const {
         std::lock_guard<std::mutex> lock(const_cast<std::mutex&>(mutex_));
         return heap_fallback_.size();

@@ -68,7 +68,6 @@ void MultiQIOptimized::reset_after_shutdown() {
 // Performance metrics - wrapped in struct with safe access
 namespace perf {
 
-// v0.7.3: Use atomic pointer to prevent data race when reading metrics_ptr concurrently
 static std::atomic<Metrics*> metrics_ptr{nullptr};
 static std::once_flag metrics_init_flag;
 static std::atomic<bool> metrics_destroyed{false};
@@ -86,9 +85,6 @@ void mark_metrics_destroyed() {
 }
 
 bool are_metrics_available() {
-    // v0.7.3: Metrics are available until explicitly destroyed or during shutdown.
-    // Do not gate on metrics_ptr being non-null here, otherwise get_global_metrics()
-    // is never called and metrics never initialize (circular dependency).
     return !metrics_destroyed.load(std::memory_order_acquire) &&
            !g_shutdown_in_progress.load(std::memory_order_acquire);
 }
@@ -161,8 +157,6 @@ MultiQIOptimized::MultiQIOptimized(size_t num_qis, int mpfr_prec, uint64_t seed,
 
 // Ensure thread-local data is initialized
 void MultiQIOptimized::ensure_initialized() const {
-    // v0.7.3: During shutdown, throw instead of silently returning to prevent
-    // null dereferences in callers that assume tl_data.qis is valid
     if (is_shutdown_in_progress()) {
         throw std::runtime_error("MultiQIOptimized used during shutdown");
     }
@@ -210,7 +204,7 @@ double MultiQIOptimized::generate_single() const {
     return val;
 }
 
-// Refill cache - NO MUTEX NEEDED!
+// Refill thread-local cache (lock-free)
 void MultiQIOptimized::refill_cache() const {
     ensure_initialized();
 
@@ -227,7 +221,7 @@ void MultiQIOptimized::refill_cache() const {
     }
 }
 
-// Main generation method - COMPLETELY LOCK-FREE!
+// Main generation method (lock-free via thread-local storage)
 double MultiQIOptimized::next() {
     if (is_shutdown_in_progress()) {
         return 0.5;  // Safe fallback during shutdown
@@ -254,9 +248,8 @@ double MultiQIOptimized::next() {
 
 // Mixed generation
 double MultiQIOptimized::next_mixed() {
-    // v0.7.3: Return safe fallback during shutdown to prevent crashes
     if (is_shutdown_in_progress()) {
-        return 0.5;
+        return 0.5;  // Safe fallback during shutdown
     }
 
     ensure_initialized();
@@ -327,9 +320,8 @@ void MultiQIOptimized::fill_parallel(double* buffer, size_t fill_size) {
 
 // Skip ahead
 void MultiQIOptimized::skip(uint64_t n) {
-    // v0.7.3: No-op during shutdown to prevent crashes
     if (is_shutdown_in_progress()) {
-        return;
+        return;  // No-op during shutdown
     }
 
     ensure_initialized();

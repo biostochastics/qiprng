@@ -1075,8 +1075,6 @@ print_validation_summary <- function(report) {
 
 #' Helper function to modify lists
 #'
-#' v0.7.3: Fixed to properly handle keep.null semantics like base::modifyList
-#'
 #' @param x Base list
 #' @param val List of modifications
 #' @param keep.null If TRUE, NULL values in val are preserved. If FALSE (default),
@@ -1101,9 +1099,6 @@ modifyList <- function(x, val, keep.null = FALSE) {
 #'
 #' Runs an expression with a specified timeout, returning an error
 #' if the expression takes longer than the specified time.
-#'
-#' v0.7.3: Fixed to run expression in caller's environment using
-#' standard R metaprogramming (substitute + eval in parent.frame)
 #'
 #' @param expr Expression to run
 #' @param timeout Timeout in seconds

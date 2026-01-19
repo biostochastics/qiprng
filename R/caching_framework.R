@@ -183,7 +183,7 @@ cached_acf <- function(x, lag.max = NULL, ...) {
     args = args
   )
 
-  # Manual caching (memoizedCall has issues with some stats functions)
+  # Manual caching for stats functions
   cached_result <- R.cache::loadCache(key = key, dirs = "qiprng")
 
   if (!is.null(cached_result)) {
@@ -230,7 +230,7 @@ cached_pacf <- function(x, lag.max = NULL, ...) {
     args = args
   )
 
-  # Manual caching (memoizedCall has issues with some stats functions)
+  # Manual caching for stats functions
   cached_result <- R.cache::loadCache(key = key, dirs = "qiprng")
 
   if (!is.null(cached_result)) {
@@ -316,7 +316,7 @@ cached_compress <- function(x, type = c("gzip", "bzip2", "xz"), ...) {
     args = list(...)
   )
 
-  # Manual caching (memoizedCall has issues with memCompress argument names)
+  # Manual caching for memCompress
   cached_result <- R.cache::loadCache(key = key, dirs = "qiprng")
 
   if (!is.null(cached_result)) {

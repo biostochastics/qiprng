@@ -36,7 +36,7 @@ suppressPackageStartupMessages({
     library(tseries)
   }
 
-  # Skip CryptRndTest for now due to installation issues
+  # CryptRndTest not currently used
   # if (!require(CryptRndTest, quietly = TRUE)) {
   #   cat("Installing CryptRndTest package...\n")
   #   install.packages("CryptRndTest", quiet = TRUE)
@@ -154,8 +154,8 @@ generate_with_discriminant <- function(a, b, c, n = 50000, precision = 256) {
     b = b,
     c = c,
     precision = precision,
-    use_parallel_filling = FALSE, # Based on memory about performance issue
-    use_cryptographic_mixing = TRUE # Enable for better quality
+    use_parallel_filling = FALSE,
+    use_cryptographic_mixing = TRUE
   )
 
   # Initialize PRNG

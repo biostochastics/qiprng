@@ -159,8 +159,7 @@ class ThreadPool {
     }
 
     // Safe blocking shutdown - always joins all threads
-    // v0.7.3: Avoids joining the current thread to prevent deadlock when
-    // destructor is called from within a worker thread
+    // Avoids joining current thread to prevent deadlock when called from worker
     void shutdown() {
         // Atomic exchange ensures shutdown runs only once
         bool already_stopping = stop_.exchange(true, std::memory_order_acq_rel);
@@ -178,8 +177,7 @@ class ThreadPool {
         // Never use detach() as it can cause use-after-free
         for (auto& worker : workers_) {
             if (worker.joinable()) {
-                // v0.7.3: Skip joining the current thread to prevent deadlock
-                // This can happen if ThreadPool is destroyed from a worker callback
+                // Skip joining current thread to prevent deadlock
                 if (worker.get_id() == current_id) {
                     // Cannot join self - detach to avoid std::system_error
                     // The thread will complete shortly since tasks_.done() was called
@@ -195,7 +193,7 @@ class ThreadPool {
     // Stop the thread pool (deprecated, calls shutdown)
     void stop() { shutdown(); }
 
-    // v0.7.3: Timeout-aware shutdown that returns false if timeout elapses before completion
+    // Timeout-aware shutdown that returns false if timeout elapses before completion
     template <typename Rep, typename Period>
     bool shutdown(std::chrono::duration<Rep, Period> timeout) {
         // Ensure shutdown initiation happens only once

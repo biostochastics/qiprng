@@ -175,7 +175,7 @@ void ZigguratNormal::use_cached_tables() {
 }
 
 void ZigguratNormal::initialize_thread_local_tables() {
-    // Skip if cleanup is in progress - acquire ordering already provides necessary synchronization
+    // Skip during cleanup
     if (cleanup_in_progress_.load(std::memory_order_acquire)) {
         return;
     }
@@ -201,7 +201,6 @@ void ZigguratNormal::initialize_thread_local_tables() {
     // Initialize tables if not already done
     if (!tls_tables_initialized_ && tls_manager_->is_valid()) {
         try {
-            // Verify we're not in cleanup before copying
             if (cleanup_in_progress_.load(std::memory_order_acquire)) {
                 return;
             }
@@ -226,7 +225,7 @@ void ZigguratNormal::initialize_thread_local_tables() {
 }
 
 void ZigguratNormal::initialize_random_cache() {
-    // Skip if cleanup is in progress - acquire ordering already provides necessary synchronization
+    // Skip during cleanup
     if (cleanup_in_progress_.load(std::memory_order_acquire)) {
         return;
     }
@@ -253,7 +252,6 @@ void ZigguratNormal::initialize_random_cache() {
     // Only proceed if manager is valid
     if (tls_manager_->is_valid() && !tls_random_cache_initialized_) {
         try {
-            // Verify we're not in cleanup before initializing
             if (cleanup_in_progress_.load(std::memory_order_acquire)) {
                 return;
             }
@@ -288,7 +286,6 @@ void ZigguratNormal::refill_random_cache() {
                 }
                 tls_random_cache_[i] = u;
             } catch (...) {
-                // In case of error, use properly seeded fallback RNG
                 static thread_local std::mt19937_64 fallback_rng(
                     qiprng::DeterministicSeedHelper::get_fallback_seed());
                 std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
@@ -301,9 +298,8 @@ void ZigguratNormal::refill_random_cache() {
 }
 
 double ZigguratNormal::get_cached_uniform() {
-    // Skip if cleanup is in progress - return a safe value
+    // Return safe value during cleanup
     if (cleanup_in_progress_.load(std::memory_order_acquire)) {
-        // Use properly seeded fallback RNG
         static thread_local std::mt19937_64 fallback_rng(
             qiprng::DeterministicSeedHelper::get_fallback_seed());
         std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
@@ -316,7 +312,6 @@ double ZigguratNormal::get_cached_uniform() {
         initialize_thread_local_tables();
 
         if (!tls_manager_ || !tls_manager_->is_valid()) {
-            // Use properly seeded fallback RNG
             static thread_local std::mt19937_64 fallback_rng(
                 qiprng::DeterministicSeedHelper::get_fallback_seed());
             std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
@@ -330,7 +325,6 @@ double ZigguratNormal::get_cached_uniform() {
 
         // Double-check initialization success
         if (!tls_random_cache_initialized_) {
-            // Use properly seeded fallback RNG
             static thread_local std::mt19937_64 fallback_rng(
                 qiprng::DeterministicSeedHelper::get_fallback_seed());
             std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
@@ -920,7 +914,6 @@ double ZigguratNormal::generate() {
         static thread_local bool local_thread_exiting = false;
         // Also check the global cleanup flag
         if (local_thread_exiting || cleanup_in_progress_.load(std::memory_order_acquire)) {
-            // Use fallback RNG instead of fixed mean value
             static thread_local std::mt19937 fallback_rng(
                 qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy seeding
             std::normal_distribution<double> fallback_dist(mean_, stddev_);
@@ -932,7 +925,6 @@ double ZigguratNormal::generate() {
         if (is_thread_safe_mode_.load()) {
             // Handle case where object is being destroyed
             if (!uniform_generator_) {
-                // Use fallback RNG instead of fixed mean value
                 static thread_local std::mt19937 fallback_rng(
                     qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy
                                                                             // seeding
@@ -954,7 +946,6 @@ double ZigguratNormal::generate() {
                         return fallback_dist(fallback_rng);
                     }
                 } catch (...) {
-                    // Use fallback RNG instead of fixed mean value
                     static thread_local std::mt19937 fallback_rng(
                         qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy
                                                                                 // seeding
@@ -982,7 +973,6 @@ double ZigguratNormal::generate() {
                 try {
                     std_normal_val = generate_internal();
                 } catch (...) {
-                    // Use fallback RNG instead of fixed mean value
                     static thread_local std::mt19937 fallback_rng(
                         qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy
                                                                                 // seeding
@@ -999,7 +989,6 @@ double ZigguratNormal::generate() {
 
         // Validate the result
         if (std::isnan(result) || std::isinf(result)) {
-            // Use fallback RNG instead of fixed mean value
             static thread_local std::mt19937 fallback_rng(
                 qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy seeding
             std::normal_distribution<double> fallback_dist(mean_, stddev_);
@@ -1013,7 +1002,6 @@ double ZigguratNormal::generate() {
             Rcpp::warning("ZigguratNormal::generate failed: %s", e.what());
             warning_count++;
         }
-        // Use fallback RNG instead of fixed mean value
         static thread_local std::mt19937 fallback_rng(
             qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy seeding
         std::normal_distribution<double> fallback_dist(mean_, stddev_);
@@ -1028,7 +1016,6 @@ double ZigguratNormal::generate() {
             cleanup_thread_local_resources();
         }
 
-        // Use fallback RNG instead of fixed mean value
         static thread_local std::mt19937 fallback_rng(
             qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy seeding
         std::normal_distribution<double> fallback_dist(mean_, stddev_);
@@ -1056,7 +1043,6 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
                     buffer[i] = generate();
                 } catch (...) {
                     // If generate fails for an individual value, use mean
-                    // Use fallback RNG instead of fixed mean value
                     static thread_local std::mt19937 fallback_rng(
                         qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy
                                                                                 // seeding
@@ -1095,7 +1081,6 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
                 try {
                     buffer[i] = generate();
                 } catch (...) {
-                    // Use fallback RNG instead of fixed mean value
                     static thread_local std::mt19937 fallback_rng(
                         qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy
                                                                                 // seeding
@@ -1216,10 +1201,8 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
         for (size_t t = 0; t < threads.size(); ++t) {
             if (threads[t].joinable()) {
                 try {
-                    // Try joining with a timeout
-                    // v0.7.3: Capture thread reference by value to avoid data race
-                    // when lambda executes - capturing loop index by reference is UB
-                    std::chrono::milliseconds timeout(1000);  // 1 second timeout
+                    // Try joining with a timeout (reference captured to avoid data race)
+                    std::chrono::milliseconds timeout(1000);
                     std::thread& thread_ref = threads[t];
                     auto thread_finished =
                         std::async(std::launch::async, [&thread_ref]() { thread_ref.join(); });

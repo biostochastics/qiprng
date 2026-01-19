@@ -59,7 +59,7 @@ default_config <- list(
   use_excellent_only = TRUE, # Use only excellent discriminants (max_abs_acf <= 0.010)
   quality_threshold = 0.010, # Maximum autocorrelation threshold for discriminant selection
   use_parallel_filling = FALSE,
-  mixing_strategy = "round_robin", # v0.5.0: MultiQI mixing strategy
+  mixing_strategy = "round_robin",
   debug = FALSE,
   seed = NULL, # NULL means use random initialization
   deterministic = FALSE # Force deterministic mode
@@ -159,7 +159,7 @@ validate_config <- function(config) {
     stop("Invalid reseed interval: must be positive")
   }
 
-  # Check mixing strategy (v0.5.0)
+  # Check mixing strategy
   if (!is.null(config$mixing_strategy)) {
     strategy <- config$mixing_strategy
     if (!strategy %in% c("round_robin", "xor_mix", "averaging", "modular_add", "cascade_mix")) {

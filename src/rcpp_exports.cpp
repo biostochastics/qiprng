@@ -6,8 +6,8 @@
 #include "multi_qi.hpp"            // For ThreadLocalPRNG and thread-local variables
 #include "multi_qi_optimized.hpp"  // For MultiQIOptimized
 #include "prng_utils.hpp"
-#include "thread_manager.hpp"  // v0.7.3: For ThreadManager::cleanupAllThreads
-#include "thread_pool.hpp"     // For shutdown_global_thread_pool
+#include "thread_manager.hpp"
+#include "thread_pool.hpp"
 #include "ziggurat_normal.hpp"
 
 using namespace Rcpp;
@@ -15,8 +15,6 @@ using namespace qiprng;
 
 // [[Rcpp::export(".initialize_libsodium_")]]
 void initialize_libsodium_() {
-    // SECURITY FIX: Use unified initialization to prevent race conditions
-    // Check if already initialized to prevent double printing
     static std::atomic<bool> already_printed(false);
 
     try {
@@ -35,8 +33,6 @@ void initialize_libsodium_() {
 
 // Helper function to validate PRNGConfig parameters
 void validatePRNGConfig(const PRNGConfig& cfg) {
-    // SECURITY FIX: Comprehensive input validation
-
     // Validate discriminant (b^2 - 4ac > 0) using safe calculation
     long long disc;
     std::string error_msg;
@@ -117,7 +113,6 @@ void validatePRNGConfig(const PRNGConfig& cfg) {
     }
 
     // Prevent deterministic seed with ChaCha20 mixing (incompatible modes)
-    // v0.7.3: Only enforce when deterministic mode is actually enabled
     if (cfg.deterministic && cfg.has_seed && cfg.use_crypto_mixing) {
         throw std::runtime_error(
             "Configuration error: Using deterministic seed with ChaCha20 mixing is not "
