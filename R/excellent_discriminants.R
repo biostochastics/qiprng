@@ -61,7 +61,16 @@ load_excellent_discriminants <- function(results_file = "discriminant_analysis_r
   results <- readRDS(results_file)
 
   # Generate summary statistics
-  source("R/discriminant_reports.R")
+  # v0.7.3: Safe sourcing with file existence check and namespace fallback
+  reports_file <- "R/discriminant_reports.R"
+  if (file.exists(reports_file)) {
+    source(reports_file)
+  } else if (exists("generate_summary_stats", envir = asNamespace("qiprng"), inherits = FALSE)) {
+    # Function already available from package namespace
+    generate_summary_stats <- get("generate_summary_stats", envir = asNamespace("qiprng"))
+  } else {
+    stop("discriminant_reports.R not found and generate_summary_stats not available in namespace")
+  }
   summary_data <- generate_summary_stats(results)
 
   # Filter for excellent discriminants
@@ -73,7 +82,14 @@ load_excellent_discriminants <- function(results_file = "discriminant_analysis_r
   excellent <- excellent[order(excellent$overall_score, decreasing = TRUE), ]
 
   cat("Found", nrow(excellent), "excellent discriminants with score >=", min_score, "\n")
-  cat("Score range:", round(min(excellent$overall_score), 3), "to", round(max(excellent$overall_score), 3), "\n")
+
+  # v0.7.3: Check for empty results before calling min/max to avoid errors
+
+  if (nrow(excellent) > 0) {
+    cat("Score range:", round(min(excellent$overall_score), 3), "to", round(max(excellent$overall_score), 3), "\n")
+  } else {
+    cat("No excellent discriminants found with the specified criteria.\n")
+  }
 
   return(excellent)
 }
@@ -406,6 +422,13 @@ print_excellent_summary <- function(results_file = "discriminant_analysis_result
 
   cat("\n=== EXCELLENT DISCRIMINANTS SUMMARY ===\n")
   cat("Total excellent discriminants found:", nrow(excellent), "\n")
+
+  # v0.7.3: Check for empty results before calling min/max/mean to avoid errors
+  if (nrow(excellent) == 0) {
+    cat("\nNo excellent discriminants found. Try adjusting filter criteria.\n")
+    return(invisible(NULL))
+  }
+
   cat("Score range:", round(min(excellent$overall_score), 3), "to", round(max(excellent$overall_score), 3), "\n\n")
 
   cat("Test Performance Summary:\n")

@@ -14,6 +14,16 @@
 * **MemoryPool nullptr on exhaustion** (HIGH): `MemoryPool::allocate()` now provides heap fallback instead of returning nullptr when pool is exhausted, preventing null pointer dereferences
 * **Shutdown crash protection** (MAJOR): Added shutdown protection to `next_mixed()` and `skip()` methods to return safe fallback values during shutdown
 
+### Additional Code Review Fixes (2026-01-18)
+
+* **Performance metrics circular dependency** (MAJOR): Fixed `are_metrics_available()` checking `metrics_ptr != nullptr` which created a circular dependency - metrics would never initialize. Removed null check since `get_global_metrics()` safely initializes on first call.
+* **Thread join async capture bug** (MEDIUM): Fixed lambda in `ziggurat_normal.cpp` capturing loop variable by reference in `std::async` call. Now captures thread reference directly to avoid undefined behavior.
+* **Thread-local cache cleanup mismatch** (MEDIUM): Fixed `cleanup_thread_caches()` clearing a different cache than `fill_buffer_openmp()` used. Moved `MultiQICache` struct to namespace level so both functions share the same cache.
+* **Unguarded source() call** (LOW): `load_excellent_discriminants()` now checks if `discriminant_reports.R` exists before sourcing, with fallback to package namespace.
+* **Empty result crash** (LOW): Added `nrow()` checks in `load_excellent_discriminants()` and `print_excellent_summary()` before calling `min()`/`max()`/`mean()` to prevent errors on empty data frames.
+* **modifyList semantics** (LOW): Fixed `modifyList()` in `validation_suite.R` to properly handle `keep.null` parameter - NULL values now remove elements when `keep.null=FALSE` (matching `base::modifyList` behavior).
+* **withTimeout context** (LOW): Fixed `withTimeout()` to run expression in caller's environment using standard R metaprogramming pattern.
+
 ### Thread Safety & Cleanup
 
 * **Thread-local cleanup for all threads** (MEDIUM): Added `ThreadManager::cleanupAllThreads()` call during `prepare_for_unload_()` to invoke cleanup callbacks registered by all threads

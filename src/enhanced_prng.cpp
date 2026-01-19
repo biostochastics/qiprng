@@ -8,7 +8,6 @@
 #include <stdexcept>    // For std::invalid_argument
 #include <type_traits>  // For std::is_same
 
-// v0.5.0: OpenMP support for parallel buffer filling
 #ifdef _OPENMP
 #    include <omp.h>
 #    define PRNG_HAS_OPENMP 1
@@ -20,6 +19,17 @@
 #endif
 
 namespace qiprng {
+
+#if PRNG_HAS_OPENMP
+// Shared thread-local cache for OpenMP parallel filling
+namespace {
+struct MultiQICache {
+    std::unordered_map<int, std::unique_ptr<MultiQIOptimized>> cache;
+    std::unordered_map<int, std::vector<std::tuple<long, long, long>>> abc_cache;
+};
+thread_local MultiQICache tl_multiqi_cache;
+}  // anonymous namespace
+#endif
 
 // Helper method to get raw uniform without distribution transformations
 // This avoids circular dependencies when used with Ziggurat
@@ -124,10 +134,9 @@ EnhancedPRNG::EnhancedPRNG(const PRNGConfig& cfg,
 
     // Create crypto mixer if enabled
     if (config_.use_crypto_mixing) {
-        // SECURITY FIX: Use centralized libsodium initialization
         ensure_libsodium_initialized();
 
-        // SECURITY FIX: PREVENT deterministic seeds with crypto mixing
+        // Deterministic seeds are incompatible with cryptographic mixing
         if (config_.has_seed) {
             throw std::runtime_error(
                 "SECURITY ERROR: Deterministic seeds are not allowed with cryptographic mixing. "
@@ -135,13 +144,11 @@ EnhancedPRNG::EnhancedPRNG(const PRNGConfig& cfg,
                 "Either disable crypto mixing or remove the deterministic seed.");
         }
 
-        // SECURITY FIX: CryptoMixer no longer accepts seed parameters
         crypto_ =
             std::make_unique<CryptoMixer>(config_.adhoc_corrections, config_.use_tie_breaking);
     }
 
     // Create MultiQI instance with provided parameters
-    // v0.5.0: Use mixing strategy from config
     MixingStrategy strategy = static_cast<MixingStrategy>(config_.mixing_strategy);
 
     if (config_.has_seed) {
@@ -701,7 +708,6 @@ void EnhancedPRNG::fill_buffer() {
 }
 
 #if PRNG_HAS_OPENMP
-// v0.6.2: High-performance OpenMP with thread-local caching and SIMD optimization
 void EnhancedPRNG::fill_buffer_openmp() {
     if (buffer_.size() == 0)
         return;
@@ -716,13 +722,6 @@ void EnhancedPRNG::fill_buffer_openmp() {
         return;
     }
 
-    // Thread-local cache for MultiQIOptimized instances to avoid recreation overhead
-    struct MultiQICache {
-        std::unordered_map<int, std::unique_ptr<MultiQIOptimized>> cache;
-        std::unordered_map<int, std::vector<std::tuple<long, long, long>>> abc_cache;
-    };
-    static thread_local MultiQICache tl_cache;
-
     try {
 // Parallel region for buffer filling with optimizations
 #    pragma omp parallel
@@ -733,8 +732,8 @@ void EnhancedPRNG::fill_buffer_openmp() {
 
             if (start < end) {
                 // Get or create thread-local MultiQIOptimized instance
-                auto& local_cache = tl_cache.cache;
-                auto& local_abc = tl_cache.abc_cache;
+                auto& local_cache = tl_multiqi_cache.cache;
+                auto& local_abc = tl_multiqi_cache.abc_cache;
 
                 if (local_cache.find(tid) == local_cache.end()) {
                     // Create new MultiQIOptimized instance for this thread
@@ -776,15 +775,9 @@ void EnhancedPRNG::fill_buffer_openmp() {
 // WARNING: NO OpenMP here - using parallel constructs during cleanup
 // can create new TLS entries leading to use-after-free
 void EnhancedPRNG::cleanup_thread_caches() {
-    // Single-threaded cleanup only - clean main thread's cache
-    // Other threads' caches are cleaned by their exit handlers
-    struct MultiQICache {
-        std::unordered_map<int, std::unique_ptr<MultiQIOptimized>> cache;
-        std::unordered_map<int, std::vector<std::tuple<long, long, long>>> abc_cache;
-    };
-    static thread_local MultiQICache tl_cache;
-    tl_cache.cache.clear();
-    tl_cache.abc_cache.clear();
+    // Single-threaded cleanup only - other threads' caches are cleaned by exit handlers
+    tl_multiqi_cache.cache.clear();
+    tl_multiqi_cache.abc_cache.clear();
 }
 #endif
 
@@ -1162,7 +1155,6 @@ double EnhancedPRNG::generate_normal(double u) {
         return fallback_dist(fallback_rng);
     }
 
-    // This is a critical path for thread safety issues
     try {
         // Disable Ziggurat when parallel filling is enabled for stability
         if (config_.use_parallel_filling && config_.use_threading) {
@@ -1183,17 +1175,14 @@ double EnhancedPRNG::generate_normal(double u) {
         if (config_.normal_method == PRNGConfig::ZIGGURAT && ziggurat_) {
             // Use the Ziggurat method
             try {
-                // Make sure the uniform is valid
+                // Ensure valid uniform value
                 if (u <= 0.0 || u >= 1.0) {
-                    // Use a better fallback than a fixed value
                     DETERMINISTIC_FALLBACK_RNG(rng_u, std::mt19937);
                     std::uniform_real_distribution<double> dist_u(0.000001, 0.999999);
                     u = dist_u(rng_u);
                 }
 
-                // Check again for object destruction - critical for thread safety
                 if (is_being_destroyed_.load(std::memory_order_acquire)) {
-                    // Use fallback RNG instead of fixed value
                     DETERMINISTIC_FALLBACK_RNG(fallback_rng, std::mt19937);
                     std::normal_distribution<double> fallback_dist(config_.normal_mean, 0.01);
                     return fallback_dist(fallback_rng);
@@ -1314,8 +1303,7 @@ double EnhancedPRNG::generate_normal(double u) {
 // Box-Muller implementation for normal distribution
 double EnhancedPRNG::generate_normal_box_muller(double u) {
     try {
-        // Thread-safe handling of spare normal value
-        // In threading mode, we don't use the spare normal to avoid thread safety issues
+        // Use spare normal only in non-threading mode
         if (!config_.use_threading && has_spare_normal_) {
             double result = spare_normal_;
             has_spare_normal_ = false;
@@ -1372,7 +1360,6 @@ double EnhancedPRNG::generate_normal_box_muller(double u) {
             if (config_.debug) {
                 Rcpp::warning("Box-Muller transform failed: %s", e.what());
             }
-            // If Box-Muller fails, use fallback RNG instead of fixed mean
             DETERMINISTIC_FALLBACK_RNG(fallback_rng, std::mt19937);
             std::normal_distribution<double> fallback_dist(config_.normal_mean, config_.normal_sd);
             return fallback_dist(fallback_rng);
@@ -1382,16 +1369,13 @@ double EnhancedPRNG::generate_normal_box_muller(double u) {
         double x1 = norm_pair.first;
         double x2 = norm_pair.second;
 
-        // Check for NaN/infinity
         if (std::isnan(x1) || std::isinf(x1)) {
-            // Use fallback RNG instead of fixed mean value
             DETERMINISTIC_FALLBACK_RNG(fallback_rng, std::mt19937);
             std::normal_distribution<double> fallback_dist(config_.normal_mean, config_.normal_sd);
             x1 = fallback_dist(fallback_rng);
         }
 
         if (std::isnan(x2) || std::isinf(x2)) {
-            // Use fallback RNG instead of fixed mean value
             DETERMINISTIC_FALLBACK_RNG(fallback_rng, std::mt19937);
             std::normal_distribution<double> fallback_dist(config_.normal_mean, config_.normal_sd);
             x2 = fallback_dist(fallback_rng);

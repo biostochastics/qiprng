@@ -86,10 +86,11 @@ void mark_metrics_destroyed() {
 }
 
 bool are_metrics_available() {
-    // v0.7.3: Load atomic pointer with acquire semantics to prevent data race
-    Metrics* ptr = metrics_ptr.load(std::memory_order_acquire);
+    // v0.7.3: Metrics are available until explicitly destroyed or during shutdown.
+    // Do not gate on metrics_ptr being non-null here, otherwise get_global_metrics()
+    // is never called and metrics never initialize (circular dependency).
     return !metrics_destroyed.load(std::memory_order_acquire) &&
-           !g_shutdown_in_progress.load(std::memory_order_acquire) && ptr != nullptr;
+           !g_shutdown_in_progress.load(std::memory_order_acquire);
 }
 
 // Legacy global_metrics - now redirects to safe accessor

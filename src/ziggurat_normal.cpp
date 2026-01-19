@@ -1217,15 +1217,18 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
             if (threads[t].joinable()) {
                 try {
                     // Try joining with a timeout
+                    // v0.7.3: Capture thread reference by value to avoid data race
+                    // when lambda executes - capturing loop index by reference is UB
                     std::chrono::milliseconds timeout(1000);  // 1 second timeout
+                    std::thread& thread_ref = threads[t];
                     auto thread_finished =
-                        std::async(std::launch::async, [&]() { threads[t].join(); });
+                        std::async(std::launch::async, [&thread_ref]() { thread_ref.join(); });
 
                     if (thread_finished.wait_for(timeout) != std::future_status::ready) {
                         // Thread didn't finish in time - we have a problem
                         any_thread_failed.store(true);
                         // Cannot safely detach or terminate - we'll have to wait
-                        threads[t].join();  // This might block
+                        thread_ref.join();  // This might block
                     }
                 } catch (...) {
                     any_thread_failed.store(true);
