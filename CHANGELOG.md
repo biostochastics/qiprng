@@ -1,630 +1,451 @@
-# CHANGELOG
+# Changelog
 
-## Version 0.7.0 (2025-12-02)
+All notable changes to this project will be documented in this file.
 
-### Critical Distribution Bug Fixes
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-#### Normal Distribution Double-Scaling Bug (CRITICAL)
+## [Unreleased]
 
-- **Issue**: When using Ziggurat method, mean/sd transformation was applied twice
-  - Ziggurat's `generate()` returns: `mean_ + stddev_ * std_normal_val`
-  - `generate_normal()` then applied: `config_.normal_mean + config_.normal_sd * result`
-  - Result: Double-transformed values with incorrect mean and inflated variance
-- **Fix**: Removed duplicate transformation in `enhanced_prng.cpp:1218`
-  - Ziggurat already applies mean/sd, so return result directly
-- **Impact**: All Ziggurat-based normal samples were mathematically incorrect
+## [0.7.3] - 2026-01-18
 
-#### Derived Distributions Using Wrong Normal (CRITICAL)
+### Security
 
-- **Issue**: Several distributions called `generate_normal()` expecting N(0,1) but received N(normal_mean, normal_sd)
-- **Fix**: Added `generate_standard_normal()` method that always returns N(0,1)
-- **Affected distributions fixed**:
-  - **Lognormal**: Now uses `generate_standard_normal()` for correct exp(μ + σZ) formula
-  - **Chi-squared** (normal approx for df>100): Now uses standard normal
-  - **Binomial** (normal approx): Now uses standard normal for N(np, sqrt(np(1-p)))
-  - **Student-t**: Now uses standard normal for Z/sqrt(χ²/df) ratio
-- **Impact**: All derived distributions now produce mathematically correct samples
+- **Replace predictable fallback RNG seeds** (HIGH): Changed hardcoded seed `12345` to `DeterministicSeedHelper::get_fallback_seed()` across all fallback RNG instances in `ziggurat_normal.cpp` (~20 locations). Fallback RNGs now use hardware entropy or high-resolution clock for seeding.
+- **Improved secure memory zeroing**: Added memory barrier (`std::atomic_thread_fence`) after volatile zeroing in `SecureBuffer::clear()` to ensure zeroing completes before subsequent operations.
 
-#### Student-t Non-Integer Degrees of Freedom (HIGH)
+### Fixed
 
-- **Issue**: In `extended_distributions.hpp`, chi-squared generation used integer loop `for (int i = 0; i < df_; ++i)` which truncated non-integer df values
-- **Fix**: Replaced with proper gamma-based chi-squared generation
-  - Chi-squared(df) = Gamma(df/2, 2) for any positive df
-  - Implemented Ahrens-Dieter (α<1) and Marsaglia-Tsang (α≥1) algorithms
-- **Impact**: Non-integer degrees of freedom now handled correctly
+- **Race condition with metrics_ptr** (MAJOR): Made `metrics_ptr` atomic in `multi_qi_optimized.cpp` to prevent data race when reading concurrently in `are_metrics_available()`.
+- **Null pointer during shutdown** (MAJOR): Changed `ensure_initialized()` to throw instead of silently returning during shutdown, preventing null dereferences in callers that assume `tl_data.qis` is valid.
+- **Cache size constant inconsistency** (MAJOR): Changed cache size in `multi_qi.cpp` from `cache::OPTIMAL_BATCH_SIZE` (~3072) to consistent `4096` to match `MultiQIOptimized` and preserve reproducibility.
+- **Loop optimization overhead** (MAJOR): Hoisted `cache::should_use_cache_optimization()` check outside the hot loop in `fill_thread_safe()` to avoid per-iteration overhead.
+- **Off-by-one precision threshold** (MAJOR): Changed `>` to `>=` in precision error threshold comparison in `precision_utils.hpp` to match documented semantics.
+- **PackedQIState::step_once() flag checking** (CRITICAL): Added flag validation at start of `step_once()` to return NaN when state is invalid, fast path is disabled, or overflow was detected.
+- **reseed() fast-path state corruption** (MAJOR): Added `ensure_mpfr_state()` call before setting new value in `reseed()` to flush pending fast-path state.
+- **Seed+crypto mixing validation** (MAJOR): Added `cfg.deterministic` check to seed+crypto mixing validation to only enforce restriction when deterministic mode is enabled.
+- **Cleanup flag race condition** (CRITICAL): Keep `cleanup_in_progress` flag set to `true` after `prepare_for_unload_()` to prevent re-entry during library unload.
+- **Timeout shutdown ignored** (MAJOR): Implemented proper timeout-aware shutdown in `ThreadPool` using `wait_for()` that returns `false` when timeout elapses.
 
-#### Pareto Edge Case Handling (MEDIUM)
+### Changed
 
-- **Issue**: If uniform u=1.0, Pareto formula `xm_ / pow(1-u, 1/alpha)` returned infinity
-- **Fix**: Added clamping to prevent u=1.0 exactly
-- **Impact**: Edge case no longer produces infinity
-
-### New Features
-
-- **`generate_standard_normal()`**: New internal method for generating N(0,1) samples
-  - Uses Box-Muller transform directly
-  - Isolated from config_.normal_mean/sd settings
-  - Used by all derived distributions requiring standard normal input
+- **Upgraded mixing constant** (MEDIUM): Replaced Java LCG constant `0x5DEECE66D` with SplitMix64's golden ratio constant `0x9e3779b97f4a7c15ULL` in `combine_mantissas()` for better avalanche properties.
+- **Fixed XOR mixing precision loss** (LOW): Changed normalization divisor from `UINT64_MAX` to mantissa mask `0x000FFFFFFFFFFFFFULL` (52 bits) in `mix_xor()` to preserve full precision.
+- **Added timing side-channel documentation**: Documented the minor timing difference in tie-breaking logic as an acceptable trade-off for statistical PRNG use.
 
 ### Files Modified
 
-- `src/enhanced_prng.hpp`: Added `generate_standard_normal()` declaration
-- `src/enhanced_prng.cpp`:
-  - Fixed Ziggurat double-scaling bug
-  - Added `generate_standard_normal()` implementation
-  - Fixed `generate_lognormal_dispatch()` to use standard normal
-  - Fixed `generate_chisquared_dispatch()` normal approximation
-  - Fixed `generate_binomial_dispatch()` normal approximation
-  - Fixed `generate_student_t_dispatch()` to use standard normal
-- `src/extended_distributions.hpp`:
-  - Fixed `Pareto::sample()` edge case handling
-  - Rewrote `StudentT::sample()` with gamma-based chi-squared for non-integer df
+- `src/ziggurat_normal.cpp` - Fallback RNG seeding improvements
+- `src/multi_qi_optimized.cpp` - LCG constant upgrade, XOR precision fix, atomic metrics_ptr, shutdown handling
+- `src/crypto_mixer.cpp` - Timing side-channel documentation
+- `src/prng_common.hpp` - SecureBuffer memory barrier addition
+- `src/multi_qi.cpp` - Cache size consistency, loop optimization
+- `src/precision_utils.hpp` - Off-by-one threshold fix
+- `src/cache_optimized.hpp` - step_once() flag validation
+- `src/quadratic_irrational.cpp` - reseed() fast-path flush
+- `src/rcpp_exports.cpp` - Seed+crypto validation, cleanup flag fix
+- `src/thread_pool.hpp` - Timeout-aware shutdown implementation
+
+## [0.7.2] - 2025-01-18
+
+### Added
+
+- `CONTRIBUTING.md` with comprehensive contributor guide (dev setup, pre-commit hooks, code style, testing)
+- Contributing section in README.md with quick start guide
+
+### Changed
+
+- **Documentation terminology overhaul** for accurate security representation:
+  - "Cryptographic mixing" → "ChaCha20 output mixing"
+  - "Cryptographic-grade" → "enhanced statistical quality"
+  - "Security guarantees" → "statistical properties"
+  - Removed "military-grade" terminology from attribution notes
+- Renamed MATH.md Section 7 to "ChaCha20 Output Mixing"
+- Parameter `use_crypto_mixing` documentation updated to "ChaCha20 output mixing"
+
+### Fixed
+
+- `[[unlikely]]` C++20 attribute warnings when compiling with C++17
+  - Added `QIPRNG_UNLIKELY` compatibility macro in `src/prng_common.hpp`
+  - Eliminated 120+ compiler warnings across translation units
+
+### Security
+
+- Removed overstated "cryptographic security" claims (package lacks formal cryptographic analysis)
+- Added Security Considerations section to README clarifying this is not a CSPRNG
+- Revised NIST validation language: tests indicate good statistical properties, not cryptographic security
+- Added peer-review status note for Granville reference
+
+### Files Modified
+
+- `README.Md`, `MATH.Md`, `NEWS.md`, `CHANGELOG.md`, `CONTRIBUTING.md`
+- `R/qiprng-package.R`, `R/prng_interface.R`, `R/excellent_discriminants.R`
+- `src/crypto_mixer.cpp`, `src/crypto_mixer.hpp`, `src/rcpp_exports.cpp`, `src/prng_common.hpp`
+
+## [0.7.1] - 2025-01-04
+
+### Fixed
+
+- **PackedQIState coefficient truncation** (HIGH): Changed coefficient types from `int32_t` to `int64_t` in `cache_optimized.hpp` to prevent silent truncation when coefficients exceed ±2³¹
+- **Missing overflow detection in PackedQIState::step_once()** (HIGH): Added `std::isfinite()` check after FMA computation; sets `FLAG_OVERFLOW` flag and returns `NaN` to trigger MPFR fallback
+- **Stale MPFR state on fast path failure**: Syncs `fast_value_` back to MPFR before disabling fast path
+- **Coefficient range validation**: Fast path auto-disabled when |a|, |b|, or |c| > 2⁵³-1 to prevent precision loss
+- **Static destruction order segfault** (CRITICAL): Fixed crash during R session shutdown caused by destructor ordering between static globals and TLS
+  - Added `g_shutdown_in_progress` atomic flag
+  - Wrapped `perf::global_metrics` with safe accessor functions
+  - Added `.prepare_for_unload_()` Rcpp export for ordered cleanup
+  - Protected destructors in `MPFRContextPool`, `ThreadCleanupHelper`, `MultiQIOptimized::tl_data`
+
+### Added
+
+- `MAX_SAFE_COEFFICIENT` validation to disable fast path for large coefficient values
+- `FAST_PATH_RESYNC_INTERVAL` constant (default: 1M iterations) for periodic MPFR re-sync
+- `fast_path_iterations_` counter for tracking iterations since last MPFR sync
+- `has_overflow()` method in PackedQIState
+
+### Files Modified
+
+- `src/cache_optimized.hpp`: int64_t coefficients, FLAG_OVERFLOW, coefficient validation, overflow check
+- `src/quadratic_irrational.hpp`: fast_path_iterations_, FAST_PATH_RESYNC_INTERVAL, coefficient constants
+- `src/quadratic_irrational.cpp`: coefficient range check, periodic re-sync, stale state handling
+- `src/multi_qi_optimized.hpp`: shutdown flag declarations, cleanup methods
+- `src/multi_qi_optimized.cpp`: shutdown-safe metrics access, TLS cleanup
+- `src/mpfr_pool.hpp`: shutdown check in destructor
+- `src/ziggurat_normal.cpp`: shutdown check in ThreadCleanupHelper destructor
+- `src/rcpp_exports.cpp`: `.prepare_for_unload_()` function
+- `R/zzz.R`: `.onUnload` calls comprehensive cleanup
+
+## [0.7.0] - 2025-01-02
+
+### Fixed
+
+- **Normal distribution double-scaling** (CRITICAL): Ziggurat method applied mean/sd transformation twice, producing incorrect mean and inflated variance
+- **Derived distributions using wrong normal** (CRITICAL): Lognormal, chi-squared (normal approx), binomial (normal approx), and Student-t now correctly use N(0,1) via new `generate_standard_normal()` method
+- **Student-t non-integer degrees of freedom** (HIGH): Replaced integer loop with gamma-based chi-squared generation using Ahrens-Dieter (α<1) and Marsaglia-Tsang (α≥1) algorithms
+- **Pareto edge case** (MEDIUM): Added clamping to prevent infinity when u=1.0
+- **Thread pool shutdown race** (H1): Replaced `wait_for()` with blocking `join()` to guarantee worker termination
+- **Static destruction order fiasco** (H2): Added explicit `shutdown_global_thread_pool()` called from `.onUnload`
+- **OpenMP TLS cleanup issue** (H3): Removed OpenMP from `cleanup_thread_caches()` to prevent late TLS allocation
+- **ThreadPool reset() flaw** (M1): Accept explicit thread count parameter instead of unreliable `capacity()`
+- **Build system portability** (C1): Improved configure script with proper pkg-config discovery for Linux, MacPorts, and non-Homebrew macOS
+- **Validation suite paths** (H4): Created `source_pkg_file()` helper using `system.file()` with development fallback
+- **withTimeout export** (H5): Added `@export` roxygen2 tag for validation suite accessibility
+- **CFE period bound** (M2): Added log term to period bound calculation for `O(sqrt(D) * log(D))` complexity
+- **DeterministicSeedHelper entropy** (M4): Added high-resolution clock fallback when `std::random_device` returns zero entropy
+- **MPFRWrapper swap()** (M8): Now swaps `initialized_` and `cached_precision_` along with MPFR handles
+- **Member initialization order**: Fixed QuadraticIrrational constructor to match declaration order
+- **MPFR_PREC_MAX comparison**: Use practical maximum (10000) instead of platform-dependent constant
+- **kurtosis() API**: Updated `moments::kurtosis()` call for newer package versions
+- **Test files**: Fixed mixing_strategy case sensitivity in benchmark_parallel.R
+- **Orphaned docs**: Wrapped `test_qiprng.Rd` examples in `\dontrun{}`
 
-## Version 0.6.6 (2025-12-02)
+### Added
 
-### Mathematical Documentation Improvements
+- `generate_standard_normal()` internal method for N(0,1) samples isolated from config settings
+- Cache optimization infrastructure in `cache_optimized.hpp`:
+  - `PackedQIState` struct aligned to 64-byte cache lines
+  - Cross-platform prefetch utilities (`prefetch_read()`, `prefetch_write()`, `prefetch_ahead()`)
+  - Platform-specific aligned memory allocation
+  - `CacheOptimizedBatchProcessor` class with loop unrolling
+- Prefetch hints in `QuadraticIrrational::fill()` and `MultiQI::refillCache()` hot loops
+- MSVC support with `<xmmintrin.h>` include and `QIPRNG_HAS_MSVC_PREFETCH` guard
+- Meaningful error messages with platform-specific install instructions for missing dependencies
+- Security warning comment for timing side-channel in `is_square_free()`
+- WorkStealingQueue clarifying comment about mutex-based implementation
 
-#### Bug Fixes in MATH.md
+### Removed
 
-- **Fixed incorrect square-free claim**: Corrected the false statement that "D = k² + 1 is always square-free"
-  - Added counterexample: k = 7 yields 50 = 2 × 5², which is not square-free
-  - Clarified that square-freeness must be validated, not assumed
+- Tracked binary files (*.o,*.so) from repository
+- Hardcoded Homebrew paths that broke Linux builds
 
-- **Fixed overstated fixed-point avoidance claim**: Corrected the claim that "a > 0, c < 0 ensures no fixed points"
-  - Added mathematical analysis showing why this is not guaranteed
-  - Documented practical mitigations (crypto mixing, reseeding) that prevent convergence
+### Files Modified
 
-#### Rigorous Mathematical Proofs Added
+- `src/enhanced_prng.hpp`, `src/enhanced_prng.cpp`: generate_standard_normal(), distribution fixes
+- `src/extended_distributions.hpp`: Pareto edge case, gamma-based Student-t
+- `src/cache_optimized.hpp`: PackedQIState, prefetch utilities, batch processor
+- `src/quadratic_irrational.cpp`, `src/quadratic_irrational.hpp`: prefetch hints, member init order
+- `src/multi_qi.cpp`: cache optimization integration
+- `src/thread_pool.hpp`: shutdown fix, reset() parameter
+- `src/mpfr_pool.hpp`: swap() fix
+- `configure`, `configure.ac`: portability improvements
+- `R/validation_helpers.R`: source_pkg_file(), withTimeout export
+- `inst/statisticaltests/`: moved statistical test files
 
-- **Gap Test (§16.1)**: Added complete proof that gaps between hits in [α, β] follow geometric distribution
-  - Formal setup with indicator variables and stopping times
-  - Full derivation of P(G = k) = (1-p)^(k-1) · p
-  - Expected frequencies for χ² test bins
+## [0.6.6] - 2025-01-02
 
-- **Spectral Test (§16.2)**: Added rigorous proof for periodogram ordinate distribution
-  - DFT distribution under Gaussian white noise
-  - Derivation showing I(ωₖ)/f(ωₖ) ~ Exp(1)
-  - Justification for sample mean normalization
+### Fixed
 
-- **Crypto Mixing Uniformity (§7.2.1)**: Added measure-theoretic proof that (U + C) mod 1 ~ Unif[0,1)
-  - Circle rotation argument preserving Lebesgue measure
-  - Note that averaging does NOT preserve uniformity (produces triangular distribution)
+- **Incorrect square-free claim** in MATH.md: "D = k² + 1 is always square-free" is false (counterexample: k=7 yields 50 = 2 × 5²)
+- **Overstated fixed-point avoidance claim**: "a > 0, c < 0 ensures no fixed points" is not guaranteed; documented practical mitigations
+- Inconsistent section numbering in MATH.md (sections 8-16)
 
-- **CFE Periodicity (§5)**: Added proof of Lagrange's theorem application
-  - Boundedness argument for (Pₙ, Qₙ) state space
-  - Pigeonhole argument establishing eventual periodicity
-
-- **Matrix Jump-Ahead (§4)**: Clarified mathematical foundation
-  - Explanation of polynomial composition semigroup
-  - Conditions for validity of matrix exponentiation approach
+### Added
 
-#### Section Numbering Corrections
+- Rigorous mathematical proofs in MATH.md:
+  - **Gap Test (§16.1)**: Complete proof that gaps follow geometric distribution with P(G = k) = (1-p)^(k-1) · p
+  - **Spectral Test (§16.2)**: Proof that I(ωₖ)/f(ωₖ) ~ Exp(1) for periodogram ordinates
+  - **ChaCha20 Mixing Uniformity (§7.2.1)**: Measure-theoretic proof that (U + C) mod 1 ~ Unif[0,1)
+  - **CFE Periodicity (§5)**: Lagrange's theorem with pigeonhole argument
+  - **Matrix Jump-Ahead (§4)**: Polynomial composition semigroup foundation
 
-- Fixed inconsistent section numbering throughout the document
-- Renumbered sections 8-16 for proper sequential ordering
+## [0.6.5] - 2025-09-25
 
-## Version 0.6.5 (2025-09-25)
+### Fixed
 
-### Deterministic Mode Complete Fix
+- **Deterministic mode reproducibility**: Reset `MultiQIOptimized::thread_counter_` between PRNG creations
+- **Thread-local state management**: Added `resetDeterministicEngine()` and `reset_thread_counter()` for proper state reset
+- All 23 deterministic tests now pass with perfect reproducibility
 
-#### Critical Bug Fixes
+### Added
 
-- **Fixed deterministic mode reproducibility**: Resolved all non-deterministic behavior
-  - Reset `MultiQIOptimized::thread_counter_` between PRNG creations
-  - Added `resetDeterministicEngine()` to properly reset thread-local RNG state
-  - Fixed all fallback RNGs to use deterministic seeding
-  - All 23 deterministic tests now pass with perfect reproducibility
+- Fast-path for standard precision (≤64 bits) with automatic activation for 53-64 bit operations
+- Environment variable control: `QIPRNG_FORCE_MPFR` and `QIPRNG_FAST_PATH`
+- Thread-local MPFR memory pool with `ScopedMPFR` wrapper
+- `QIPRNG_ENABLE_MPFR_DIAGNOSTICS` compile-time macro for production builds
+- Comprehensive benchmarking suite for performance validation
+- Environment variable and deterministic mode documentation in README
 
-- **Thread-local state management**:
-  - Implemented proper reset of thread-local deterministic engines
-  - Added `MultiQIOptimized::reset_thread_counter()` for consistent thread IDs
-  - Fixed `getDeterministicThreadLocalEngine()` to properly reset on seed changes
+### Changed
 
-### MPFR Optimizations and Fast-Path Implementation
+- Throughput maintains ~8-10M samples/sec (MPFR architectural limit)
 
-#### Performance Optimizations
+## [0.6.4] - 2025-09-24
 
-- **Fast-path for standard precision (≤64 bits)**:
-  - Automatic activation of double-precision fast-path for 53-64 bit operations
-  - Bypasses MPFR for common use cases while maintaining precision
-  - Environment variable control via `QIPRNG_FORCE_MPFR` and `QIPRNG_FAST_PATH`
-  - Benchmark results: ~1% performance improvement (architectural limit reached)
+### Added
 
-- **Thread-local MPFR memory pool**:
-  - Implemented `ScopedMPFR` wrapper for efficient temporary allocations
-  - Reduces allocation/deallocation overhead in jump-ahead operations
-  - Thread-safe pool management with automatic cleanup
-
-- **Compile-time diagnostic controls**:
-  - Added `QIPRNG_ENABLE_MPFR_DIAGNOSTICS` macro for production builds
-  - Eliminates diagnostic overhead when disabled
-  - Precision loss tracking available for debugging
+- Lock-free architecture with thread-local PRNG instances (zero-contention parallel generation)
+- Thread-specific seeding using golden ratio prime (0x9E3779B97F4A7C15)
+- `multi_qi_optimized.hpp/cpp` with new lock-free design
+- Performance monitoring utilities for cache hit rates
+- Architecture documentation explaining lock-free design
 
-#### Testing and Validation
+### Changed
 
-- **Comprehensive benchmarking suite**: Added focused performance tests
-  - Monte Carlo simulations show consistent behavior
-  - Throughput maintains ~8-10M samples/sec (MPFR-bound)
-  - No performance regressions observed
+- Cache size increased from 2048 to 4096 samples for better L1 utilization
+- Cache-line aligned data structures (64 bytes) to prevent false sharing
+- Added prefetching hints for sequential access patterns
 
-- **Deterministic mode validation**:
-  - All deterministic tests pass: Same seed → Same sequence guaranteed
-  - Test coverage includes all distributions and edge cases
-  - Validated thread-safety of deterministic mode
-
-#### Documentation
-
-- **Added environment variable documentation** in README
-- **Updated architecture notes** for fast-path implementation
-- **Benchmark results** documented for future reference
-- **Updated README** with deterministic mode guarantees
-
-## Version 0.6.4 (2025-09-24)
-
-### Lock-Free Architecture and Performance
-
-#### Lock-Free Architecture Implementation
-
-- **Thread-local PRNG instances**: Eliminated mutex contention through thread-local storage
-  - Each thread maintains independent QuadraticIrrational instances
-  - Zero-contention parallel generation achieved
-  - Thread-specific seeding using golden ratio prime (0x9E3779B97F4A7C15)
+### Performance
 
-- **Cache optimization improvements**:
-  - Increased cache size from 2048 to 4096 samples for better L1 utilization
-  - Cache-line aligned data structures (64 bytes) to prevent false sharing
-  - Prefetching hints for sequential access patterns
-  - Thread-local cache management eliminates synchronization overhead
+- Eliminated mutex contention (was ~5% overhead)
+- MPFR operations remain primary bottleneck (~95% of runtime, 7-8 ops at ~122ns each)
+- Architectural limit: ~8-10M samples/sec due to high-precision requirements
 
-- **New optimized implementation**:
-  - Added `multi_qi_optimized.hpp/cpp` with lock-free design
-  - Integrated optimized backend into `enhanced_prng.hpp`
-  - Maintained full API compatibility while eliminating bottlenecks
-  - Performance monitoring utilities for cache hit rates
-
-- **Performance analysis findings**:
-  - Successfully eliminated mutex contention (was ~5% overhead)
-  - MPFR operations remain the primary bottleneck (~95% of runtime)
-  - Each sample requires 7-8 MPFR operations at ~122ns each
-  - Architectural limit of ~8-10M samples/sec due to high-precision requirements
-
-- **Documentation updates**:
-  - Added architecture section explaining lock-free design
-  - Updated README with optimization details
-  - Added roxygen2 documentation for new components
-  - Comprehensive test coverage for all features
-
-## Version 0.6.3 (2025-09-21)
-
-### Cryptographic Validation
-
-#### NIST SP 800-22 Statistical Test Suite Validation
-
-- **Comprehensive cryptographic validation**: Successfully validated qiprng against NIST Statistical Test Suite
-  - **Pass rate**: 98.4% (185 out of 188 tests passed)
-  - **Test coverage**: All 15 NIST test categories including Frequency, Runs, DFT, Random Excursions, Linear Complexity
-  - **Test parameters**: 1 million bit sequences generated from 5 different discriminants
-  - **Performance**: Comparable to established cryptographically secure RNGs
-
-- **Validation documentation and reproducibility**:
-  - Added complete NIST validation report in `validation/NIST_VALIDATION.md`
-  - Included binary sequence generation scripts in `validation/nist_top5_sequences/generate_binary_for_nist.R`
-  - Provided test discriminants in `validation/nist_top5_sequences/discriminants_used.csv`
-  - Scripts generate 100 sequences of 1M bits each per discriminant for NIST STS testing
-
-- **Cryptographic readiness confirmation**:
-  - Passed all fundamental randomness tests (Frequency, Runs, DFT, Longest Run, Rank, etc.)
-  - Minor failures (3 out of 148 Non-overlapping Template tests) fall within acceptable statistical variation
-  - Results confirm suitability for security-sensitive and cryptographic applications
-  - Validation establishes qiprng as meeting cryptographic PRNG standards
-
-## Version 0.6.2 (2025-09-11)
-
-### Critical Algorithm Improvements
-
-#### Advanced Jump-Ahead Algorithms
-
-- **Multiple algorithm implementation**: New `jump_ahead_optimized_v2()` function with four selectable algorithms
-  - `ORIGINAL_128BIT` (0): Original implementation with 128-bit arithmetic (may overflow for large jumps)
-  - `MPFR_MATRIX` (1): High-precision MPFR-based matrix operations (no overflow, slower)
-  - `MODULAR_MERSENNE` (2): Fast modular arithmetic with Mersenne prime 2^61-1 (default, no overflow)
-  - `DIRECT_CFE` (3): Direct continued fraction manipulation (fallback method)
-- **Environment variable control**: Set `QIPRNG_JUMP_ALGORITHM` environment variable to select algorithm (0-3)
-- **Fixed critical overflow bug**: Resolved matrix multiplication overflow in jump-ahead operations for jumps > 10,000
-- **Efficient modular arithmetic**: Optimized `mulmod()` function using 128-bit arithmetic for O(1) performance instead of O(64) loop
-- **Matrix classes**: Added `Matrix2x2_MPFR` and `Matrix2x2_Modular` classes for specialized matrix operations
-- **Automatic fallback**: Graceful degradation when CFE computation fails or period is too short
-
-### Package Infrastructure & Code Quality Improvements
-
-#### Caching Framework Enhancements
-
-- **Pattern-based cache clearing**: Implemented regex pattern support in `clear_qiprng_cache()` for selective cache management
-- **Cache export/import functionality**: Added `export_cached_results()` and `import_cached_results()` functions
-  - Export cache to RDS format for archival and sharing
-  - Import previously exported cache data with overwrite control
-  - Includes metadata: timestamps, R version, package version
-- **Improved cache organization**: Better structure for test result caching by category
-
-#### Test Code Isolation
-
-- **Separated test code from production build**: Moved all C++ test files to dedicated `tests/cpp/` directory
-- **Reduced package size**: Test code now excluded from production builds
-  - Added entries to `.Rbuildignore` to exclude test cpp files
-  - Created test-specific Makefile for standalone compilation
-- **Conditional compilation**: Added QIPRNG_TESTING preprocessor guards
-  - Test utilities in `test_helpers.hpp` only available during testing
-  - Ensures clean separation between production and test code
-- **Improved test infrastructure**: Created comprehensive test documentation and build system
-
-#### Code Standardization
-
-- **R naming conventions**: All R functions now use consistent snake_case naming
-- **Better code organization**: Clear separation of concerns between modules
-- **Documentation improvements**: Added README for test structure and usage
-
-## Version 0.6.1 (2025-09-11)
-
-### OpenMP and SIMD Optimizations
-
-#### OpenMP Parallelization Enhancements
-
-- **Thread-Local Caching**: Eliminated MultiQI instance recreation overhead
-  - Implemented static thread_local cache for MultiQI instances
-  - Instances persist across buffer fills, created once per thread
-  - Added cleanup mechanism in destructor for proper resource management
-  - Reduces parallel overhead by ~20-30%
-
-- **SIMD Vectorization Integration**: Combined SIMD with OpenMP for compound speedup
-  - Added `#pragma omp simd` directives for vectorized operations
-  - Batch processing in chunks of 8 doubles for better throughput
-  - Memory alignment optimizations for SIMD efficiency
-  - Cache prefetching with `__builtin_prefetch` for improved memory access
-
-- **Buffer Size Optimization**: Improved thresholds for modern systems
-  - Increased minimum chunk size from 256 to 4096 elements
-  - Dynamic sizing based on thread count and cache line size
-  - Better cache locality for large-scale generation
-
-- **Code Quality Improvements**: Fixed all compilation warnings
-  - Removed unused `using_pool_` field from MPFRWrapper
-  - Removed unused `remainder` variable from SIMD operations
-  - Removed unused `buffer_pos` variable from parallel filling
-  - Fixed unused `four_ac` variable in prng_utils
-  - Fixed MPFR_PREC_MAX comparison warnings with unsigned int
-
-### Critical Bug Fixes & Improvements
-
-#### Overflow Protection Enhancement
-
-- **Matrix Arithmetic Safety**: Implemented comprehensive overflow protection in `Matrix2x2::operator*()`
-  - Added 128-bit arithmetic path using `__int128` for systems with support
-  - Fallback to `__builtin_smull_overflow` for overflow detection on other systems
-  - Prevents integer overflow in jump-ahead operations with large values
-  - Safely handles jumps up to 2^63 without overflow
-
-#### Cryptographic Implementation Fix
-
-- **True ChaCha20 Stream Cipher**: Replaced entropy injection with proper ChaCha20 implementation
-  - Migrated from `randombytes_buf` to `crypto_stream_chacha20` for deterministic mixing
-  - Implemented XOR mixing path for uniform distribution preservation
-  - Added modular addition path for enhanced entropy mixing
-  - Uses incremental nonce to ensure unique stream for each mixing operation
-  - Provides true cryptographic-grade deterministic randomness
-
-#### Cross-Platform Build Improvements
-
-- **Windows Build Support**: Enhanced Windows configuration for better compatibility
-  - Updated `configure.win` to use C++17 standard (matching Unix builds)
-  - Added libsodium detection with graceful fallback
-  - Implemented `QIPRNG_NO_CRYPTO` flag for builds without libsodium
-  - Provides stub implementations when crypto features unavailable
-
-#### Architecture Improvements
-
-- **Modular Component Design**: Refactored EnhancedPRNG for better maintainability
-  - Created `distribution_generator.hpp` with polymorphic distribution classes
-  - Implemented `buffer_manager.hpp` with pluggable filling strategies
-  - Separated statistics tracking into dedicated component
-  - Applied Strategy Pattern for runtime-configurable buffer filling
-  - Used Factory Pattern for extensible distribution creation
-  - Enhanced separation of concerns with single responsibility principle
-
-- **Enhanced Class Infrastructure**: Added missing functionality to core classes
-  - Implemented `clone()` method in MultiQI for parallel operations
-  - Added `reseed()` method to MultiQI and QuadraticIrrational
-  - Created accessor methods (getA, getB, getC, getMPFRPrecision) in QuadraticIrrational
-  - Fixed member initialization for proper MPFR precision tracking
-
-#### Repository Maintenance
-
-- **CRAN Compliance**: Cleaned repository for package submission
-  - Removed all binary artifacts (*.o,*.so files) from repository
-  - Enhanced `.Rbuildignore` patterns for cleaner source packages
-  - Added proper ignore patterns for node_modules, .DS_Store, and build artifacts
-  - Ensures clean `R CMD build` and `R CMD check` execution
-
-### Modified Files (v0.6.1)
-
-- `src/quadratic_irrational.hpp`: Overflow-safe matrix operations, accessor methods
-- `src/quadratic_irrational.cpp`: Reseed implementation, MPFR precision tracking
-- `src/multi_qi.hpp`: Clone and reseed method declarations
-- `src/multi_qi.cpp`: Clone and reseed implementations
-- `src/distribution_generator.hpp`: New modular distribution system
-- `src/buffer_manager.hpp`: New buffer management with strategies
-- `src/enhanced_prng_refactored.hpp`: Refactored main PRNG class
-- `src/crypto_mixer.cpp`: True ChaCha20 implementation
-- `src/crypto_mixer.hpp`: Conditional compilation for crypto features
+## [0.6.3] - 2025-09-21
+
+### Added
+
+- NIST SP 800-22 Statistical Test Suite validation:
+  - **Pass rate**: 98.4% (185/188 tests)
+  - **Coverage**: All 15 NIST test categories (Frequency, Runs, DFT, Random Excursions, Linear Complexity, etc.)
+  - **Test data**: 1M bit sequences from 5 different discriminants
+- Validation report in `validation/NIST_VALIDATION.md`
+- Binary sequence generation scripts in `validation/nist_top5_sequences/`
+- Test discriminants CSV for reproducibility
+
+### Security
+
+- Note: NIST tests indicate good statistical properties but do not establish cryptographic security
+
+## [0.6.2] - 2025-09-11
+
+### Added
+
+- **Advanced jump-ahead algorithms** with `jump_ahead_optimized_v2()`:
+  - `ORIGINAL_128BIT` (0): Original implementation (may overflow for large jumps)
+  - `MPFR_MATRIX` (1): High-precision MPFR-based matrix operations (no overflow)
+  - `MODULAR_MERSENNE` (2): Fast modular arithmetic with Mersenne prime 2⁶¹-1 (default)
+  - `DIRECT_CFE` (3): Direct continued fraction manipulation
+- Environment variable `QIPRNG_JUMP_ALGORITHM` for algorithm selection (0-3)
+- `Matrix2x2_MPFR` and `Matrix2x2_Modular` classes for specialized matrix operations
+- Pattern-based cache clearing with regex support in `clear_qiprng_cache()`
+- Cache export/import: `export_cached_results()` and `import_cached_results()` with metadata
+- `QIPRNG_TESTING` preprocessor guards for conditional compilation
+
+### Fixed
+
+- **Critical overflow bug**: Matrix multiplication overflow in jump-ahead for jumps > 10,000
+- Optimized `mulmod()` using 128-bit arithmetic for O(1) performance
+
+### Changed
+
+- Test code moved to `tests/cpp/` directory (excluded from production builds)
+- R functions standardized to snake_case naming
+
+## [0.6.1] - 2025-09-11
+
+### Added
+
+- Thread-local MultiQI instance caching (reduces parallel overhead by ~20-30%)
+- `#pragma omp simd` directives for SIMD+OpenMP compound speedup
+- `clone()` and `reseed()` methods in MultiQI and QuadraticIrrational
+- Accessor methods: `getA()`, `getB()`, `getC()`, `getMPFRPrecision()`
+- `distribution_generator.hpp` with polymorphic distribution classes (Factory Pattern)
+- `buffer_manager.hpp` with pluggable filling strategies (Strategy Pattern)
+- Windows build support with `configure.win` and `QIPRNG_NO_CRYPTO` flag
+
+### Fixed
+
+- **Matrix arithmetic overflow**: Added 128-bit arithmetic path (`__int128`) with `__builtin_smull_overflow` fallback
+- **ChaCha20 implementation**: Replaced `randombytes_buf` with `crypto_stream_chacha20` for deterministic mixing
+
+### Changed
+
+- Minimum chunk size increased from 256 to 4096 elements
+- Batch processing in chunks of 8 doubles with cache prefetching
+
+### Removed
+
+- Unused fields: `using_pool_` from MPFRWrapper, `remainder` from SIMD ops, `buffer_pos` from parallel filling
+
+### Files Modified
+
+- `src/quadratic_irrational.hpp/cpp`: Overflow-safe matrix ops, accessor methods, reseed
+- `src/multi_qi.hpp/cpp`: Clone and reseed implementations
+- `src/distribution_generator.hpp`, `src/buffer_manager.hpp`: New modular components
+- `src/crypto_mixer.cpp/hpp`: True ChaCha20 implementation
 - `configure.win`: Windows build configuration
-- `.Rbuildignore`: Enhanced ignore patterns
-- `README.md`: Updated crypto mixing documentation
 
-## Version 0.6.0 (2025-09-06)
+## [0.6.0] - 2025-09-06
 
-### Critical Security & Stability Fixes
+### Changed
 
-#### Security Enhancements
+- **BREAKING**: Deterministic seeds with ChaCha20 mixing now throw exceptions (previously warnings)
+- Exception-based error model: CFE period overflow throws `std::runtime_error`, non-square-free discriminants throw `std::invalid_argument`
+- Replaced thread-local static initialization with `std::once_flag` for thread safety
 
-- **BREAKING**: Deterministic seeds with crypto mixing now throw exceptions instead of warnings
-- **Critical Fix**: Integer overflow vulnerability in `QuadraticIrrational::is_square_free()`
-  - Added bounds checking before multiplication to prevent overflow
-  - Validates `sqrt_n <= sqrt(LLONG_MAX)` before squaring
-- **Discriminant Validation**: Large discriminants exceeding `LONG_MAX` now use string conversion
+### Fixed
 
-#### Thread Safety Overhaul
+- **Integer overflow vulnerability** in `QuadraticIrrational::is_square_free()`: Added bounds checking before multiplication
+- **Race conditions** in `multi_qi.cpp` and `enhanced_prng.cpp` static initialization
+- **Cache coherency**: Added memory barriers in `MultiQI::refillCache()`
+- **Matrix overflow protection**: Safe arithmetic in `Matrix2x2::operator*()`
 
-- **Static Initialization**: Replaced thread-local static initialization with `std::once_flag`
-  - Fixed race conditions in `multi_qi.cpp` and `enhanced_prng.cpp`
-  - Implemented lazy initialization with proper synchronization
-- **Cache Coherency**: Added memory barriers in `MultiQI::refillCache()`
-  - Ensures consistent state visibility across threads
-  - Prevents data races during index updates
+### Added
 
-#### Error Handling Unification
+- Large discriminant validation using string conversion for values exceeding `LONG_MAX`
+- Precision loss mitigation: warns at >100 bits lost, errors at >200 bits
+- `test_numerical_stability.R` for edge cases, thread safety, and security enforcement
+- Pre-commit hooks with automatic formatting, linting, and security checks
 
-- **Exception-Based Model**: Migrated from `Rcpp::warning` to consistent exception throwing
-  - CFE period overflow now throws `std::runtime_error`
-  - Non-square-free discriminants throw `std::invalid_argument`
-  - Removed warning suppression that could hide precision issues
+### Security
 
-#### Numerical Stability
+- Discriminant validation prevents integer overflow exploitation
 
-- **Matrix Overflow Protection**: Added safe arithmetic in `Matrix2x2::operator*()`
-  - Validates multiplication won't overflow before computing
-  - Checks addition for overflow in matrix operations
-- **Precision Loss Mitigation**: Enhanced MPFR to double conversion
-  - Warns when losing > 100 bits of precision
-  - Throws error when losing > 200 bits
-  - Tracks total precision loss for diagnostics
+### Files Modified
 
-#### Code Quality
-
-- **Comprehensive Testing**: Added `test_numerical_stability.R`
-  - Edge case coverage for extreme discriminants
-  - Thread safety validation under concurrent access
-  - Security enforcement verification
-- **Documentation**: Enhanced inline documentation for critical algorithms
-  - Added Doxygen comments for CFE computation
-  - Documented jump-ahead optimization strategy
-- **Code Formatting**: Applied consistent formatting standards
-  - C++ code formatted with clang-format (Google C++ Style)
-  - R code formatted with styler (tidyverse style)
-- **Pre-commit Hooks**: Configured comprehensive pre-commit hooks
-  - Automatic formatting, linting, and security checks
-  - Custom hooks for R package-specific validations
-
-### Modified Files (v0.6.0)
-
-- `src/quadratic_irrational.cpp`: Overflow fixes, error handling
+- `src/quadratic_irrational.cpp/hpp`: Overflow fixes, error handling, matrix protection
 - `src/enhanced_prng.cpp`: Thread-safe initialization, security enforcement
 - `src/multi_qi.cpp`: Cache coherency, fallback generator fixes
-- `src/precision_utils.hpp`: Precision loss mitigation, added Rcpp include
-- `src/quadratic_irrational.hpp`: Matrix overflow protection
-- `src/rcpp_exports.cpp`: Security validation
-- `R/prng_interface.R`: Fixed example to comply with security enforcement
-- `DESCRIPTION`: Version bump to 0.6.0
-- `.pre-commit-config.yaml`: Added pre-commit configuration
-- `README.md`: Updated version and release notes
+- `src/precision_utils.hpp`: Precision loss mitigation
+- `.pre-commit-config.yaml`: Pre-commit configuration
 
-## Version 0.5.5 (2025-09-01)
+## [0.5.5] - 2025-09-01
 
-### Security Enhancements - Seed Generation
+### Security
 
-- **Critical**: Replaced weak `std::random_device` with libsodium's `randombytes_buf()` for
-  cryptographically secure seed generation
-- **Input Validation**: Added comprehensive bounds checking and overflow protection in
-  `rcpp_exports.cpp`
-- **Warning System**: Added clear warnings when using deterministic seeds with crypto mixing
+- **Critical**: Replaced weak `std::random_device` with libsodium's `randombytes_buf()` for secure seed generation
+- Added comprehensive bounds checking and overflow protection in `rcpp_exports.cpp`
+- Added warnings when using deterministic seeds with ChaCha20 mixing
 
-### Code Quality & Formatting
+### Added
 
-- **C++ Formatting**: Implemented Google C++ Style Guide via clang-format with Rcpp customizations
-- **R Formatting**: Applied tidyverse style guide using styler package
-- **Build System**: Added `Makefile.format` for unified formatting workflow
-- **Configuration Files**: Created `.clang-format`, `.clang-format-ignore`, and `.Rprofile`
-  for consistent code style
+- `.clang-format` with Google C++ Style Guide and Rcpp customizations
+- `Makefile.format` for unified formatting workflow
+- `.Rprofile` for tidyverse style configuration
 
-### Bug Fixes
+### Fixed
 
-- Fixed syntax errors in R test files (`basic_verify.R`, `final_verify.R`, `verify_thread_safety.R`)
+- Syntax errors in R test files (`basic_verify.R`, `final_verify.R`, `verify_thread_safety.R`)
 - Removed macOS resource fork files from test directory
 
-### Testing
+## [0.5.4] - 2025-08-29
 
-- Verified package builds and installs correctly with all security fixes
-- Confirmed libsodium initialization and secure random generation working
-- All formatted code passes compilation and runtime tests
+### Fixed
 
-## Version 0.5.4 (2025-08-29)
+- **TLS cleanup race conditions**: Thread-local storage cleanup raced with destructor execution causing crashes
+  - Implemented `std::call_once` synchronization with atomic memory ordering
+  - Added thread-local atomic flags with RAII guards for recursive cleanup prevention
+  - Applied acquire/release fences for cross-thread visibility
+- Duplicate symbol linker errors in `precision_utils.hpp`
+- Macro naming conflicts (`QIPRNG_CACHE_LINE_SIZE`)
 
-### Critical Thread Safety Fixes
+## [0.5.3] - 2025-08-29
 
-#### TLS Cleanup Race Conditions
+### Fixed
 
-- **Issue**: Thread-local storage cleanup raced with destructor execution causing crashes
-- **Fix**: Implemented `std::call_once` synchronization with atomic memory ordering
-- **Files**: `ziggurat_normal.cpp`, `ziggurat_normal.hpp`
-- **Impact**: Eliminated thread termination crashes and use-after-free errors
+- **Strict aliasing violation**: Type punning via `memcpy` between `double`/`uint64_t` violated C++ rules
+  - Implemented `safe_bit_cast` template using `std::bit_cast` (C++20) or union fallback (C++17)
+- **ThreadPool deadlock**: Missing timeout mechanism during shutdown
+  - Added `shutdown()` method with configurable timeout (default 5 seconds)
+- **False sharing**: Adjacent atomic variables caused cache thrashing
+  - Added `CacheAlignedAtomic` template with 64/128-byte alignment (2-3x performance improvement)
 
-#### Key Improvements
+### Added
 
-- **Proper Synchronization**: Replaced double-checked locking antipattern with `std::call_once`
-- **Recursive Cleanup Prevention**: Added thread-local atomic flags with RAII guards
-- **Memory Ordering**: Applied acquire/release fences for cross-thread visibility
-- **Static Member Fix**: Resolved duplicate symbol linker errors in `precision_utils.hpp`
-- **Cache Alignment**: Fixed macro naming conflicts (`QIPRNG_CACHE_LINE_SIZE`)
+- `bit_operations.hpp` for safe bit casting
+- `mpfr_pool.hpp` for thread-local MPFR context pooling (90% memory reduction)
+- `cache_aligned.hpp` for cache-line aligned atomics
 
-### Validation
+## [0.5.2] - 2025-08-29
 
-- All parallel generation tests pass without crashes
-- Thread exit scenarios handled safely
-- Concurrent stress tests show no race conditions
-- Zero performance regression with enhanced safety
+### Fixed
 
-## Version 0.5.3 (2025-08-29)
+- **Precision loss**: Direct MPFR→double conversions lost ~203 bits (256→53)
+  - Implemented extended precision intermediates: MPFR(256-bit) → long double(80-bit) → double(53-bit)
+- **Mathematical constants**: Hardcoded `M_PI` limited to 20 decimal places
+  - Replaced with MPFR's `mpfr_const_pi()` for ~77 decimal digit accuracy
 
-### Medium Severity Security & Performance Fixes
+### Added
 
-#### Strict Aliasing Compliance
+- `precision_utils.hpp` with `safe_mpfr_to_double()`, `PrecisionConstants`, precision loss metrics
+- Support for `__float128` on compatible systems (113-bit mantissa)
 
-- **Issue**: Type punning via `memcpy` between `double`/`uint64_t` violated C++ strict aliasing rules
-- **Fix**: Implemented `safe_bit_cast` template using `std::bit_cast` (C++20) or union fallback (C++17)
-- **Files**: `bit_operations.hpp` (new), `simd_operations.hpp`
-- **Impact**: Eliminated undefined behavior under `-O2/-O3` optimization
+## [0.5.1] - 2025-08-29
 
-#### ThreadPool Resource Management
+### Fixed
 
-- **Issue**: Missing timeout mechanism caused potential deadlocks during shutdown
-- **Fix**: Added `shutdown()` method with configurable timeout (default 5 seconds)
-- **Files**: `thread_pool.hpp`
-- **Impact**: Guaranteed termination with automatic thread detachment on timeout
+- **Statistical uniformity**: Hardcoded 0.5 fallback created detectable patterns
+  - Implemented thread-local fallback PRNG with hardware entropy seed
+  - Chi-square p-value improved from <0.001 to 0.956
+- **Numeric overflow**: `P_next * P_next` could overflow before safety check
+  - Added 128-bit arithmetic (`__int128`) with pre-multiplication validation fallback
+- **Thread safety**: `const_cast<std::mutex&>` caused undefined behavior
+  - Made mutex `mutable` for proper const-correctness
+- **Lock contention**: Global mutex on every `next()` call
+  - Thread-local caching with 256-value batches (256x fewer lock acquisitions)
+- **Period bound**: Fixed `MAX_PERIOD=100000` insufficient for large discriminants
+  - Dynamic scaling: `max(100000, 10 * sqrt(discriminant))`
 
-#### MPFR Memory Optimization
+### Performance
 
-- **Issue**: Each QI instance maintained separate MPFR contexts (~256 bytes each)
-- **Fix**: Implemented thread-local context pooling with automatic cleanup
-- **Files**: `mpfr_pool.hpp` (new)
-- **Impact**: 90% memory reduction, zero contention, 60-second idle cleanup
+- Throughput: 8.18M values/second (single-threaded)
+- Near-linear scaling with thread count
 
-#### Cache Line Optimization
+## [0.5.0] - 2025-08-28
 
-- **Issue**: Adjacent atomic variables caused false sharing and cache thrashing
-- **Fix**: Added `CacheAlignedAtomic` template with 64/128-byte alignment
-- **Files**: `cache_aligned.hpp` (new), `thread_pool.hpp`, `work_stealing_queue.hpp`
-- **Impact**: 2-3x performance improvement in concurrent operations
+### Added
 
-### Testing & Validation
-
-- All fixes validated with `test_medium_fixes.cpp`
-- Zero breaking changes - full backward compatibility maintained
-- Compiler support: GCC 7+, Clang 6+, MSVC 2017+ (C++17 minimum)
-
-## Version 0.5.2 (2025-08-29)
-
-### Algorithmic Accuracy Improvements
-
-#### Precision Loss Mitigation
-
-- **Issue**: Direct MPFR→double conversions lost ~203 bits of precision (256→53 bits)
-- **Fix**: Implemented extended precision intermediates using `long double` for gradual reduction
-- **Impact**: Preserves more significant digits through 256→80→53 bit conversion path
-
-#### Mathematical Constants Precision
-
-- **Issue**: Hardcoded `M_PI` limited to 20 decimal places vs MPFR's 256-bit capability
-- **Fix**: Replaced all M_PI definitions with MPFR's `mpfr_const_pi()` for full precision
-- **Impact**: Mathematical operations now use constants accurate to ~77 decimal digits
-
-#### Precision Infrastructure
-
-- **New Module**: `precision_utils.hpp` centralizes all precision-related functionality
-- **Features**:
-  - `safe_mpfr_to_double()`: Extended precision conversion with tracking
-  - `PrecisionConstants`: Thread-safe high-precision mathematical constants
-  - Precision loss metrics for monitoring conversion quality
-  - Support for `__float128` on compatible systems (113-bit mantissa)
-
-### Technical Details
-
-- **Conversion Path**: MPFR(256-bit) → long double(80-bit) → double(53-bit)
-- **Performance**: ~10-15% overhead for extended precision (acceptable for accuracy gain)
-- **Compatibility**: Automatic fallback to direct conversion on non-x86 architectures
-
-## Version 0.5.1 (2025-08-29)
-
-### Critical Security Fixes
-
-#### Statistical Uniformity Restoration
-
-- **Issue**: Hardcoded 0.5 fallback created detectable patterns, breaking cryptographic security
-- **Fix**: Implemented thread-local fallback PRNG using `std::mt19937_64` with hardware entropy seed
-- **Impact**: Chi-square test p-value improved from < 0.001 to 0.956 (perfect uniformity)
-
-#### Numeric Overflow Protection
-
-- **Issue**: `P_next * P_next` could overflow `long long` before safety check
-- **Fix**: Added 128-bit arithmetic (`__int128`) with fallback to pre-multiplication validation
-- **Impact**: Successfully handles discriminants up to 2^30 without crashes
-
-#### Thread Safety Violations
-
-- **Issue**: `const_cast<std::mutex&>` caused undefined behavior in concurrent access
-- **Fix**: Made mutex `mutable` for proper const-correctness
-- **Impact**: Eliminated data races detected by ThreadSanitizer
-
-### Performance Enhancements (v0.5.1)
-
-#### Lock Contention Elimination
-
-- **Issue**: Global mutex on every `next()` call created serialization bottleneck
-- **Fix**: Thread-local caching with 256-value batches
-- **Metrics**:
-  - Lock acquisitions reduced by 256x
-  - Throughput: 8.18 million values/second (single-threaded)
-  - Near-linear scaling with thread count
-
-#### Algorithm Robustness
-
-- **Issue**: Fixed `MAX_PERIOD=100000` insufficient for large discriminants
-- **Fix**: Dynamic scaling: `max(100000, 10 * sqrt(discriminant))`
-- **Impact**: Correct handling of periods up to √D complexity
-
-### Testing & Validation - Fix Verification
-
-- All fixes validated with comprehensive test suite
-- Statistical tests: Chi-square (p=0.956), Kolmogorov-Smirnov, Anderson-Darling
-- Stress testing: 100M values generated without errors
-- Thread safety: Validated with ThreadSanitizer and Helgrind
-
-## Version 0.5.0 (2025-08-28)
-
-### Major Enhancements
-
-- **Hardware Acceleration**: SIMD vectorization with AVX2/NEON support
-- **Parallel Generation**: OpenMP parallelization with work-stealing queue
-- **Advanced Mixing Strategies**: XOR, averaging, modular, and cascade mixing for enhanced entropy
-- **Matrix Jump-Ahead**: O(log n) complexity using matrix exponentiation with MPFR precision
-- **Extended Distributions**: Added Levy stable, Pareto, Cauchy, multivariate normal, Gaussian copula
-- **Apple Silicon Optimization**: Native ARM64 with NEON acceleration
-
-### Performance Improvements
-
-- 4-8x speedup with SIMD operations
-- Parallel generation scales linearly with CPU cores
-- Optimized memory allocation with object pooling
+- **Hardware acceleration**: SIMD vectorization with AVX2/NEON support (4-8x speedup)
+- **Parallel generation**: OpenMP with work-stealing queue (linear scaling with cores)
+- **Advanced mixing strategies**: XOR, averaging, modular, and cascade mixing
+- **Matrix jump-ahead**: O(log n) complexity using matrix exponentiation with MPFR
+- **Extended distributions**: Levy stable, Pareto, Cauchy, multivariate normal, Gaussian copula
+- **Apple Silicon optimization**: Native ARM64 with NEON acceleration
+- Object pooling for optimized memory allocation
 - Cache-aligned data structures for reduced false sharing
 
-## Version 0.4.1 (2025-08-27)
+## [0.4.1] - 2025-08-27
 
-### Security & Thread Safety
+### Fixed
 
 - Critical thread safety fixes for concurrent access
 - Enhanced mutex protection for global state
 - Improved error handling and recovery mechanisms
 
-## Version 0.4.0 (2025-08-26)
+## [0.4.0] - 2025-08-26
 
-### Core Features
+### Added
 
 - Initial release with quadratic irrational PRNG implementation
 - MPFR high-precision arithmetic (24-10000 bits)
@@ -633,26 +454,51 @@
 - Comprehensive test suite with 70+ statistical tests
 - 370 validated discriminants
 
-## Version 0.3.0 (2025-08-25)
+## [0.3.0] - 2025-08-25
 
-### Beta Release
+### Added
 
-- Basic quadratic irrational implementation
+- Basic quadratic irrational implementation (beta)
 - Uniform and normal distributions
 - Initial test framework
 
-## Version 0.2.0 (2025-08-24)
+## [0.2.0] - 2025-08-24
 
-### Alpha Release
+### Added
 
-- Proof of concept implementation
+- Proof of concept implementation (alpha)
 - Basic MPFR integration
 - Limited distribution support
 
-## Version 0.1.0 (2025-08-23)
+## [0.1.0] - 2025-08-23
 
-### Initial Development
+### Added
 
 - Project structure setup
 - R package skeleton
 - Basic C++ integration
+
+---
+
+[Unreleased]: https://github.com/biostochastics/qiprng/compare/v0.7.2...HEAD
+[0.7.2]: https://github.com/biostochastics/qiprng/compare/v0.7.1...v0.7.2
+[0.7.1]: https://github.com/biostochastics/qiprng/compare/v0.7.0...v0.7.1
+[0.7.0]: https://github.com/biostochastics/qiprng/compare/v0.6.6...v0.7.0
+[0.6.6]: https://github.com/biostochastics/qiprng/compare/v0.6.5...v0.6.6
+[0.6.5]: https://github.com/biostochastics/qiprng/compare/v0.6.4...v0.6.5
+[0.6.4]: https://github.com/biostochastics/qiprng/compare/v0.6.3...v0.6.4
+[0.6.3]: https://github.com/biostochastics/qiprng/compare/v0.6.2...v0.6.3
+[0.6.2]: https://github.com/biostochastics/qiprng/compare/v0.6.1...v0.6.2
+[0.6.1]: https://github.com/biostochastics/qiprng/compare/v0.6.0...v0.6.1
+[0.6.0]: https://github.com/biostochastics/qiprng/compare/v0.5.5...v0.6.0
+[0.5.5]: https://github.com/biostochastics/qiprng/compare/v0.5.4...v0.5.5
+[0.5.4]: https://github.com/biostochastics/qiprng/compare/v0.5.3...v0.5.4
+[0.5.3]: https://github.com/biostochastics/qiprng/compare/v0.5.2...v0.5.3
+[0.5.2]: https://github.com/biostochastics/qiprng/compare/v0.5.1...v0.5.2
+[0.5.1]: https://github.com/biostochastics/qiprng/compare/v0.5.0...v0.5.1
+[0.5.0]: https://github.com/biostochastics/qiprng/compare/v0.4.1...v0.5.0
+[0.4.1]: https://github.com/biostochastics/qiprng/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/biostochastics/qiprng/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/biostochastics/qiprng/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/biostochastics/qiprng/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/biostochastics/qiprng/releases/tag/v0.1.0

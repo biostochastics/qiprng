@@ -6,7 +6,8 @@
 #include "multi_qi.hpp"            // For ThreadLocalPRNG and thread-local variables
 #include "multi_qi_optimized.hpp"  // For MultiQIOptimized
 #include "prng_utils.hpp"
-#include "thread_pool.hpp"  // For shutdown_global_thread_pool
+#include "thread_manager.hpp"
+#include "thread_pool.hpp"
 #include "ziggurat_normal.hpp"
 
 using namespace Rcpp;
@@ -14,8 +15,6 @@ using namespace qiprng;
 
 // [[Rcpp::export(".initialize_libsodium_")]]
 void initialize_libsodium_() {
-    // SECURITY FIX: Use unified initialization to prevent race conditions
-    // Check if already initialized to prevent double printing
     static std::atomic<bool> already_printed(false);
 
     try {
@@ -34,8 +33,6 @@ void initialize_libsodium_() {
 
 // Helper function to validate PRNGConfig parameters
 void validatePRNGConfig(const PRNGConfig& cfg) {
-    // SECURITY FIX: Comprehensive input validation
-
     // Validate discriminant (b^2 - 4ac > 0) using safe calculation
     long long disc;
     std::string error_msg;
@@ -115,11 +112,12 @@ void validatePRNGConfig(const PRNGConfig& cfg) {
         }
     }
 
-    // SECURITY FIX: Prevent deterministic seed with crypto mixing
-    if (cfg.has_seed && cfg.use_crypto_mixing) {
+    // Prevent deterministic seed with ChaCha20 mixing (incompatible modes)
+    if (cfg.deterministic && cfg.has_seed && cfg.use_crypto_mixing) {
         throw std::runtime_error(
-            "SECURITY ERROR: Using deterministic seed with crypto mixing defeats "
-            "cryptographic security. Either disable crypto mixing or remove the seed.");
+            "Configuration error: Using deterministic seed with ChaCha20 mixing is not "
+            "supported. Either disable crypto mixing (use_crypto_mixing=FALSE) or remove "
+            "the seed for non-deterministic operation.");
     }
 
     // Validate MPFR precision
@@ -1229,5 +1227,90 @@ void shutdown_thread_pool_() {
         qiprng::shutdown_global_thread_pool();
     } catch (...) {
         // Silently ignore errors during shutdown
+    }
+}
+
+// [[Rcpp::export(".prepare_for_unload_")]]
+void prepare_for_unload_() {
+    // Comprehensive cleanup before R unloads the shared library
+    // This function MUST be called from .onUnload BEFORE library.dynam.unload()
+    // It ensures all resources are cleaned up in the correct order to prevent
+    // segfaults from destructor ordering issues.
+
+    try {
+        // Step 1: Mark shutdown as in progress to prevent new resource access
+        qiprng::mark_shutdown_started();
+
+        // Step 2: Mark Ziggurat TLS managers as exiting
+        try {
+            ZigguratTLSManager::mark_thread_exiting();
+        } catch (...) {
+        }
+
+        // Step 3: Prepare ZigguratNormal for shutdown
+        try {
+            ZigguratNormal::prepare_for_shutdown();
+        } catch (...) {
+        }
+
+        // Step 4: Clean up EnhancedPRNG thread resources
+        try {
+            EnhancedPRNG::cleanupAllThreadResources();
+        } catch (...) {
+        }
+
+        // Step 4.5: v0.7.3: Clean up all registered thread resources via ThreadManager
+        // This invokes cleanup callbacks registered by any threads that used the PRNG
+        try {
+            ThreadManager::cleanupAllThreads();
+        } catch (...) {
+        }
+
+        // Step 5: Clean up MultiQIOptimized thread-local data
+        try {
+            MultiQIOptimized::cleanup_thread_local_data();
+        } catch (...) {
+        }
+
+        // Step 6: Clean up Ziggurat thread-local resources
+        try {
+            ZigguratNormal::cleanup_thread_local_resources();
+        } catch (...) {
+        }
+
+        // Step 7: Clear PRNG pointers (this destroys the PRNG objects)
+        try {
+            t_prng = nullptr;
+            {
+                std::lock_guard<std::mutex> lock(g_prng_mutex);
+                g_prng = nullptr;
+            }
+        } catch (...) {
+        }
+
+        // Step 8: Shut down thread pool
+        try {
+            qiprng::shutdown_global_thread_pool();
+        } catch (...) {
+        }
+
+        // Step 9: Clean up MPFR global cache (must be done after all MPFR users are done)
+        try {
+            mpfr_free_cache2(MPFR_FREE_GLOBAL_CACHE);
+        } catch (...) {
+        }
+
+        // Step 10: Reset flags
+        g_use_threading = false;
+        // v0.7.3: Keep cleanup marked as in progress to prevent any further cleanup
+        // entry during unload - don't reset to false as that would re-enable cleanup
+        cleanup_in_progress.store(true, std::memory_order_release);
+
+        // Note: We intentionally do NOT call mark_shutdown_complete() here
+        // because the library is about to be unloaded. Keeping the shutdown
+        // flag set prevents any late access to resources.
+
+    } catch (...) {
+        // Suppress all exceptions during unload preparation
     }
 }

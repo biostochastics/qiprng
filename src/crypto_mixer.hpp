@@ -33,8 +33,7 @@ class CryptoMixer {
     bool adhoc_corrections_;
     bool use_tie_breaking_;
     bool initialized_;
-    // SECURITY FIX: Removed deterministic seeding - CryptoMixer should ONLY use secure random
-    // Deterministic seeding completely breaks cryptographic security guarantees
+    // CryptoMixer uses libsodium's secure random for ChaCha20 key generation
 
     void secure_random(unsigned char* buf, size_t len);
 
@@ -42,7 +41,7 @@ class CryptoMixer {
     static constexpr uint64_t MANTISSA_MASK = 0x000FFFFFFFFFFFFFULL;
     static constexpr uint64_t ONE_BITS = 0x3FF0000000000000ULL;
 
-    // SECURITY FIX: Removed seed parameters - crypto must always use secure random
+    // ChaCha20 mixer uses libsodium's secure random for key generation
     CryptoMixer(bool adhoc_corrections, bool use_tie_breaking);
     ~CryptoMixer();  // SecureBuffer handles its own cleanup
 

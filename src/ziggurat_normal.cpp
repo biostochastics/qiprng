@@ -7,6 +7,8 @@
 #include <random>      // For std::mt19937, std::normal_distribution
 #include <stdexcept>   // For std::runtime_error
 
+#include "multi_qi_optimized.hpp"  // For is_shutdown_in_progress()
+
 // Set to true to enable Rcpp::Rcout debug messages
 const bool ZIGGURAT_DEBUG_LOGGING = false;
 
@@ -23,6 +25,12 @@ class ThreadCleanupHelper {
    public:
     ThreadCleanupHelper() = default;
     ~ThreadCleanupHelper() {
+        // Don't do anything if global shutdown is in progress
+        // The prepare_for_unload_() function handles cleanup
+        if (is_shutdown_in_progress()) {
+            return;
+        }
+
         // Use atomic compare-exchange to ensure single cleanup per thread
         bool expected = false;
         if (thread_cleanup_done_.compare_exchange_strong(expected, true,
@@ -167,7 +175,7 @@ void ZigguratNormal::use_cached_tables() {
 }
 
 void ZigguratNormal::initialize_thread_local_tables() {
-    // Skip if cleanup is in progress - acquire ordering already provides necessary synchronization
+    // Skip during cleanup
     if (cleanup_in_progress_.load(std::memory_order_acquire)) {
         return;
     }
@@ -193,7 +201,6 @@ void ZigguratNormal::initialize_thread_local_tables() {
     // Initialize tables if not already done
     if (!tls_tables_initialized_ && tls_manager_->is_valid()) {
         try {
-            // Verify we're not in cleanup before copying
             if (cleanup_in_progress_.load(std::memory_order_acquire)) {
                 return;
             }
@@ -218,7 +225,7 @@ void ZigguratNormal::initialize_thread_local_tables() {
 }
 
 void ZigguratNormal::initialize_random_cache() {
-    // Skip if cleanup is in progress - acquire ordering already provides necessary synchronization
+    // Skip during cleanup
     if (cleanup_in_progress_.load(std::memory_order_acquire)) {
         return;
     }
@@ -245,7 +252,6 @@ void ZigguratNormal::initialize_random_cache() {
     // Only proceed if manager is valid
     if (tls_manager_->is_valid() && !tls_random_cache_initialized_) {
         try {
-            // Verify we're not in cleanup before initializing
             if (cleanup_in_progress_.load(std::memory_order_acquire)) {
                 return;
             }
@@ -280,9 +286,8 @@ void ZigguratNormal::refill_random_cache() {
                 }
                 tls_random_cache_[i] = u;
             } catch (...) {
-                // In case of error, use deterministic fallback value
                 static thread_local std::mt19937_64 fallback_rng(
-                    12345);  // Fixed seed for determinism
+                    qiprng::DeterministicSeedHelper::get_fallback_seed());
                 std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
                 tls_random_cache_[i] = fallback_dist(fallback_rng);
             }
@@ -293,10 +298,10 @@ void ZigguratNormal::refill_random_cache() {
 }
 
 double ZigguratNormal::get_cached_uniform() {
-    // Skip if cleanup is in progress - return a safe value
+    // Return safe value during cleanup
     if (cleanup_in_progress_.load(std::memory_order_acquire)) {
-        // Use deterministic fallback value
-        static thread_local std::mt19937_64 fallback_rng(12345);  // Fixed seed for determinism
+        static thread_local std::mt19937_64 fallback_rng(
+            qiprng::DeterministicSeedHelper::get_fallback_seed());
         std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
         return fallback_dist(fallback_rng);
     }
@@ -307,8 +312,8 @@ double ZigguratNormal::get_cached_uniform() {
         initialize_thread_local_tables();
 
         if (!tls_manager_ || !tls_manager_->is_valid()) {
-            // Use deterministic fallback value
-            static thread_local std::mt19937_64 fallback_rng(12345);  // Fixed seed for determinism
+            static thread_local std::mt19937_64 fallback_rng(
+                qiprng::DeterministicSeedHelper::get_fallback_seed());
             std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
             return fallback_dist(fallback_rng);  // Safe fallback value if initialization fails
         }
@@ -320,8 +325,8 @@ double ZigguratNormal::get_cached_uniform() {
 
         // Double-check initialization success
         if (!tls_random_cache_initialized_) {
-            // Use deterministic fallback value
-            static thread_local std::mt19937_64 fallback_rng(12345);  // Fixed seed for determinism
+            static thread_local std::mt19937_64 fallback_rng(
+                qiprng::DeterministicSeedHelper::get_fallback_seed());
             std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
             return fallback_dist(fallback_rng);  // Safe fallback value if initialization fails
         }
@@ -445,7 +450,8 @@ double ZigguratNormal::sample_from_tail_original() {
                     // After several attempts, use a reasonable default
                     // Use deterministic fallback value
                     static thread_local std::mt19937_64 fallback_rng_u1(
-                        12345);  // Fixed seed for determinism
+                        qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy
+                                                                                // seeding
                     std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
                     u1 = fallback_dist(fallback_rng_u1);
                     break;
@@ -455,7 +461,8 @@ double ZigguratNormal::sample_from_tail_original() {
                 } catch (...) {
                     // Use deterministic fallback value
                     static thread_local std::mt19937_64 fallback_rng_u1(
-                        12345);  // Fixed seed for determinism
+                        qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy
+                                                                                // seeding
                     std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
                     u1 = fallback_dist(fallback_rng_u1);  // Safe default
                     break;
@@ -475,7 +482,8 @@ double ZigguratNormal::sample_from_tail_original() {
                     // After several attempts, use a reasonable default
                     // Use deterministic fallback value
                     static thread_local std::mt19937_64 fallback_rng_u2(
-                        12345);  // Fixed seed for determinism
+                        qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy
+                                                                                // seeding
                     std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
                     u2 = fallback_dist(fallback_rng_u2);
                     break;
@@ -485,7 +493,8 @@ double ZigguratNormal::sample_from_tail_original() {
                 } catch (...) {
                     // Use deterministic fallback value
                     static thread_local std::mt19937_64 fallback_rng_u2(
-                        12345);  // Fixed seed for determinism
+                        qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy
+                                                                                // seeding
                     std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
                     u2 = fallback_dist(fallback_rng_u2);  // Safe default
                     break;
@@ -554,7 +563,8 @@ double ZigguratNormal::generate_internal() {
             if (u0 <= 0.0 || u0 >= 1.0) {
                 // Use deterministic fallback value if generator fails
                 static thread_local std::mt19937_64 fallback_rng_u0(
-                    12345);  // Fixed seed for determinism
+                    qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy
+                                                                            // seeding
                 std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
                 u0 = fallback_dist(fallback_rng_u0);
             }
@@ -600,7 +610,8 @@ double ZigguratNormal::generate_internal() {
                 if (u1 <= 0.0 || u1 >= 1.0) {
                     // Use deterministic fallback value
                     static thread_local std::mt19937_64 fallback_rng_u1(
-                        12345);  // Fixed seed for determinism
+                        qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy
+                                                                                // seeding
                     std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
                     u1 = fallback_dist(fallback_rng_u1);  // Use a safe default if generator fails
                 }
@@ -639,7 +650,8 @@ double ZigguratNormal::generate_internal() {
                 if (u2 <= 0.0 || u2 >= 1.0) {
                     // Use deterministic fallback value
                     static thread_local std::mt19937_64 fallback_rng_u2(
-                        12345);  // Fixed seed for determinism
+                        qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy
+                                                                                // seeding
                     std::uniform_real_distribution<double> fallback_dist(0.000001, 0.999999);
                     u2 = fallback_dist(fallback_rng_u2);  // Use a safe default if generator fails
                 }
@@ -902,8 +914,8 @@ double ZigguratNormal::generate() {
         static thread_local bool local_thread_exiting = false;
         // Also check the global cleanup flag
         if (local_thread_exiting || cleanup_in_progress_.load(std::memory_order_acquire)) {
-            // Use fallback RNG instead of fixed mean value
-            static thread_local std::mt19937 fallback_rng(12345);  // Fixed seed for determinism
+            static thread_local std::mt19937 fallback_rng(
+                qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy seeding
             std::normal_distribution<double> fallback_dist(mean_, stddev_);
             return fallback_dist(fallback_rng);
         }
@@ -913,8 +925,9 @@ double ZigguratNormal::generate() {
         if (is_thread_safe_mode_.load()) {
             // Handle case where object is being destroyed
             if (!uniform_generator_) {
-                // Use fallback RNG instead of fixed mean value
-                static thread_local std::mt19937 fallback_rng(12345);  // Fixed seed for determinism
+                static thread_local std::mt19937 fallback_rng(
+                    qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy
+                                                                            // seeding
                 std::normal_distribution<double> fallback_dist(mean_, stddev_);
                 return fallback_dist(fallback_rng);
             }
@@ -927,14 +940,15 @@ double ZigguratNormal::generate() {
                     if (!tls_tables_initialized_) {
                         // Initialization failed, use fallback
                         static thread_local std::mt19937 fallback_rng(
-                            12345);  // Fixed seed for determinism
+                            qiprng::DeterministicSeedHelper::
+                                get_fallback_seed());  // Proper entropy seeding
                         std::normal_distribution<double> fallback_dist(mean_, stddev_);
                         return fallback_dist(fallback_rng);
                     }
                 } catch (...) {
-                    // Use fallback RNG instead of fixed mean value
                     static thread_local std::mt19937 fallback_rng(
-                        12345);  // Fixed seed for determinism
+                        qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy
+                                                                                // seeding
                     std::normal_distribution<double> fallback_dist(mean_, stddev_);
                     return fallback_dist(fallback_rng);
                 }
@@ -943,7 +957,9 @@ double ZigguratNormal::generate() {
             // Post-initialization check - verify TLS data is valid
             if (!tls_manager_ || !tls_manager_->is_valid()) {
                 // TLS manager is invalid, use fallback
-                static thread_local std::mt19937 fallback_rng(12345);  // Fixed seed for determinism
+                static thread_local std::mt19937 fallback_rng(
+                    qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy
+                                                                            // seeding
                 std::normal_distribution<double> fallback_dist(mean_, stddev_);
                 return fallback_dist(fallback_rng);
             }
@@ -957,9 +973,9 @@ double ZigguratNormal::generate() {
                 try {
                     std_normal_val = generate_internal();
                 } catch (...) {
-                    // Use fallback RNG instead of fixed mean value
                     static thread_local std::mt19937 fallback_rng(
-                        12345);  // Fixed seed for determinism
+                        qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy
+                                                                                // seeding
                     std::normal_distribution<double> fallback_dist(mean_, stddev_);
                     return fallback_dist(fallback_rng);
                 }
@@ -973,8 +989,8 @@ double ZigguratNormal::generate() {
 
         // Validate the result
         if (std::isnan(result) || std::isinf(result)) {
-            // Use fallback RNG instead of fixed mean value
-            static thread_local std::mt19937 fallback_rng(12345);  // Fixed seed for determinism
+            static thread_local std::mt19937 fallback_rng(
+                qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy seeding
             std::normal_distribution<double> fallback_dist(mean_, stddev_);
             return fallback_dist(fallback_rng);
         }
@@ -986,8 +1002,8 @@ double ZigguratNormal::generate() {
             Rcpp::warning("ZigguratNormal::generate failed: %s", e.what());
             warning_count++;
         }
-        // Use fallback RNG instead of fixed mean value
-        static thread_local std::mt19937 fallback_rng(12345);  // Fixed seed for determinism
+        static thread_local std::mt19937 fallback_rng(
+            qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy seeding
         std::normal_distribution<double> fallback_dist(mean_, stddev_);
         return fallback_dist(fallback_rng);
     } catch (...) {
@@ -1000,8 +1016,8 @@ double ZigguratNormal::generate() {
             cleanup_thread_local_resources();
         }
 
-        // Use fallback RNG instead of fixed mean value
-        static thread_local std::mt19937 fallback_rng(12345);  // Fixed seed for determinism
+        static thread_local std::mt19937 fallback_rng(
+            qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy seeding
         std::normal_distribution<double> fallback_dist(mean_, stddev_);
         return fallback_dist(fallback_rng);
     }
@@ -1027,9 +1043,9 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
                     buffer[i] = generate();
                 } catch (...) {
                     // If generate fails for an individual value, use mean
-                    // Use fallback RNG instead of fixed mean value
                     static thread_local std::mt19937 fallback_rng(
-                        12345);  // Fixed seed for determinism
+                        qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy
+                                                                                // seeding
                     std::normal_distribution<double> fallback_dist(mean_, stddev_);
                     buffer[i] = fallback_dist(fallback_rng);
                 }
@@ -1040,7 +1056,8 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
         // Safety check for object validity during multi-threaded operation
         if (!uniform_generator_) {
             // Something is wrong with the generator - fill with deterministic fallback values
-            static thread_local std::mt19937 fallback_rng(12345);  // Fixed seed for determinism
+            static thread_local std::mt19937 fallback_rng(
+                qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy seeding
             std::normal_distribution<double> fallback_dist(mean_, stddev_);
             for (size_t i = 0; i < count; ++i) {
                 buffer[i] = fallback_dist(fallback_rng);
@@ -1064,9 +1081,9 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
                 try {
                     buffer[i] = generate();
                 } catch (...) {
-                    // Use fallback RNG instead of fixed mean value
                     static thread_local std::mt19937 fallback_rng(
-                        12345);  // Fixed seed for determinism
+                        qiprng::DeterministicSeedHelper::get_fallback_seed());  // Proper entropy
+                                                                                // seeding
                     std::normal_distribution<double> fallback_dist(mean_, stddev_);
                     buffer[i] = fallback_dist(fallback_rng);
                 }
@@ -1105,7 +1122,8 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
 
                         // Fill this thread's portion with deterministic fallback values
                         static thread_local std::mt19937 fallback_rng(
-                            12345);  // Fixed seed for determinism
+                            qiprng::DeterministicSeedHelper::
+                                get_fallback_seed());  // Proper entropy seeding
                         std::normal_distribution<double> fallback_dist(mean_, stddev_);
                         for (size_t i_local = start; i_local < end; ++i_local) {
                             buffer[i_local] = fallback_dist(fallback_rng);
@@ -1183,16 +1201,17 @@ void ZigguratNormal::generate_n(double* buffer, size_t count) {
         for (size_t t = 0; t < threads.size(); ++t) {
             if (threads[t].joinable()) {
                 try {
-                    // Try joining with a timeout
-                    std::chrono::milliseconds timeout(1000);  // 1 second timeout
+                    // Try joining with a timeout (reference captured to avoid data race)
+                    std::chrono::milliseconds timeout(1000);
+                    std::thread& thread_ref = threads[t];
                     auto thread_finished =
-                        std::async(std::launch::async, [&]() { threads[t].join(); });
+                        std::async(std::launch::async, [&thread_ref]() { thread_ref.join(); });
 
                     if (thread_finished.wait_for(timeout) != std::future_status::ready) {
                         // Thread didn't finish in time - we have a problem
                         any_thread_failed.store(true);
                         // Cannot safely detach or terminate - we'll have to wait
-                        threads[t].join();  // This might block
+                        thread_ref.join();  // This might block
                     }
                 } catch (...) {
                     any_thread_failed.store(true);

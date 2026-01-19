@@ -159,6 +159,7 @@ class ThreadPool {
     }
 
     // Safe blocking shutdown - always joins all threads
+    // Avoids joining current thread to prevent deadlock when called from worker
     void shutdown() {
         // Atomic exchange ensures shutdown runs only once
         bool already_stopping = stop_.exchange(true, std::memory_order_acq_rel);
@@ -169,11 +170,21 @@ class ThreadPool {
         // Signal all threads to wake up and exit
         tasks_.done();
 
+        // Get current thread ID to avoid self-join deadlock
+        std::thread::id current_id = std::this_thread::get_id();
+
         // Block until all threads complete - the ONLY safe approach
         // Never use detach() as it can cause use-after-free
         for (auto& worker : workers_) {
             if (worker.joinable()) {
-                worker.join();
+                // Skip joining current thread to prevent deadlock
+                if (worker.get_id() == current_id) {
+                    // Cannot join self - detach to avoid std::system_error
+                    // The thread will complete shortly since tasks_.done() was called
+                    worker.detach();
+                } else {
+                    worker.join();
+                }
             }
         }
         workers_.clear();
@@ -182,11 +193,51 @@ class ThreadPool {
     // Stop the thread pool (deprecated, calls shutdown)
     void stop() { shutdown(); }
 
-    // API compatibility - ignores timeout, always blocks safely
+    // Timeout-aware shutdown that returns false if timeout elapses before completion
     template <typename Rep, typename Period>
-    bool shutdown(std::chrono::duration<Rep, Period> /*timeout*/) {
-        shutdown();
-        return true;  // Always "successful" since we block until complete
+    bool shutdown(std::chrono::duration<Rep, Period> timeout) {
+        // Ensure shutdown initiation happens only once
+        bool already_stopping = stop_.exchange(true, std::memory_order_acq_rel);
+        if (!already_stopping) {
+            // Prevent new tasks from being enqueued and wake all worker threads
+            tasks_.done();
+        }
+
+        // Get current thread ID to avoid self-join deadlock
+        std::thread::id current_id = std::this_thread::get_id();
+
+        // Wait up to the specified timeout for all tasks to complete
+        {
+            std::unique_lock<std::mutex> lock(all_done_mutex_);
+            bool completed_in_time = all_done_.wait_for(
+                lock, timeout, [this] { return tasks_.empty() && active_threads_ == 0; });
+
+            if (!completed_in_time) {
+                // Timed out before all tasks completed; detach remaining threads
+                // so shutdown can return promptly as previously documented.
+                for (auto& worker : workers_) {
+                    if (worker.joinable()) {
+                        worker.detach();
+                    }
+                }
+                workers_.clear();
+                return false;
+            }
+        }
+
+        // All tasks completed within timeout, join all threads safely
+        for (auto& worker : workers_) {
+            if (worker.joinable()) {
+                // Skip joining the current thread to prevent deadlock
+                if (worker.get_id() == current_id) {
+                    worker.detach();
+                } else {
+                    worker.join();
+                }
+            }
+        }
+        workers_.clear();
+        return true;
     }
 
     // Get the number of threads in the pool

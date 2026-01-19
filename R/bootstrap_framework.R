@@ -19,6 +19,7 @@
 #' @name bootstrap_framework
 #' @aliases bootstrap-framework
 #' @keywords internal
+NULL
 
 #' Calculate bootstrap p-value
 #'
@@ -26,6 +27,7 @@
 #' This method is useful when the theoretical distribution of a test
 #' statistic is unknown or complex.
 #'
+#' @name bootstrap_p_value
 #' @param data Numeric vector of observations
 #' @param test_statistic Function that computes the test statistic from data
 #' @param observed_stat The observed test statistic (if NULL, will be computed)

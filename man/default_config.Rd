@@ -17,7 +17,7 @@ A list with the following components:
 \item{poisson_lambda}{Rate parameter for Poisson distribution}
 \item{gamma_shape, gamma_scale}{Parameters for gamma distribution}
 \item{beta_alpha, beta_beta}{Parameters for beta distribution}
-\item{use_crypto_mixing}{Logical: whether to apply cryptographic mixing}
+\item{use_crypto_mixing}{Logical: whether to apply ChaCha20 output mixing}
 \item{reseed_interval}{Integer: number of iterations between automatic reseeds}
 \item{use_threading}{Logical: whether to enable thread-local PRNG instances}
 \item{use_csv_discriminants}{Logical: whether to use custom discriminants from file}

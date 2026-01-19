@@ -3,12 +3,17 @@
 
 #include <mpfr.h>
 
+#include <atomic>
 #include <chrono>
 #include <memory>
 #include <mutex>
 #include <queue>
 
 namespace qiprng {
+
+// Forward declaration - defined in multi_qi_optimized.cpp
+extern std::atomic<bool> g_shutdown_in_progress;
+bool is_shutdown_in_progress();
 
 // MPFR context wrapper with timestamp for cleanup
 struct MPFRContext {
@@ -51,6 +56,16 @@ class MPFRContextPool {
           total_allocated_(0), last_cleanup_(std::chrono::steady_clock::now()) {}
 
     ~MPFRContextPool() {
+        // Don't do cleanup if global shutdown is in progress
+        // The prepare_for_unload_() function handles MPFR cleanup
+        if (is_shutdown_in_progress()) {
+            // Just clear the queue without calling mpfr_free_cache
+            while (!available_.empty()) {
+                available_.pop();
+            }
+            return;
+        }
+
         // Clear all contexts
         while (!available_.empty()) {
             available_.pop();

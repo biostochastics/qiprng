@@ -33,9 +33,9 @@ functionality of multiple functions for ease of use.
 \details{
 This function:
 \enumerate{
-\item Loads the excellent discriminants from the results file
+\item Loads the curated discriminants from the results file
 \item Selects the discriminant at the specified index (sorted by score)
-\item Creates a PRNG configuration with cryptographic mixing enabled
+\item Creates a PRNG configuration with ChaCha20 mixing enabled
 \item Initializes the PRNG
 \item Generates the requested random numbers
 }

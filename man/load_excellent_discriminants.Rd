@@ -2,7 +2,7 @@
 % Please edit documentation in R/excellent_discriminants.R
 \name{load_excellent_discriminants}
 \alias{load_excellent_discriminants}
-\title{Load and filter excellent discriminants from analysis results}
+\title{Load and filter curated discriminants from analysis results}
 \usage{
 load_excellent_discriminants(
   results_file = "discriminant_analysis_results/raw_results.rds",
@@ -32,8 +32,8 @@ A data frame containing excellent discriminants with columns:
 }
 }
 \description{
-Loads discriminant analysis results and filters for those rated as "Excellent"
-based on comprehensive statistical testing. These discriminants have passed
+Loads discriminant analysis results and filters for those that passed
+comprehensive statistical testing. These discriminants have passed
 all major randomness tests and are suitable for production use.
 }
 \details{

@@ -58,7 +58,7 @@ bool QuadraticIrrational::is_square_free(long long n) {
         // If n is still > 1, it's either prime or has larger factors
         // Check if it's a perfect square
 
-        // SECURITY FIX: Prevent integer overflow in sqrt_n * sqrt_n
+        // Prevent integer overflow in sqrt_n * sqrt_n
         double sqrt_n_dbl = std::sqrt(static_cast<double>(n));
 
         // Check if sqrt_n would overflow when squared
@@ -293,8 +293,8 @@ void QuadraticIrrational::step_once() {
 QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t prec, uint64_t seed,
                                          bool has_seed)
     : a_(a), b_(b), c_(c), discriminant_(0), mpfr_prec_(prec), use_fast_path_(false),
-      fast_value_(0.0), fast_value_dirty_(false), cfe_period_length_(0), cfe_computed_(false),
-      P_n_(0), Q_n_(1), seed_(seed), has_seed_(has_seed) {
+      fast_value_(0.0), fast_value_dirty_(false), fast_path_iterations_(0), cfe_period_length_(0),
+      cfe_computed_(false), P_n_(0), Q_n_(1), seed_(seed), has_seed_(has_seed) {
     // Validate parameters more comprehensively
     if (a == 0) {
         throw std::invalid_argument("QuadraticIrrational: 'a' parameter cannot be zero");
@@ -322,7 +322,7 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
         throw std::runtime_error("QuadraticIrrational: non-positive discriminant");
     }
 
-    // Check if discriminant is square-free for quality PRNG (v0.5.0 enhancement)
+    // Discriminant must be square-free for quality PRNG output
     if (!is_square_free(disc_ll)) {
         // Use exception for critical quality issues that affect PRNG correctness
         throw std::invalid_argument(
@@ -466,27 +466,57 @@ QuadraticIrrational::QuadraticIrrational(long a, long b, long c, mpfr_prec_t pre
 
     const bool env_force_mpfr = std::getenv("QIPRNG_FORCE_MPFR") != nullptr;
     const bool env_force_fast = std::getenv("QIPRNG_FAST_PATH") != nullptr;
-    use_fast_path_ = (!env_force_mpfr && mpfr_prec_ <= 64) || env_force_fast;
+
+    // Check if coefficients are within safe range for double precision
+    const bool coeffs_safe =
+        (a_ <= MAX_SAFE_COEFFICIENT && a_ >= MIN_SAFE_COEFFICIENT && b_ <= MAX_SAFE_COEFFICIENT &&
+         b_ >= MIN_SAFE_COEFFICIENT && c_ <= MAX_SAFE_COEFFICIENT && c_ >= MIN_SAFE_COEFFICIENT);
+
+    // Fast path requires: precision <= 64 bits AND coefficients within safe range
+    use_fast_path_ = (!env_force_mpfr && mpfr_prec_ <= 64 && coeffs_safe) || env_force_fast;
+    fast_path_iterations_ = 0;
     refresh_fast_state();
 }
 
 double QuadraticIrrational::next() {
     if (use_fast_path_) {
-        double x = fast_value_;
-        double result = std::fma(static_cast<double>(a_), x * x,
-                                 std::fma(static_cast<double>(b_), x, static_cast<double>(c_)));
-        result = result - std::floor(result);
-        if (result < 0.0) {
-            result += 1.0;
+        // Periodic re-sync to correct accumulated floating-point drift
+        if (fast_path_iterations_ >= FAST_PATH_RESYNC_INTERVAL) {
+            // Sync current fast state to MPFR
+            ensure_mpfr_state();
+            // Perform one MPFR step to get corrected value
+            step_once();
+            // Refresh fast state from MPFR
+            refresh_fast_state();
+            fast_path_iterations_ = 0;
         }
 
+        double x = fast_value_;
+
+        // Pre-check for potential overflow: |a * x^2| could overflow if |a| is large
+        // For x in [0,1), x^2 in [0,1), so |a * x^2| <= |a|
+        // FMA is safe if all inputs are finite and |a|, |b|, |c| < 2^53
+        double result = std::fma(static_cast<double>(a_), x * x,
+                                 std::fma(static_cast<double>(b_), x, static_cast<double>(c_)));
+
         if (!std::isfinite(result)) {
-            // Disable fast path on numerical failure and fall back to MPFR
+            // Numerical failure: sync back to MPFR before disabling fast path
+            // The MPFR state may be stale, so we need to update it first
+            if (fast_value_dirty_) {
+                mpfr_set_d(*value_->get(), fast_value_, MPFR_RNDN);
+                fast_value_dirty_ = false;
+            }
+            // Disable fast path and fall through to MPFR implementation
             use_fast_path_ = false;
-            ensure_mpfr_state();
+            fast_path_iterations_ = 0;
         } else {
+            result = result - std::floor(result);
+            if (result < 0.0) {
+                result += 1.0;
+            }
             fast_value_ = result;
             fast_value_dirty_ = true;
+            fast_path_iterations_++;
             return result;
         }
     }
@@ -496,6 +526,7 @@ double QuadraticIrrational::next() {
     // Use safe conversion with extended precision intermediates
     double val = precision::safe_mpfr_to_double(*value_->get(), true);
     refresh_fast_state();
+    fast_path_iterations_ = 0;  // Reset counter after MPFR step
     if (std::isnan(val) || std::isinf(val)) {
         Rcpp::warning("QuadraticIrrational::next() produced NaN/Inf. Returning 0.5.");
         return 0.5;  // A fallback value
@@ -549,7 +580,7 @@ void QuadraticIrrational::jump_ahead(uint64_t n) {
     refresh_fast_state();
 }
 
-// Optimized O(log n) jump-ahead using matrix exponentiation (v0.5.0 enhancement)
+// Optimized O(log n) jump-ahead using matrix exponentiation
 /**
  * @brief Jumps ahead in the PRNG sequence by n steps in O(log n) time.
  *
@@ -720,6 +751,7 @@ void QuadraticIrrational::fill(double* buffer, size_t count) {
 void QuadraticIrrational::reseed() {
     // Reset to initial state with new random starting point
     step_ = 0;
+    fast_path_iterations_ = 0;
 
     // If we have a seed, regenerate using a new seed
     if (has_seed_) {
@@ -746,7 +778,8 @@ void QuadraticIrrational::reseed() {
         skip(skip_amount);
     } else {
         // Without seed, reset to a deterministic initial state using value_
-        // (state_ is not used in this class - value_ is the actual MPFR state)
+        // Flush fast-path state before overriding to prevent state corruption
+        ensure_mpfr_state();
         mpfr_set_d(*value_->get(), 0.5, MPFR_RNDN);
         // Perform a step to refresh next_ and the fast path state
         step_once();

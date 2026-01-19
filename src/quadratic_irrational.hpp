@@ -175,6 +175,14 @@ class QuadraticIrrational {
     bool use_fast_path_;
     double fast_value_;
     bool fast_value_dirty_;
+    uint64_t fast_path_iterations_;  // Count iterations since last MPFR sync
+
+    // Periodic re-sync interval to correct accumulated floating-point drift
+    static constexpr uint64_t FAST_PATH_RESYNC_INTERVAL = 1000000;  // Re-sync every 1M iterations
+
+    // Coefficient limits for safe double conversion (2^53 - 1 for exact representation)
+    static constexpr long long MAX_SAFE_COEFFICIENT = (1LL << 53) - 1;
+    static constexpr long long MIN_SAFE_COEFFICIENT = -((1LL << 53) - 1);
 
     // CFE period detection and caching
     std::vector<long> cfe_coefficients_;  // Stores the CFE period

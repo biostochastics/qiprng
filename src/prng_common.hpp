@@ -5,6 +5,10 @@
 
 #include <mpfr.h>
 
+#ifndef QIPRNG_NO_CRYPTO
+#    include <sodium.h>
+#endif
+
 #include <atomic>  // For std::atomic
 #include <chrono>  // For high_resolution_clock
 #include <cmath>   // For sqrt
@@ -20,6 +24,19 @@
 
 #include "precision_utils.hpp"  // For high-precision constants and safe conversions
 
+// C++20 QIPRNG_UNLIKELY attribute compatibility macro
+// Use [[unlikely]] attribute for C++20+ to hint branch prediction
+// Use empty for C++17 to maintain compatibility
+#if __cplusplus >= 202002L
+#    define QIPRNG_UNLIKELY [[unlikely]]
+#elif defined(__GNUC__) || defined(__clang__)
+// GCC/Clang builtin for branch prediction (use in condition context)
+#    define QIPRNG_UNLIKELY
+// Note: For GCC/Clang, use __builtin_expect in conditions directly
+#else
+#    define QIPRNG_UNLIKELY
+#endif
+
 #ifndef QIPRNG_ENABLE_MPFR_DIAGNOSTICS
 #    ifdef NDEBUG
 #        define QIPRNG_ENABLE_MPFR_DIAGNOSTICS 0
@@ -30,17 +47,19 @@
 
 namespace qiprng {
 
-// v0.5.0: Memory pool for MPFR allocations to reduce overhead
+// Memory pool for MPFR allocations with heap fallback when exhausted
 template <typename T>
 class MemoryPool {
    private:
     struct Block {
         T data;
         bool in_use;
-        Block() : in_use(false) {}
+        bool is_heap_allocated;  // Track heap-allocated fallback blocks
+        Block() : in_use(false), is_heap_allocated(false) {}
     };
 
     std::vector<std::unique_ptr<Block>> blocks_;
+    std::vector<std::unique_ptr<Block>> heap_fallback_;
     std::mutex mutex_;
     size_t max_blocks_;
 
@@ -52,7 +71,7 @@ class MemoryPool {
     T* allocate() {
         std::lock_guard<std::mutex> lock(mutex_);
 
-        // Find a free block
+        // Find a free block in the pool
         for (auto& block : blocks_) {
             if (!block->in_use) {
                 block->in_use = true;
@@ -67,8 +86,13 @@ class MemoryPool {
             return &blocks_.back()->data;
         }
 
-        // Pool exhausted - fallback to regular allocation
-        return nullptr;
+        // Pool exhausted - fallback to heap allocation
+        auto heap_block = std::make_unique<Block>();
+        heap_block->in_use = true;
+        heap_block->is_heap_allocated = true;
+        T* ptr = &heap_block->data;
+        heap_fallback_.push_back(std::move(heap_block));
+        return ptr;
     }
 
     void deallocate(T* ptr) {
@@ -77,9 +101,18 @@ class MemoryPool {
 
         std::lock_guard<std::mutex> lock(mutex_);
 
+        // Check pool blocks first
         for (auto& block : blocks_) {
             if (&block->data == ptr) {
                 block->in_use = false;
+                return;
+            }
+        }
+
+        // Check heap fallback blocks and remove if found
+        for (auto it = heap_fallback_.begin(); it != heap_fallback_.end(); ++it) {
+            if (&(*it)->data == ptr) {
+                heap_fallback_.erase(it);
                 return;
             }
         }
@@ -98,6 +131,11 @@ class MemoryPool {
                 count++;
         }
         return count;
+    }
+
+    size_t heap_fallback_count() const {
+        std::lock_guard<std::mutex> lock(const_cast<std::mutex&>(mutex_));
+        return heap_fallback_.size();
     }
 };
 
@@ -363,16 +401,18 @@ class MPFRWrapper {
     // Get raw mpfr_t pointer for MPFR functions with validation
     // Inline for performance - frequently called in hot paths
     inline mpfr_t* get() {
-        if (!initialized_) [[unlikely]] {
-            throw std::runtime_error("MPFRWrapper: Attempting to use uninitialized value");
-        }
+        if (!initialized_)
+            QIPRNG_UNLIKELY {
+                throw std::runtime_error("MPFRWrapper: Attempting to use uninitialized value");
+            }
         return &value;
     }
 
     inline const mpfr_t* get() const {
-        if (!initialized_) [[unlikely]] {
-            throw std::runtime_error("MPFRWrapper: Attempting to use uninitialized value");
-        }
+        if (!initialized_)
+            QIPRNG_UNLIKELY {
+                throw std::runtime_error("MPFRWrapper: Attempting to use uninitialized value");
+            }
         return &value;
     }
 
@@ -520,28 +560,32 @@ class MPFRWrapper {
 
     // Set precision with validation - updates cache
     void set_precision(mpfr_prec_t prec) {
-        if (!initialized_) [[unlikely]] {
-            throw std::runtime_error(
-                "MPFRWrapper: Attempting to set precision of uninitialized value");
-        }
-        if (prec < MPFR_PREC_MIN || prec > MPFR_PREC_MAX) [[unlikely]] {
-            throw std::invalid_argument("MPFRWrapper: Invalid precision value");
-        }
+        if (!initialized_)
+            QIPRNG_UNLIKELY {
+                throw std::runtime_error(
+                    "MPFRWrapper: Attempting to set precision of uninitialized value");
+            }
+        if (prec < MPFR_PREC_MIN || prec > MPFR_PREC_MAX)
+            QIPRNG_UNLIKELY {
+                throw std::invalid_argument("MPFRWrapper: Invalid precision value");
+            }
         mpfr_set_prec(value, prec);
         cached_precision_ = prec;  // Update cache
     }
 
     // Fast precision change with reinitialization
     void resize_precision(mpfr_prec_t new_prec) {
-        if (!initialized_) [[unlikely]] {
-            throw std::runtime_error("MPFRWrapper: Attempting to resize uninitialized value");
-        }
+        if (!initialized_)
+            QIPRNG_UNLIKELY {
+                throw std::runtime_error("MPFRWrapper: Attempting to resize uninitialized value");
+            }
         if (new_prec == cached_precision_) {
             return;  // No change needed
         }
-        if (new_prec < MPFR_PREC_MIN || new_prec > MPFR_PREC_MAX) [[unlikely]] {
-            throw std::invalid_argument("MPFRWrapper: Invalid precision value");
-        }
+        if (new_prec < MPFR_PREC_MIN || new_prec > MPFR_PREC_MAX)
+            QIPRNG_UNLIKELY {
+                throw std::invalid_argument("MPFRWrapper: Invalid precision value");
+            }
 
         // Preserve value while changing precision
         mpfr_prec_round(value, new_prec, MPFR_RNDN);
@@ -566,32 +610,38 @@ class MPFRWrapper {
 
     // Safe conversion to double with validation
     inline double to_double() const {
-        if (!initialized_) [[unlikely]] {
-            throw std::runtime_error(
-                "MPFRWrapper: Attempting to convert uninitialized value to double");
-        }
-        if (is_nan()) [[unlikely]] {
-            throw std::runtime_error("MPFRWrapper: Cannot convert NaN to double");
-        }
-        if (is_inf()) [[unlikely]] {
-            throw std::runtime_error("MPFRWrapper: Cannot convert infinity to double");
-        }
+        if (!initialized_)
+            QIPRNG_UNLIKELY {
+                throw std::runtime_error(
+                    "MPFRWrapper: Attempting to convert uninitialized value to double");
+            }
+        if (is_nan())
+            QIPRNG_UNLIKELY {
+                throw std::runtime_error("MPFRWrapper: Cannot convert NaN to double");
+            }
+        if (is_inf())
+            QIPRNG_UNLIKELY {
+                throw std::runtime_error("MPFRWrapper: Cannot convert infinity to double");
+            }
         // Use safe conversion with extended precision intermediates
         return precision::safe_mpfr_to_double(value, true);
     }
 
     // Precision-aware conversion with tracking
     inline double to_double_extended() const {
-        if (!initialized_) [[unlikely]] {
-            throw std::runtime_error(
-                "MPFRWrapper: Attempting to convert uninitialized value to double");
-        }
-        if (is_nan()) [[unlikely]] {
-            throw std::runtime_error("MPFRWrapper: Cannot convert NaN to double");
-        }
-        if (is_inf()) [[unlikely]] {
-            throw std::runtime_error("MPFRWrapper: Cannot convert infinity to double");
-        }
+        if (!initialized_)
+            QIPRNG_UNLIKELY {
+                throw std::runtime_error(
+                    "MPFRWrapper: Attempting to convert uninitialized value to double");
+            }
+        if (is_nan())
+            QIPRNG_UNLIKELY {
+                throw std::runtime_error("MPFRWrapper: Cannot convert NaN to double");
+            }
+        if (is_inf())
+            QIPRNG_UNLIKELY {
+                throw std::runtime_error("MPFRWrapper: Cannot convert infinity to double");
+            }
         return precision::safe_mpfr_to_double(value, true);
     }
 
@@ -743,10 +793,21 @@ class SecureBuffer {
 
     void clear() {
         if (!data_.empty()) {
+            // v0.7.3: Secure memory zeroing with libsodium support
+            // Uses sodium_memzero() when available for cryptographically secure wiping
+            // Falls back to volatile writes with memory barrier when libsodium not available
+#if !defined(QIPRNG_NO_CRYPTO) && defined(SODIUM_LIBRARY_VERSION_MAJOR)
+            // libsodium is available - use sodium_memzero for secure wiping
+            sodium_memzero(data_.data(), data_.size() * sizeof(T));
+#else
+            // Fallback: Use volatile pointer to prevent compiler optimization
             volatile T* ptr = data_.data();
             for (size_t i = 0; i < data_.size(); ++i) {
                 ptr[i] = T(0);
             }
+            // Memory barrier to ensure zeroing completes before any subsequent operations
+            std::atomic_thread_fence(std::memory_order_seq_cst);
+#endif
         }
         data_.clear();
     }

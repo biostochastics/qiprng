@@ -52,15 +52,51 @@
 #' @param libpath The library path where the package is installed
 #' @keywords internal
 .onUnload <- function(libpath) {
-  # Clean up PRNG resources
+  # Clean up R-level resources
   if (exists("g_prng", envir = .pkgenv)) {
     rm("g_prng", envir = .pkgenv)
   }
 
-  # Safely shut down C++ thread pool before library unload
-  # This prevents static destruction order issues
-  try(.shutdown_thread_pool_(), silent = TRUE)
+  # CRITICAL: Call comprehensive C++ cleanup BEFORE unloading the library
+  # This ensures all thread-local storage, MPFR pools, and static objects
+  # are cleaned up in the correct order to prevent segfaults.
+
+  # Track cleanup success to conditionally unload library
+  cleanup_success <- FALSE
+  cleanup_error <- NULL
+
+  tryCatch(
+    {
+      .prepare_for_unload_()
+      cleanup_success <- TRUE
+    },
+    error = function(e) {
+      cleanup_error <<- e$message
+      # Log warning about cleanup failure
+      warning(
+        sprintf("qiprng: C++ cleanup failed during unload: %s. ",
+                cleanup_error),
+        "Library unload will proceed but may cause instability.",
+        call. = FALSE
+      )
+    }
+  )
 
   # Unload the shared library
-  library.dynam.unload("qiprng", libpath)
+  # At this point, all C++ resources should be cleaned up (or we tried our best)
+  tryCatch(
+    {
+      library.dynam.unload("qiprng", libpath)
+    },
+    error = function(e) {
+      # If unload fails after cleanup failure, this is serious
+      if (!cleanup_success) {
+        warning(
+          sprintf("qiprng: Library unload failed after cleanup error: %s",
+                  e$message),
+          call. = FALSE
+        )
+      }
+    }
+  )
 }

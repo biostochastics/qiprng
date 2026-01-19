@@ -21,6 +21,15 @@
 
 namespace qiprng {
 
+// Global shutdown flag to prevent resource access after cleanup
+// This must be checked before accessing any static or thread-local resources
+extern std::atomic<bool> g_shutdown_in_progress;
+
+// Initialize the shutdown flag
+void mark_shutdown_started();
+void mark_shutdown_complete();
+bool is_shutdown_in_progress();
+
 // Define mixing strategy enum (copied from multi_qi.hpp)
 enum class MixingStrategy { ROUND_ROBIN, XOR_MIX, AVERAGING, MODULAR_ADD, CASCADE_MIX };
 
@@ -94,6 +103,12 @@ class MultiQIOptimized {
                      MixingStrategy strategy = MixingStrategy::CASCADE_MIX);
 
     ~MultiQIOptimized() = default;
+
+    // Cleanup thread-local data explicitly before shutdown
+    static void cleanup_thread_local_data();
+
+    // Reset for fresh start (called after shutdown complete)
+    static void reset_after_shutdown();
 
     // Core PRNG interface - ALL LOCK-FREE!
     double next();

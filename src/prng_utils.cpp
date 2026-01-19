@@ -52,12 +52,11 @@ void qiprng::initialize_libsodium_if_needed() {
             sodium_initialized = false;
         } else {
             sodium_initialized_flag.store(true);
-            sodium_initialized = true;  // SECURITY FIX: Set both flags atomically
+            sodium_initialized = true;
         }
     });
 }
 
-// SECURITY FIX: Unified initialization that ensures both flags are synchronized
 void qiprng::ensure_libsodium_initialized() {
     // This is the single point of initialization for libsodium
     // Called from both R interface and internal code

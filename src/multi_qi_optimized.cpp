@@ -17,21 +17,84 @@
 
 namespace qiprng {
 
+// Global shutdown flag - prevents access to resources after cleanup starts
+std::atomic<bool> g_shutdown_in_progress{false};
+
+void mark_shutdown_started() {
+    g_shutdown_in_progress.store(true, std::memory_order_release);
+}
+
+void mark_shutdown_complete() {
+    g_shutdown_in_progress.store(false, std::memory_order_release);
+}
+
+bool is_shutdown_in_progress() {
+    return g_shutdown_in_progress.load(std::memory_order_acquire);
+}
+
 // Thread-local storage definitions
 thread_local MultiQIOptimized::ThreadLocalData MultiQIOptimized::tl_data;
 std::atomic<size_t> MultiQIOptimized::thread_counter_{0};
 
 // Reset thread counter for deterministic behavior
 void MultiQIOptimized::reset_thread_counter() {
+    if (is_shutdown_in_progress())
+        return;  // Don't reset during shutdown
     thread_counter_.store(0, std::memory_order_relaxed);
     // Also reset thread-local data to ensure clean state
     tl_data = ThreadLocalData();
 }
 
-// Performance metrics
-namespace perf {
-Metrics global_metrics;
+// Cleanup thread-local data explicitly before shutdown
+void MultiQIOptimized::cleanup_thread_local_data() {
+    // Clear all QI instances in thread-local storage
+    if (tl_data.qis) {
+        tl_data.qis->clear();
+        tl_data.qis.reset();
+    }
+    tl_data.cache.clear();
+    tl_data.cache.shrink_to_fit();
+    tl_data.initialized = false;
+    tl_data.idx = 0;
+    tl_data.cache_pos = 0;
 }
+
+// Reset for fresh start after shutdown
+void MultiQIOptimized::reset_after_shutdown() {
+    thread_counter_.store(0, std::memory_order_relaxed);
+    tl_data = ThreadLocalData();
+}
+
+// Performance metrics - wrapped in struct with safe access
+namespace perf {
+
+static std::atomic<Metrics*> metrics_ptr{nullptr};
+static std::once_flag metrics_init_flag;
+static std::atomic<bool> metrics_destroyed{false};
+
+Metrics& get_global_metrics() {
+    std::call_once(metrics_init_flag, []() {
+        static Metrics static_metrics;
+        metrics_ptr.store(&static_metrics, std::memory_order_release);
+    });
+    return *metrics_ptr.load(std::memory_order_acquire);
+}
+
+void mark_metrics_destroyed() {
+    metrics_destroyed.store(true, std::memory_order_release);
+}
+
+bool are_metrics_available() {
+    return !metrics_destroyed.load(std::memory_order_acquire) &&
+           !g_shutdown_in_progress.load(std::memory_order_acquire);
+}
+
+// Legacy global_metrics - now redirects to safe accessor
+// We keep the name for backward compatibility but it should not be accessed directly
+Metrics global_metrics;  // This is now just a placeholder, actual metrics go through
+                         // get_global_metrics()
+
+}  // namespace perf
 
 // Constructor from parameter list
 MultiQIOptimized::MultiQIOptimized(const std::vector<std::tuple<long, long, long>>& abc_list,
@@ -94,10 +157,16 @@ MultiQIOptimized::MultiQIOptimized(size_t num_qis, int mpfr_prec, uint64_t seed,
 
 // Ensure thread-local data is initialized
 void MultiQIOptimized::ensure_initialized() const {
+    if (is_shutdown_in_progress()) {
+        throw std::runtime_error("MultiQIOptimized used during shutdown");
+    }
+
     if (!tl_data.initialized) {
         // Get unique thread ID
         size_t thread_id = thread_counter_.fetch_add(1, std::memory_order_relaxed);
-        perf::global_metrics.thread_initializations++;
+        if (perf::are_metrics_available()) {
+            perf::get_global_metrics().thread_initializations++;
+        }
 
         // Derive thread-specific seed using golden ratio
         constexpr uint64_t GOLDEN_PRIME = 0x9E3779B97F4A7C15ULL;
@@ -135,7 +204,7 @@ double MultiQIOptimized::generate_single() const {
     return val;
 }
 
-// Refill cache - NO MUTEX NEEDED!
+// Refill thread-local cache (lock-free)
 void MultiQIOptimized::refill_cache() const {
     ensure_initialized();
 
@@ -147,28 +216,42 @@ void MultiQIOptimized::refill_cache() const {
     }
 
     tl_data.cache_pos = 0;
-    perf::global_metrics.cache_misses++;
+    if (perf::are_metrics_available()) {
+        perf::get_global_metrics().cache_misses++;
+    }
 }
 
-// Main generation method - COMPLETELY LOCK-FREE!
+// Main generation method (lock-free via thread-local storage)
 double MultiQIOptimized::next() {
+    if (is_shutdown_in_progress()) {
+        return 0.5;  // Safe fallback during shutdown
+    }
+
     ensure_initialized();
 
     // Check cache first
     if (tl_data.cache_pos < tl_data.cache.size()) {
-        perf::global_metrics.cache_hits++;
-        perf::global_metrics.samples_generated++;
+        if (perf::are_metrics_available()) {
+            perf::get_global_metrics().cache_hits++;
+            perf::get_global_metrics().samples_generated++;
+        }
         return tl_data.cache[tl_data.cache_pos++];
     }
 
     // Refill cache and return first value
     refill_cache();
-    perf::global_metrics.samples_generated++;
+    if (perf::are_metrics_available()) {
+        perf::get_global_metrics().samples_generated++;
+    }
     return tl_data.cache[tl_data.cache_pos++];
 }
 
 // Mixed generation
 double MultiQIOptimized::next_mixed() {
+    if (is_shutdown_in_progress()) {
+        return 0.5;  // Safe fallback during shutdown
+    }
+
     ensure_initialized();
 
     size_t mix_size = std::min(mixing_buffer_.size(), tl_data.qis->size());
@@ -237,6 +320,10 @@ void MultiQIOptimized::fill_parallel(double* buffer, size_t fill_size) {
 
 // Skip ahead
 void MultiQIOptimized::skip(uint64_t n) {
+    if (is_shutdown_in_progress()) {
+        return;  // No-op during shutdown
+    }
+
     ensure_initialized();
     for (auto& qi : *tl_data.qis) {
         qi->skip(n);
@@ -277,7 +364,8 @@ double MultiQIOptimized::mix_xor(const std::vector<double>& values) const {
     for (double val : values) {
         result ^= extract_mantissa(val);
     }
-    return static_cast<double>(result) / static_cast<double>(UINT64_MAX);
+    // Use mantissa mask (52 bits) for proper scaling to preserve full precision
+    return static_cast<double>(result) / static_cast<double>(0x000FFFFFFFFFFFFFULL);
 }
 
 double MultiQIOptimized::mix_averaging(const std::vector<double>& values) const {
@@ -316,9 +404,10 @@ uint64_t MultiQIOptimized::extract_mantissa(double value) const {
     return bits & 0x000FFFFFFFFFFFFFULL;
 }
 
-// Combine mantissas
+// Combine mantissas using SplitMix64 constant for better statistical properties
 double MultiQIOptimized::combine_mantissas(uint64_t m1, uint64_t m2) const {
-    uint64_t combined = (m1 * 0x5DEECE66D + m2) & 0x000FFFFFFFFFFFFFULL;
+    // Use golden ratio-based constant from SplitMix64 (better avalanche than Java LCG)
+    uint64_t combined = (m1 * 0x9e3779b97f4a7c15ULL + m2) & 0x000FFFFFFFFFFFFFULL;
     combined |= 0x3FF0000000000000ULL;
     double result;
     std::memcpy(&result, &combined, sizeof(result));

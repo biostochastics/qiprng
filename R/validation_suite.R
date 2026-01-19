@@ -1077,31 +1077,37 @@ print_validation_summary <- function(report) {
 #'
 #' @param x Base list
 #' @param val List of modifications
+#' @param keep.null If TRUE, NULL values in val are preserved. If FALSE (default),
+#'   NULL values remove the corresponding element from x.
 #' @return Modified list
-modifyList <- function(x, val) {
-  modifyList <- function(x, val, keep.null = FALSE) {
-    stopifnot(is.list(x), is.list(val))
-    vnames <- names(val)
-    vnames <- vnames[nzchar(vnames)]
-    for (v in vnames) {
+modifyList <- function(x, val, keep.null = FALSE) {
+  stopifnot(is.list(x), is.list(val))
+  vnames <- names(val)
+  vnames <- vnames[nzchar(vnames)]
+  for (v in vnames) {
+    if (is.null(val[[v]]) && !keep.null) {
+      # Remove element when val[[v]] is NULL and keep.null is FALSE
+      x[[v]] <- NULL
+    } else {
       x[[v]] <- val[[v]]
     }
-    x
   }
-  modifyList(x, val)
+  x
 }
 
 #' Execute Expression with Timeout
 #'
-#' Evaluates an expression with a specified timeout, returning an error
+#' Runs an expression with a specified timeout, returning an error
 #' if the expression takes longer than the specified time.
 #'
-#' @param expr Expression to evaluate
+#' @param expr Expression to run
 #' @param timeout Timeout in seconds
 #' @return Result of the expression, or throws an error on timeout
 #' @export
 withTimeout <- function(expr, timeout) {
   setTimeLimit(cpu = timeout, elapsed = timeout)
   on.exit(setTimeLimit(cpu = Inf, elapsed = Inf))
-  eval(expr)
+  # Run in parent frame to preserve caller's bindings - standard R pattern
+  expr_sub <- substitute(expr)
+  base::eval(expr_sub, envir = parent.frame())
 }

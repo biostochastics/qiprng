@@ -17,39 +17,85 @@ fi
 
 if [ -z "$PKG_CONFIG" ]; then
     echo "--------------------------------------------------------------------" >&2
-    echo "ERROR: 'pkg-config' not found." >&2
+    echo "ERROR: 'pkg-config' not found - Cannot detect system libraries" >&2
     echo "" >&2
-    echo "Please install pkg-config and ensure it is in your PATH." >&2
-    echo "  On macOS (Homebrew): brew install pkg-config" >&2
-    echo "  On Debian/Ubuntu:    sudo apt-get install pkg-config" >&2
-    echo "  On Fedora/RHEL:      sudo dnf install pkgconf-pkg-config" >&2
+    echo "This tool is required to locate dependencies:" >&2
+    echo "  - libsodium (cryptographic operations - REQUIRED)" >&2
+    echo "  - openssl (SSL/TLS support - REQUIRED)" >&2
+    echo "  - gmp, mpfr (high-precision arithmetic - OPTIONAL)" >&2
+    echo "" >&2
+    echo "Please install pkg-config on your system:" >&2
+    echo "  On macOS (Homebrew):  brew install pkg-config" >&2
+    echo "  On Debian/Ubuntu:     sudo apt-get install pkg-config" >&2
+    echo "  On Fedora/RHEL:       sudo dnf install pkgconf-pkg-config" >&2
+    echo "" >&2
+    echo "After installing pkg-config, run: R CMD INSTALL ." >&2
     echo "--------------------------------------------------------------------" >&2
     exit 1
 fi
 
 echo "Found pkg-config: $PKG_CONFIG"
 
-# Check if pkg-config can find the libraries using --exists (more robust than checking flags)
-# This correctly handles libraries installed in standard system paths where flags may be empty
-if ! $PKG_CONFIG --exists gmp mpfr libsodium openssl 2>/dev/null; then
+# Check for required libraries (libsodium, openssl)
+REQUIRED_MISSING=""
+if ! $PKG_CONFIG --exists libsodium 2>/dev/null; then
+    REQUIRED_MISSING="$REQUIRED_MISSING libsodium"
+fi
+if ! $PKG_CONFIG --exists openssl 2>/dev/null; then
+    REQUIRED_MISSING="$REQUIRED_MISSING openssl"
+fi
+
+if [ -n "$REQUIRED_MISSING" ]; then
     echo "--------------------------------------------------------------------" >&2
-    echo "ERROR: Could not find one or more required libraries via pkg-config:" >&2
-    echo "  gmp, mpfr, libsodium, openssl" >&2
+    echo "ERROR: Required libraries missing:$REQUIRED_MISSING" >&2
     echo "" >&2
-    echo "Please ensure these libraries are installed:" >&2
-    echo "  On macOS (Homebrew): brew install gmp mpfr libsodium openssl" >&2
-    echo "  On Debian/Ubuntu:    sudo apt-get install libgmp-dev libmpfr-dev libsodium-dev libssl-dev" >&2
-    echo "  On Fedora/RHEL:      sudo dnf install gmp-devel mpfr-devel libsodium-devel openssl-devel" >&2
+    echo "These libraries are required for qiprng to function:" >&2
+    echo "  - libsodium: Provides cryptographic random number generation" >&2
+    echo "  - openssl: Provides secure random number seeding" >&2
+    echo "" >&2
+    echo "Please install the missing libraries:" >&2
+    echo "  On macOS (Homebrew): brew install libsodium openssl" >&2
+    echo "  On Debian/Ubuntu:    sudo apt-get install libsodium-dev libssl-dev" >&2
+    echo "  On Fedora/RHEL:      sudo dnf install libsodium-devel openssl-devel" >&2
     echo "--------------------------------------------------------------------" >&2
     exit 1
 fi
 
-# Use pkg-config to get the required flags for mandatory libraries
-# Note: These may be empty if libraries are in standard system paths, which is fine
-PKG_CPPFLAGS=$($PKG_CONFIG --cflags gmp mpfr libsodium openssl 2>/dev/null)
-PKG_LIBS=$($PKG_CONFIG --libs gmp mpfr libsodium openssl 2>/dev/null)
+echo "Found required libraries: libsodium, openssl"
 
-echo "Found required libraries: gmp, mpfr, libsodium, openssl"
+# Get flags for required libraries
+REQ_CPPFLAGS=$($PKG_CONFIG --cflags libsodium openssl 2>/dev/null)
+REQ_LIBS=$($PKG_CONFIG --libs libsodium openssl 2>/dev/null)
+
+# Check for GMP (optional - enables high-precision arithmetic)
+GMP_CPPFLAGS=""
+GMP_LIBS=""
+GMP_FOUND=0
+if $PKG_CONFIG --exists gmp 2>/dev/null; then
+    GMP_CPPFLAGS=$($PKG_CONFIG --cflags gmp 2>/dev/null)
+    GMP_LIBS=$($PKG_CONFIG --libs gmp 2>/dev/null)
+    GMP_FOUND=1
+    echo "Found GMP: High-precision integer arithmetic enabled."
+else
+    echo "Note: GMP not found. Some high-precision features may have reduced performance."
+    echo "  To enable: brew install gmp (macOS) or apt-get install libgmp-dev (Ubuntu)"
+fi
+
+# Check for MPFR (optional - enables high-precision floating point)
+MPFR_CPPFLAGS=""
+MPFR_LIBS=""
+MPFR_DEFINE=""
+MPFR_FOUND=0
+if $PKG_CONFIG --exists mpfr 2>/dev/null; then
+    MPFR_CPPFLAGS=$($PKG_CONFIG --cflags mpfr 2>/dev/null)
+    MPFR_LIBS=$($PKG_CONFIG --libs mpfr 2>/dev/null)
+    MPFR_DEFINE="-DUSE_MPFR"
+    MPFR_FOUND=1
+    echo "Found MPFR: High-precision floating-point arithmetic enabled."
+else
+    echo "Note: MPFR not found. High-precision floating-point features will be disabled."
+    echo "  To enable: brew install mpfr (macOS) or apt-get install libmpfr-dev (Ubuntu)"
+fi
 
 # Check for Eigen3 (optional - enables multivariate distributions)
 EIGEN_CPPFLAGS=""
@@ -63,18 +109,54 @@ else
     echo "  To enable: brew install eigen (macOS) or apt-get install libeigen3-dev (Ubuntu)"
 fi
 
+# Combine all flags
+ALL_CPPFLAGS="${REQ_CPPFLAGS} ${GMP_CPPFLAGS} ${MPFR_CPPFLAGS} ${EIGEN_CPPFLAGS}"
+ALL_LIBS="${REQ_LIBS} ${GMP_LIBS} ${MPFR_LIBS}"
+ALL_DEFINES="${MPFR_DEFINE} ${EIGEN_DEFINE}"
+
+# v0.7.3: Ensure src directory exists before writing Makevars
+if [ ! -d "src" ]; then
+    mkdir -p src
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Failed to create src directory" >&2
+        exit 1
+    fi
+fi
+
 # Generate src/Makevars
 cat << EOF > src/Makevars
 # This file is generated by configure. Do not edit by hand.
 
-PKG_CPPFLAGS = ${PKG_CPPFLAGS} ${EIGEN_CPPFLAGS} -DUSE_MPFR ${EIGEN_DEFINE}
+PKG_CPPFLAGS = ${ALL_CPPFLAGS} ${ALL_DEFINES}
 PKG_CXXFLAGS = \$(SHLIB_OPENMP_CXXFLAGS) -O3
-PKG_LIBS = ${PKG_LIBS}
+PKG_LIBS = ${ALL_LIBS}
 CXX_STD = CXX17
 EOF
 
 echo ""
+echo "--------------------------------------------------------------------"
 echo "Configuration complete. src/Makevars has been generated."
+echo ""
+echo "Feature summary:"
+echo "  - Cryptographic operations (libsodium): ENABLED"
+echo "  - Secure seeding (openssl): ENABLED"
+if [ $GMP_FOUND -eq 1 ]; then
+    echo "  - High-precision integers (GMP): ENABLED"
+else
+    echo "  - High-precision integers (GMP): DISABLED (optional)"
+fi
+if [ $MPFR_FOUND -eq 1 ]; then
+    echo "  - High-precision floats (MPFR): ENABLED"
+else
+    echo "  - High-precision floats (MPFR): DISABLED (optional)"
+fi
+if [ -n "$EIGEN_DEFINE" ]; then
+    echo "  - Multivariate distributions (Eigen3): ENABLED"
+else
+    echo "  - Multivariate distributions (Eigen3): DISABLED (optional)"
+fi
+echo ""
 echo "Run 'R CMD INSTALL .' to build and install the package."
+echo "--------------------------------------------------------------------"
 
 exit 0

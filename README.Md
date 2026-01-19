@@ -2,7 +2,7 @@
 
 <img src="images/qiprng_logo.png" alt="QIPRNG Logo" width="300"/>
 
-[![Version](https://img.shields.io/badge/Version-0.7.0-blue)](https://github.com/biostochastics/qiprng)
+[![Version](https://img.shields.io/badge/Version-0.7.3-blue)](https://github.com/biostochastics/qiprng)
 [![ThreadSafe](https://img.shields.io/badge/Thread%20Safe-Yes-brightgreen)](https://github.com/biostochastics/qiprng)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen)](https://github.com/biostochastics/qiprng)
@@ -15,7 +15,8 @@
 
 The `qiprng` package implements a pseudo-random number generator based on quadratic
 irrational numbers with hardware acceleration and parallel generation capabilities.
-It provides cryptographic security features and extensive statistical distribution support.
+It offers high-precision arithmetic, optional ChaCha20 output mixing, and extensive
+statistical distribution support.
 
 ```r
 library(qiprng)
@@ -24,47 +25,10 @@ x <- generatePRNG(10000)
 hist(x, breaks = 50, main = "qiprng uniform distribution", col = "skyblue")
 ```
 
-## What's New
+## Version History
 
-### Version 0.7.0 - Critical Thread Safety & Build Fixes
-
-This release addresses critical thread safety issues and improves cross-platform build support:
-
-- **Thread Safety**: Fixed ThreadPool shutdown race condition, static destruction ordering, and OpenMP TLS cleanup issues
-- **Build Portability**: Improved configure script with platform-aware pkg-config discovery for macOS, Linux, and various package managers
-- **Validation Suite**: Fixed paths for installed packages using `system.file()`, exported `withTimeout` function
-- **Algorithm Fixes**: Corrected CFE period bounds to `O(sqrt(D) * log(D))`, improved fallback entropy, fixed MPFRWrapper swap
-- **Config Alignment**: Synchronized R and C++ default configuration values
-
-### Version 0.6.6 - Mathematical Documentation Improvements
-
-This release adds rigorous mathematical proofs and corrects documentation errors:
-
-- **Bug Fixes**: Corrected false claim about square-free discriminants; fixed overstated fixed-point avoidance claim
-- **Proofs Added**: Gap test (geometric distribution), spectral test (Exp(1) ordinates), crypto mixing uniformity, CFE periodicity
-- **Documentation**: Complete section renumbering and clarified matrix jump-ahead foundation
-
-### Version 0.6.5 - Deterministic Mode Enhancements
-
-This release fixes critical issues with deterministic mode to ensure perfect reproducibility:
-
-- **Fixed Deterministic Seeding**: Resolved thread-local RNG initialization to properly reset between PRNG creations
-- **Thread Counter Reset**: Added proper reset of MultiQIOptimized thread counter for consistent thread IDs
-- **Fallback RNG Determinism**: Replaced all non-deterministic fallback RNGs with deterministic alternatives
-- **Complete Test Coverage**: All 23 deterministic mode tests now pass with identical sequences for same seeds
-
-### Version 0.6.4 - Performance Optimizations
-
-This release includes significant architectural improvements focused on eliminating
-concurrency bottlenecks:
-
-- **Lock-Free Architecture**: Implemented thread-local PRNG instances with zero mutex contention
-- **Cache Optimization**: Increased cache size to 4096 samples for better L1 cache utilization
-- **Golden Ratio Seeding**: Thread-specific seeds using golden ratio prime (0x9E3779B97F4A7C15)
-- **Cache-Line Alignment**: 64-byte aligned data structures to prevent false sharing
-- **Optimized Mixing Strategies**: Enhanced CASCADE_MIX performance through mantissa extraction
-
-For complete version history, see [CHANGELOG.md](CHANGELOG.md).
+For recent changes, see [NEWS.md](NEWS.md). For complete version history with
+detailed technical notes, see [CHANGELOG.md](CHANGELOG.md).
 
 ## Key Features
 
@@ -79,13 +43,12 @@ performance on modern multi-core systems.
 Advanced jump-ahead capabilities enable efficient parallel simulations with multiple
 algorithm options including MPFR-based high-precision matrix operations, fast modular
 arithmetic using Mersenne primes, and direct continued fraction manipulation, all with
-automatic overflow prevention for jumps of arbitrary size. The cryptographic security
-layer uses ChaCha20 stream cipher for deterministic cryptographic mixing, with XOR mixing
-for preserving uniformity or modular addition for enhanced entropy, providing
-cryptographic-grade unpredictability. Thread safety is guaranteed through proper
-synchronization primitives and thread-local resources, while deterministic mode with seed
-support enables reproducible sequences for research and testing. The generator has
-been validated using the NIST SP 800-22 framework using official implementation.
+automatic overflow prevention for jumps of arbitrary size. An optional output mixing
+layer uses ChaCha20 stream cipher with XOR mixing for preserving uniformity or modular
+addition for enhanced entropy. Thread safety is guaranteed through proper synchronization
+primitives and thread-local resources, while deterministic mode with seed support enables
+reproducible sequences for research and testing. The generator has been validated using
+the NIST SP 800-22 statistical test framework.
 
 ## Quick Start
 
@@ -104,26 +67,27 @@ section below.
 
 ## Acknowledgments
 
-> This implementation is based on  **Vincent Granville's** work on random number generators
+> This implementation is based on **Vincent Granville's** work on random number generators
 > using quadratic irrationals. The mathematical foundation and the core algorithm design
-> both follow Granville's approach.
+> follow Granville's approach.
 >
-> **Reference:** Granville, V. (2022). [Military Grade Fast Random Number Generator
-> Based on Quadratic
-> Irrationals](https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/)
+> **Reference:** Granville, V. (2022). [Random Number Generator Based on Quadratic
+> Irrationals](https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/).
+> Note: The original work has not been peer-reviewed in cryptographic literature.
 
 ## Performance & Quality
 
 The generator achieves excellent performance in single-threaded mode with
 near-linear scaling in multi-threaded configurations. Memory usage remains constant at
-O(1) with thread-local caching. All 750 possible
-discriminants have been validated through comprehensive testing. The package defaults to using only the 370 discriminants rated as "Excellent"
-(49.3% of total), ensuring optimal statistical properties. For research purposes, all
+O(1) with thread-local caching. All 750 possible discriminants have been validated
+through statistical testing. The package includes a curated set of 370 discriminants
+that passed comprehensive testing, which is used by default. For research purposes, all
 discriminants can be enabled through configuration options.
 
-Independent validation using the NIST Statistical Test Suite confirms that qiprng
-produces cryptographically strong pseudorandom sequences with a 98.4% pass rate across
-all NIST SP 800-22 tests, matching the performance of established cryptographic RNGs.
+The generator passes 98.4% of NIST SP 800-22 statistical tests, indicating good
+distributional properties. Note that NIST tests detect obvious statistical defects but
+do not establish cryptographic security—they are a necessary but not sufficient
+condition for security-sensitive applications.
 
 ## Installation
 
@@ -388,9 +352,8 @@ all(set1 == set2)  # TRUE
 ```
 
 Note: When seed is provided, the PRNG uses deterministic initialization while maintaining
-mathematical properties. The generator performs a warm-up period for proper mixing. This
-mode is suitable for research and testing but not for cryptographic applications. For full
-determinism with normal distributions, use `normal_method = "box_muller"`.
+mathematical properties. The generator performs a warm-up period for proper mixing. For
+full determinism with normal distributions, use `normal_method = "box_muller"`.
 
 ### MultiQI Mixing Strategies
 
@@ -432,27 +395,23 @@ after_jump <- generatePRNG(5)
 ## Statistical Testing
 
 The package includes a comprehensive testing framework with over 70 statistical tests
-covering distribution uniformity, independence, correlation, entropy, and cryptographic
-randomness. The test suite implements the NIST SP 800-22 standards along with classical
-PRNG tests.
+covering distribution uniformity, independence, correlation, and entropy. The test suite
+implements the NIST SP 800-22 standards along with classical PRNG tests.
 
 ### NIST SP 800-22 Validation Results
 
-The qiprng generator has also been validated against the NIST Statistical Test Suite (STS),
-the standard battery of tests for cryptographic random number generators. Testing was
-performed on binary sequences generated from five different discriminant configurations.
+Testing was performed using the NIST Statistical Test Suite (STS) on binary sequences
+generated from five different discriminant configurations.
 
 **Test Results Summary:**
 
 - **Pass Rate:** 98.4% (185/188 tests passed)
 - **Test Coverage:** All 15 NIST test categories
 - **Sequence Length:** 1 million bits per test
-- **Performance:** Comparable to cryptographically secure RNGs
 
 The generator passed all fundamental randomness tests including Frequency, Runs, DFT,
 Random Excursions, and Linear Complexity tests. The minor failures (3 out of 148
-Non-overlapping Template tests) fall within acceptable statistical variation for
-truly random sequences.
+Non-overlapping Template tests) fall within acceptable statistical variation.
 
 To reproduce the NIST validation:
 
@@ -476,14 +435,39 @@ For detailed mathematical theory and proofs, see [MATH.md](MATH.md).
 
 ## Performance Considerations
 
-The qiprng generator prioritizes cryptographic-quality randomness and mathematical rigor
-over raw speed. Using high-precision MPFR arithmetic and optional ChaCha20 cryptographic
-mixing, it runs approximately 50x slower than simple linear congruential generators but
-delivers superior statistical properties and security guarantees. The trade-off is
-worthwhile for applications requiring cryptographic security, precise statistical control,
-reproducible research results, or validated random number quality. For general Monte Carlo
-simulations where speed is paramount and cryptographic security is not required, standard
-generators like Mersenne Twister may be more appropriate.
+The qiprng generator prioritizes high-precision arithmetic and mathematical rigor over
+raw speed. Using MPFR arbitrary-precision arithmetic and optional ChaCha20 output mixing,
+it runs approximately 50x slower than simple linear congruential generators. This may be
+justified when high-precision arithmetic or exotic seeding mechanisms are required. For
+applications prioritizing throughput, consider xoshiro256++, PCG64, or similar modern
+PRNGs which offer excellent statistical properties at higher speed. For general Monte
+Carlo simulations where speed is paramount, standard generators like Mersenne Twister may
+be more appropriate.
+
+## Security Considerations
+
+**This generator has not undergone formal cryptographic analysis.**
+
+While qiprng passes standard statistical tests and offers optional ChaCha20 mixing, it
+should not be considered a cryptographically secure PRNG (CSPRNG). Specifically:
+
+- No proof exists that the generator satisfies the "next-bit test" (computational
+  indistinguishability from true randomness)
+- State recovery may be feasible if an attacker can determine the current position in
+  the quadratic irrational expansion
+- The ChaCha20 mixing layer, when enabled, provides the actual resistance to state
+  recovery—the QI layer contributes computational cost without proven security benefit
+
+**For cryptographic applications** (key generation, nonces, IVs, etc.), use:
+- `sodium::randombytes()` (libsodium)
+- `openssl::rand_bytes()`
+- System CSPRNGs (`/dev/urandom`, `CryptGenRandom`)
+
+**qiprng is appropriate for:**
+- Scientific computing requiring reproducible, high-precision random sequences
+- Research into number-theoretic PRNG constructions
+- Applications where the seeding mechanism or precision requirements are not met by
+  standard generators
 
 ## Caching Framework
 
@@ -542,9 +526,9 @@ The package provides a simple yet powerful API for random number generation:
 
 The generator accepts numerous configuration parameters to customize behavior. Key options
 include quadratic coefficients (a, b, c), MPFR precision (24-10000 bits), distribution
-type and parameters, mixing strategy for multiple QIs, cryptographic mixing settings, and
-parallelization options. See the package documentation for complete parameter descriptions
-and valid ranges.
+type and parameters, mixing strategy for multiple QIs, ChaCha20 output mixing settings,
+and parallelization options. See the package documentation for complete parameter
+descriptions and valid ranges.
 
 ### Environment Variables
 
@@ -568,17 +552,26 @@ for quick validation, `create_prng_test_suite()` for custom test configurations,
 - R (>= 4.0.0)
 - Rcpp (>= 1.0.0)
 - MPFR library (for high-precision arithmetic)
-- libsodium (for optional cryptographic mixing)
+- libsodium (for optional ChaCha20 output mixing)
 
-## Contribution
+## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed
+guidelines including:
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+- Development environment setup
+- Pre-commit hooks configuration
+- Code style guidelines (R and C++)
+- Testing procedures
+
+Quick start:
+
+```bash
+git clone https://github.com/biostochastics/qiprng.git
+cd qiprng
+pre-commit install  # Set up code quality hooks
+R CMD INSTALL .
+```
 
 ## Citation
 
@@ -589,7 +582,7 @@ If you use this package in your research, please cite:
   title = {qiprng: Quadratic Irrational Pseudo-Random Number Generator for R},
   author = {Sergey Kornilov},
   year = {2025},
-  note = {R package version 0.7.0},
+  note = {R package version 0.7.3},
   url = {https://github.com/biostochastics/qiprng}
 }
 ```

@@ -4,22 +4,39 @@
 library(testthat)
 library(qiprng)
 
+# v0.7.3: Helper function to source test files with fallback for development workflow
+# Works both when package is installed and during local development
+source_test_file <- function(relative_path) {
+  # Try installed package location first
+  installed_path <- system.file(relative_path, package = "qiprng")
+  if (nzchar(installed_path) && file.exists(installed_path)) {
+    source(installed_path, local = FALSE)
+    return(TRUE)
+  }
+
+  # Fallback to development paths (when running tests from source)
+  dev_paths <- c(
+    file.path("inst", relative_path),           # From package root
+    file.path("..", "..", "inst", relative_path), # From tests/testthat
+    file.path("../../inst", relative_path)      # Alternative path format
+  )
+
+  for (dev_path in dev_paths) {
+    if (file.exists(dev_path)) {
+      source(dev_path, local = FALSE)
+      return(TRUE)
+    }
+  }
+
+  # File not found - return FALSE instead of stopping
+  return(FALSE)
+}
+
 # Source the necessary files from inst/statisticaltests
-# Use system.file() to locate files in the installed package structure
-classical_tests_file <- system.file("statisticaltests", "classical_tests.R", package = "qiprng")
-if (file.exists(classical_tests_file)) {
-  source(classical_tests_file)
-}
-
-external_tests_file <- system.file("statisticaltests", "external_tests.R", package = "qiprng")
-if (file.exists(external_tests_file)) {
-  source(external_tests_file)
-}
-
-external_wrappers_file <- system.file("statisticaltests", "external_wrappers.R", package = "qiprng")
-if (file.exists(external_wrappers_file)) {
-  source(external_wrappers_file)
-}
+# v0.7.3: Use skip() instead of stop() when files are missing
+classical_tests_loaded <- source_test_file("statisticaltests/classical_tests.R")
+external_tests_loaded <- source_test_file("statisticaltests/external_tests.R")
+external_wrappers_loaded <- source_test_file("statisticaltests/external_wrappers.R")
 
 # Helper function to create test suite
 create_test_suite <- function(prng_func, config) {
@@ -31,6 +48,10 @@ create_test_suite <- function(prng_func, config) {
 }
 
 test_that("Classical tests return standardized structure", {
+  # v0.7.3: Skip test if required files couldn't be loaded
+  skip_if(!classical_tests_loaded, "Classical tests file not available")
+  skip_if(!exists("run_classical_tests"), "run_classical_tests function not available")
+
   # Create a simple test suite
   suite <- create_test_suite(
     prng_func = function(n) runif(n),
@@ -87,6 +108,10 @@ test_that("Classical tests return standardized structure", {
 })
 
 test_that("External tests use wrapper implementation", {
+  # v0.7.3: Skip test if required files couldn't be loaded
+  skip_if(!external_tests_loaded, "External tests file not available")
+  skip_if(!exists("run_external_tests"), "run_external_tests function not available")
+
   # Create a test suite
   suite <- create_test_suite(
     prng_func = function(n) runif(n),
@@ -128,6 +153,10 @@ test_that("External tests use wrapper implementation", {
 })
 
 test_that("Error handling works correctly", {
+  # v0.7.3: Skip test if required files couldn't be loaded
+  skip_if(!classical_tests_loaded, "Classical tests file not available")
+  skip_if(!exists("run_classical_tests"), "run_classical_tests function not available")
+
   # Test with insufficient data
   suite <- create_test_suite(
     prng_func = function(n) runif(n),
@@ -162,6 +191,9 @@ test_that("Error handling works correctly", {
 
 test_that("Visualization function works without errors", {
   skip_if_not_installed("ggplot2")
+  # v0.7.3: Skip test if required files couldn't be loaded
+  skip_if(!classical_tests_loaded, "Classical tests file not available")
+  skip_if(!exists("run_classical_tests"), "run_classical_tests function not available")
 
   # Create test suite with visualization enabled
   temp_dir <- tempdir()
@@ -187,6 +219,9 @@ test_that("Visualization function works without errors", {
 })
 
 test_that("External wrapper integration works correctly", {
+  # v0.7.3: Skip test if required files couldn't be loaded
+  skip_if(!external_wrappers_loaded, "External wrappers file not available")
+  skip_if(!external_tests_loaded, "External tests file not available")
   # Skip test if external wrapper functions are not available
   skip_if_not(exists("run_external_wrapper_tests"), "External wrapper functions not available")
 
