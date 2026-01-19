@@ -1,5 +1,40 @@
 # qiprng 0.7.3
 
+## Code Review Security & Stability Fixes (2026-01-18)
+
+### Security Enhancements
+
+* **Secure memory zeroing with libsodium**: `SecureBuffer::clear()` now uses `sodium_memzero()` when libsodium is available, providing cryptographically secure memory wiping for ChaCha20 keys and nonces
+* **Memory barrier for secure zeroing**: Added `std::atomic_thread_fence(std::memory_order_seq_cst)` as fallback when libsodium not available
+
+### Critical Fixes
+
+* **QIPRNG_UNLIKELY macro self-reference** (HIGH): Fixed self-referential macro `#define QIPRNG_UNLIKELY QIPRNG_UNLIKELY` that expanded to itself. Now correctly uses `[[unlikely]]` on C++20+ and empty on C++17
+* **ThreadPool destructor deadlock** (HIGH): Added self-join detection to prevent deadlock when `ThreadPool` is destroyed from within one of its own worker threads. Detaches instead of joining self
+* **MemoryPool nullptr on exhaustion** (HIGH): `MemoryPool::allocate()` now provides heap fallback instead of returning nullptr when pool is exhausted, preventing null pointer dereferences
+* **Shutdown crash protection** (MAJOR): Added shutdown protection to `next_mixed()` and `skip()` methods to return safe fallback values during shutdown
+
+### Thread Safety & Cleanup
+
+* **Thread-local cleanup for all threads** (MEDIUM): Added `ThreadManager::cleanupAllThreads()` call during `prepare_for_unload_()` to invoke cleanup callbacks registered by all threads
+* **Cleanup failure handling** (MEDIUM): `.onUnload` now warns on cleanup failure and tracks success status instead of silently ignoring errors
+
+### Build & Test Improvements
+
+* **Configure script robustness** (LOW): Configure scripts now create `src/` directory if missing before writing `Makevars`
+* **Test file sourcing in development** (LOW): Test files now fall back to `inst/` paths when `system.file()` returns empty, supporting both installed and development workflows
+* **Skip tests gracefully**: Tests using external helper files now use `skip_if()` instead of `stop()` when files are unavailable
+
+### Files Modified
+
+* `src/prng_common.hpp`: SecureBuffer sodium_memzero, QIPRNG_UNLIKELY fix, MemoryPool heap fallback
+* `src/thread_pool.hpp`: Self-join deadlock prevention
+* `src/multi_qi_optimized.cpp`: Shutdown protection for next_mixed/skip
+* `src/rcpp_exports.cpp`: ThreadManager cleanup call
+* `configure`, `configure.win`: src directory creation
+* `R/zzz.R`: Cleanup failure handling with warnings
+* `tests/testthat/test-data-structure-fixes.R`: Development fallback for test file sourcing
+
 ## Security Hardening
 
 * **Replace predictable fallback RNG seeds** (HIGH): Changed hardcoded seed `12345` to `DeterministicSeedHelper::get_fallback_seed()` across all fallback RNG instances in `ziggurat_normal.cpp` (~20 locations). Prevents predictable output when primary generator fails.
