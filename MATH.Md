@@ -1,8 +1,8 @@
 # Technical Documentation for the Quadratic Irrational PRNG v0.6.6
 
- **Attribution Note**: The mathematical foundation and core algorithm design presented in this document is based on the amazing work of Vincent Granville (2024), specifically his research on military-grade random number generators using quadratic irrationals that I ran into in the dead of night after having way too much coffee. While Granville provided the original Python implementation, this doc describes my R/C++ implementation developed primarily for educational purposes. Cool if you find it useful. Even better if you find a bug!
+**Attribution Note**: The mathematical foundation and core algorithm design presented in this document is based on the work of Vincent Granville (2022), specifically his research on random number generators using quadratic irrationals. While Granville provided the original Python implementation, this document describes an R/C++ implementation developed primarily for educational and research purposes. Note: The original work has not been peer-reviewed in cryptographic literature.
 
- **Reference**: Granville, V. (2022). Synthetic Data and Generative AI 1st Edition. <https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/>
+**Reference**: Granville, V. (2022). Synthetic Data and Generative AI 1st Edition. <https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/>
 
 ## Version 0.5.0 Enhancements
 
@@ -138,8 +138,8 @@ Version 0.5.0 introduces configurable mixing strategies for combining multiple Q
 
 2. **XOR Mixing**:
    - Combines outputs via bitwise XOR of mantissas
-   - Excellent bit diffusion properties
-   - Ideal for cryptographic applications
+   - Good bit diffusion properties
+   - Useful for applications requiring thorough mixing
 
 3. **Averaging**:
    - Averages outputs from all QI sequences
@@ -154,7 +154,7 @@ Version 0.5.0 introduces configurable mixing strategies for combining multiple Q
 5. **Cascade Mixing**:
    - Feeds output of one QI as input to next
    - Maximum entropy diffusion
-   - Highest security but slower performance
+   - Best mixing quality but slower performance
 
 ### 3.2 Mathematical Benefits
 
@@ -223,7 +223,7 @@ The implementation supports using custom discriminants from a CSV file:
 
    The CSV file provides complete (a,b,c) triplets along with their calculated discriminant values (b² - 4ac). This format allows for direct specification of parameters known to have desirable properties, rather than deriving them from discriminants alone.
 
-By default the package uses only the 370 "Excellent" discriminants obtained using testing the 750 discriminants provided with the package.
+By default the package uses a curated set of 370 discriminants that passed comprehensive statistical testing.
 
 ## 4. Matrix Jump-Ahead Algorithm (v0.5.0)
 
@@ -273,6 +273,7 @@ M^n = M^(b_k · 2^k + ... + b_1 · 2 + b_0)
 ```
 
 **Complexity Analysis**:
+
 - **Naive iteration**: O(n) applications of the map
 - **Binary exponentiation**: O(log n) matrix multiplications
 
@@ -388,19 +389,21 @@ This validation is **required** for all discriminants, including those of the fo
 - **Efficient generation**: O(√D) validation time
 - **Good coverage**: k² + 1 pattern provides a rich source of candidate discriminants
 
-## 7. Cryptographic Mixing
+## 7. ChaCha20 Output Mixing
 
 ### 7.1 Purpose and Motivation
 
-While the quadratic irrational generator produces sequences with good statistical properties, adding cryptographic mixing provides:
+While the quadratic irrational generator produces sequences with good statistical properties, adding ChaCha20 output mixing provides:
 
 1. **Enhanced statistical quality**: Eliminates subtle patterns that might exist in the raw sequence
-2. **Cryptographic security**: Makes the output suitable for cryptographic applications
-3. **Defense against analysis**: Prevents potential mathematical analysis of the underlying sequence
+2. **State recovery resistance**: When the ChaCha20 key remains secret, makes reverse-engineering the generator state more difficult
+3. **Additional entropy**: Combines QI output with ChaCha20 stream
+
+**Important**: This mixing layer does not constitute a formally analyzed CSPRNG construction. The security benefits come primarily from ChaCha20 itself, not from the combination. For applications requiring proven cryptographic security, use established primitives directly.
 
 ### 7.2 Mixing Approaches
 
-The package implements two different approaches for cryptographic mixing:
+The package implements two different approaches for output mixing:
 
 #### 7.2.1 Partial Modular Addition (Default)
 
@@ -438,18 +441,19 @@ P((U + c) mod 1 ∈ A) = |A|
 where |A| is the Lebesgue measure of A.
 
 Thus:
+
 ```
 P(V ∈ A) = ∫₀¹ P((U + c) mod 1 ∈ A) dc = ∫₀¹ |A| dc = |A|
 ```
 
 But P(V ∈ A) = |A| is exactly the defining property of Unif[0,1). ∎
 
-**Corollary**: Even if X_original is only approximately uniform, the mixing operation pushes the distribution closer to uniform, since the cryptographic component C is exactly uniform.
+**Corollary**: Even if X_original is only approximately uniform, the mixing operation pushes the distribution closer to uniform, since the ChaCha20-derived component C is exactly uniform.
 
 **Benefits**:
 
 - **Mathematically proven** to preserve the uniform distribution
-- Cryptographically strong
+- Uses ChaCha20 stream cipher for the mixing component
 - Efficiently eliminates patterns in the original sequence
 
 #### 7.2.2 Partial Averaging (Alternative)
@@ -475,7 +479,7 @@ f(x) = 4(1-x)   for 1/2 < x ≤ 1
 
 ### 7.3 Integration with Core Generator
 
-The cryptographic mixing integrates with the core generator in several ways:
+The ChaCha20 output mixing integrates with the core generator in several ways:
 
 1. **Buffer-based processing**:
    - Values are generated in buffers for efficiency
@@ -567,7 +571,7 @@ With sufficient precision, the period length of the generator is extremely long:
 
 - At 53-bit precision: effectively non-repeating for practical applications
 - At higher precisions: period grows exponentially
-- With cryptographic mixing: period becomes cryptographically large
+- With ChaCha20 mixing: effective period becomes very large
 
 ### 9.4 Fixed Point Avoidance
 
@@ -597,7 +601,7 @@ with x ∈ [0,1). For given integers a > 0, b, c < 0, nothing prevents some inte
 4. Random initial values and periodic reseeding further prevent any potential fixed point convergence
 5. Fully ruling out fixed points for all parameter sets would require a separate, more technical argument specific to each parameter choice
 
-**Note**: The combination of empirical validation, cryptographic mixing, and reseeding makes fixed point convergence practically impossible, even though we do not have a blanket mathematical proof for all parameter combinations.
+**Note**: The combination of empirical validation, ChaCha20 output mixing, and reseeding makes fixed point convergence practically impossible, even though we do not have a blanket mathematical proof for all parameter combinations.
 
 ## 10. Thread Safety and Parallelism
 
@@ -734,38 +738,32 @@ Each thread maintains its own MultiQI instance:
 
 The package includes a set of pre-selected discriminants for quadratic irrationals.
 
-### Excellent Discriminant Selection (Production Default)
+### Default Discriminant Selection
 
-**New Default Behavior**: qiprng now uses only the 370 "Excellent" rated discriminants by default, identified through comprehensive analysis.
+The package uses a curated set of 370 discriminants by default, selected through comprehensive statistical testing.
 
 **Selection Criteria** (all must be satisfied):
 
-- **Autocorrelation Excellence**: `max_abs_acf ≤ 0.010`
-- **Zero Significant Lags**: No autocorrelation beyond statistical/empirical thresholds
-- **Multi-Test Validation**: Pass uniformity, independence, and periodicity tests
+- **Low autocorrelation**: `max_abs_acf ≤ 0.010`
+- **No significant lags**: No autocorrelation beyond statistical thresholds
+- **Multi-test validation**: Pass uniformity, independence, and periodicity tests
 
-**Parameter Patterns for Excellence**:
+**Typical Parameter Patterns**:
 
-- **Parameter `a`**: Prefer small values (1-3) for optimal performance
-- **Discriminant range**: 1000-2000 shows consistently high quality
+- **Parameter `a`**: Small values (1-3) perform well
+- **Discriminant range**: 1000-2000 shows consistently good quality
 - **Parameter `c`**: Moderately negative values (-120 to -150) preferred
 
-**Quality Assurance**: Each excellent discriminant achieved:
+Each selected discriminant passed comprehensive statistical validation including autocorrelation, uniformity, independence, and periodicity tests with 1,000,000 sample sequences.
 
-- Overall quality score ≥ 0.85 ("Excellent" threshold)
-- Passed comprehensive statistical validation including autocorrelation, uniformity, independence, and periodicity tests
-- Demonstrated stable performance across 1,000,000 sample sequences
+The package includes all 750 discriminants for research purposes, but uses the curated set by default unless explicitly configured otherwise.
 
-The package includes all discriminants for research, but uses only excellent ones for production unless explicitly configured otherwise. Legacy discriminants are selected based on:
+### Discriminant Analysis Summary
 
-### Comprehensive Discriminant Analysis Results
+A comprehensive analysis of all 750 discriminants was performed, each tested with 1,000,000 samples. The results confirm that while the underlying generation method is robust, rigorous testing is useful for identifying parameter sets with the best statistical properties.
 
-**Executive Summary**: A comprehensive analysis of all 750 discriminants, each tested with 1,000,000 samples, was performed. The results confirm that while the underlying generation method is strong, rigorous testing is crucial for identifying the highest quality parameter sets.
-
-- **370 Excellent Discriminants**: A total of 370 discriminants (49.3%) passed all tests with the highest quality rating.
-- **Complete Quality Distribution**: Excellent: 370 (49.3%), Very-Good: 31 (4.1%), Good: 293 (39.1%), Fair: 50 (6.7%), Poor: 6 (0.8%)
-- **Effective Discrimination**: The stricter autocorrelation test provides a more realistic distribution of results, successfully identifying minor flaws that were previously missed.
-- **Overall Robustness**: 92.5% of the discriminants were rated as "Good" or better (including "Very-Good"), confirming the underlying strength of the generation method.
+- **370 curated discriminants**: 49.3% passed all tests with the best statistical properties
+- **Overall robustness**: 92.5% of discriminants showed good or better performance, confirming the underlying strength of the generation method
 
 ## 15. Performance Analysis
 
@@ -775,8 +773,8 @@ In comprehensive benchmarks comparing qiprng with standard R generators, the fol
 
 | Generator | Time for 100K samples | Relative Speed | Statistical Quality |
 |-----------|----------------------|----------------|-------------------|
-| qiprng | ~27ms | 1x (baseline) | Excellent (cryptographic) |
-| Mersenne Twister | ~0.5ms | 54x faster | Excellent (non-crypto) |
+| qiprng | ~27ms | 1x (baseline) | Excellent |
+| Mersenne Twister | ~0.5ms | 54x faster | Excellent |
 | L'Ecuyer-CMRG | ~0.9ms | 30x faster | Very Good |
 | Wichmann-Hill | ~0.4ms | 68x faster | Good |
 
@@ -866,26 +864,26 @@ x <- generatePRNG(n)
 
 #### 15.4.3 Disabling Optional Features
 
-When cryptographic security isn't required:
+When maximum speed is needed:
 
 ```r
 config <- list(
-  use_crypto_mixing = FALSE,    # Disable crypto mixing
+  use_crypto_mixing = FALSE,    # Disable ChaCha20 mixing
   use_threading = FALSE,        # Disable thread safety if single-threaded
   buffer_size = 100000         # Larger buffer for better performance
 )
 ```
 
-### 15.5 Performance vs. Security Trade-off
+### 15.5 Performance vs. Precision Trade-off
 
-The 50x performance penalty is a deliberate design choice that provides:
+The 50x performance penalty compared to simple generators is a deliberate design choice that provides:
 
-1. **Cryptographic-grade randomness**: Suitable for security applications
-2. **Arbitrary precision control**: Can generate numbers with thousands of bits of precision
-3. **Mathematical rigor**: Based on proven chaotic dynamical systems
-4. **Enhanced unpredictability**: Multiple layers of randomization
+1. **Arbitrary precision control**: Can generate numbers with thousands of bits of precision
+2. **Mathematical rigor**: Based on chaotic dynamical systems
+3. **Exotic seeding mechanisms**: Flexible initialization options
+4. **Enhanced statistical quality**: Multiple mixing strategies available
 
-For applications where these properties are valuable, the performance cost is justified. For general statistical sampling, standard generators remain more appropriate.
+For applications where these properties are valuable, the performance cost may be justified. For general statistical sampling, standard generators remain more appropriate.
 
 ### 15.6 Future Performance Improvements
 
@@ -921,6 +919,7 @@ p := P(Uₙ ∈ [α, β]) = β - α
 Define indicator variables Xₙ := 𝟙{Uₙ ∈ [α, β]} for n = 1, 2, .... Then (Xₙ) are i.i.d. Bernoulli(p).
 
 Let T₁ < T₂ < ... be the (random) indices of hits:
+
 - T₁ := min{n ≥ 1 : Xₙ = 1}
 - T_{k+1} := min{n > Tₖ : Xₙ = 1}
 
@@ -951,11 +950,13 @@ By the same argument, the post-T₂ process is independent and identically distr
 If you observe N_gaps gaps and bucket them as lengths 1, 2, ..., K-1 and "≥ K", then:
 
 - For 1 ≤ k ≤ K-1:
+
   ```
   E[count of gaps with length k] = N_gaps · (1-p)^(k-1) · p
   ```
 
 - For the last bin "≥ K":
+
   ```
   E[count of gaps with length ≥ K] = N_gaps · Σ_{k≥K} (1-p)^(k-1) · p = N_gaps · (1-p)^(K-1)
   ```
@@ -995,6 +996,7 @@ The spectral test analyzes the frequency domain characteristics of the random se
 #### 16.2.2 Mathematical Foundation (Rigorous Proof)
 
 **Setup**: Let (Xₜ)_{t=0}^{N-1} be i.i.d. with mean 0 and variance σ². For spectral arguments, assume either:
+
 - Xₜ is Gaussian, or
 - Xₜ is a general i.i.d. sequence with finite second moment (CLT applies asymptotically)
 
@@ -1019,44 +1021,54 @@ We focus on 1 ≤ k ≤ N/2-1, the "interior" frequencies (excluding 0 and Nyqui
 Assume Xₜ ~ N(0, σ²) i.i.d. Each X̃(ωₖ) is a linear combination of Gaussian variables, hence Gaussian. For 1 ≤ k ≤ N/2-1, the real and imaginary parts are (asymptotically) independent, each with variance Nσ²/2.
 
 More explicitly:
+
 ```
 Re(X̃(ωₖ)) = Σ_{t=0}^{N-1} Xₜ cos(2πkt/N)
 Im(X̃(ωₖ)) = -Σ_{t=0}^{N-1} Xₜ sin(2πkt/N)
 ```
 
 By independence and zero mean:
+
 ```
 Var(Re(X̃(ωₖ))) = Σ_{t=0}^{N-1} σ² cos²(2πkt/N) ≈ Nσ²/2
 ```
+
 (similarly for the imaginary part).
 
 Thus, for large N:
+
 ```
 Re(X̃(ωₖ)), Im(X̃(ωₖ)) ≈ N(0, Nσ²/2), independent
 ```
 
 So we can write approximately:
+
 ```
 X̃(ωₖ) ≈ √(Nσ²/2) (Z₁ + iZ₂)
 ```
+
 with Z₁, Z₂ i.i.d. N(0,1).
 
 Then:
+
 ```
 |X̃(ωₖ)|² = (Nσ²/2)(Z₁² + Z₂²)
 ```
 
 Hence the periodogram:
+
 ```
 I(ωₖ) = (1/2πN)|X̃(ωₖ)|² ≈ (1/2πN) · (Nσ²/2)(Z₁² + Z₂²) = (σ²/4π)(Z₁² + Z₂²)
 ```
 
 But Z₁² + Z₂² has a χ²₂ distribution, and χ²₂ ~ 2·Exp(1). So:
+
 ```
 Z₁² + Z₂² = 2E,    E ~ Exp(1)
 ```
 
 Thus:
+
 ```
 I(ωₖ) ≈ (σ²/4π) · 2E = (σ²/2π) · E
 ```
@@ -1064,6 +1076,7 @@ I(ωₖ) ≈ (σ²/4π) · 2E = (σ²/2π) · E
 Recall the true spectral density f(ωₖ) = σ²/2π. Therefore:
 
 **Theorem (Spectral Ordinates)**: For i.i.d. white noise Xₜ with variance σ², the normalized periodogram ordinates satisfy:
+
 ```
 I(ωₖ)/f(ωₖ) ≈ E ~ Exp(1)
 ```
@@ -1071,16 +1084,19 @@ I(ωₖ)/f(ωₖ) ≈ E ~ Exp(1)
 #### 16.2.3 Normalizing by the Sample Mean
 
 In practice, we normalize by the empirical mean of the periodogram ordinates:
+
 ```
 Ī := (1/M) Σ_{k=1}^{M} I(ωₖ)
 ```
 
 and form:
+
 ```
 Sₖ := I(ωₖ)/Ī
 ```
 
 For large M, the law of large numbers implies Ī → f(ω) almost surely, so Sₖ converges in distribution to Exp(1):
+
 ```
 Sₖ ⇒ Exp(1)
 ```

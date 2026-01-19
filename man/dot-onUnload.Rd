@@ -11,6 +11,6 @@
 }
 \description{
 Called when the package is unloaded. Cleans up package resources including
-the PRNG instance to prevent memory leaks and ensure proper shutdown.
+the PRNG instance and thread pool to prevent memory leaks and ensure proper shutdown.
 }
 \keyword{internal}

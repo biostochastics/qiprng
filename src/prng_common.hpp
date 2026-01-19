@@ -20,6 +20,14 @@
 
 #include "precision_utils.hpp"  // For high-precision constants and safe conversions
 
+// C++20 QIPRNG_UNLIKELY attribute compatibility macro
+// Use empty macro for C++17 to avoid compiler warnings
+#if __cplusplus >= 202002L
+#    define QIPRNG_UNLIKELY QIPRNG_UNLIKELY
+#else
+#    define QIPRNG_UNLIKELY
+#endif
+
 #ifndef QIPRNG_ENABLE_MPFR_DIAGNOSTICS
 #    ifdef NDEBUG
 #        define QIPRNG_ENABLE_MPFR_DIAGNOSTICS 0
@@ -363,16 +371,18 @@ class MPFRWrapper {
     // Get raw mpfr_t pointer for MPFR functions with validation
     // Inline for performance - frequently called in hot paths
     inline mpfr_t* get() {
-        if (!initialized_) [[unlikely]] {
-            throw std::runtime_error("MPFRWrapper: Attempting to use uninitialized value");
-        }
+        if (!initialized_)
+            QIPRNG_UNLIKELY {
+                throw std::runtime_error("MPFRWrapper: Attempting to use uninitialized value");
+            }
         return &value;
     }
 
     inline const mpfr_t* get() const {
-        if (!initialized_) [[unlikely]] {
-            throw std::runtime_error("MPFRWrapper: Attempting to use uninitialized value");
-        }
+        if (!initialized_)
+            QIPRNG_UNLIKELY {
+                throw std::runtime_error("MPFRWrapper: Attempting to use uninitialized value");
+            }
         return &value;
     }
 
@@ -520,28 +530,32 @@ class MPFRWrapper {
 
     // Set precision with validation - updates cache
     void set_precision(mpfr_prec_t prec) {
-        if (!initialized_) [[unlikely]] {
-            throw std::runtime_error(
-                "MPFRWrapper: Attempting to set precision of uninitialized value");
-        }
-        if (prec < MPFR_PREC_MIN || prec > MPFR_PREC_MAX) [[unlikely]] {
-            throw std::invalid_argument("MPFRWrapper: Invalid precision value");
-        }
+        if (!initialized_)
+            QIPRNG_UNLIKELY {
+                throw std::runtime_error(
+                    "MPFRWrapper: Attempting to set precision of uninitialized value");
+            }
+        if (prec < MPFR_PREC_MIN || prec > MPFR_PREC_MAX)
+            QIPRNG_UNLIKELY {
+                throw std::invalid_argument("MPFRWrapper: Invalid precision value");
+            }
         mpfr_set_prec(value, prec);
         cached_precision_ = prec;  // Update cache
     }
 
     // Fast precision change with reinitialization
     void resize_precision(mpfr_prec_t new_prec) {
-        if (!initialized_) [[unlikely]] {
-            throw std::runtime_error("MPFRWrapper: Attempting to resize uninitialized value");
-        }
+        if (!initialized_)
+            QIPRNG_UNLIKELY {
+                throw std::runtime_error("MPFRWrapper: Attempting to resize uninitialized value");
+            }
         if (new_prec == cached_precision_) {
             return;  // No change needed
         }
-        if (new_prec < MPFR_PREC_MIN || new_prec > MPFR_PREC_MAX) [[unlikely]] {
-            throw std::invalid_argument("MPFRWrapper: Invalid precision value");
-        }
+        if (new_prec < MPFR_PREC_MIN || new_prec > MPFR_PREC_MAX)
+            QIPRNG_UNLIKELY {
+                throw std::invalid_argument("MPFRWrapper: Invalid precision value");
+            }
 
         // Preserve value while changing precision
         mpfr_prec_round(value, new_prec, MPFR_RNDN);
@@ -566,32 +580,38 @@ class MPFRWrapper {
 
     // Safe conversion to double with validation
     inline double to_double() const {
-        if (!initialized_) [[unlikely]] {
-            throw std::runtime_error(
-                "MPFRWrapper: Attempting to convert uninitialized value to double");
-        }
-        if (is_nan()) [[unlikely]] {
-            throw std::runtime_error("MPFRWrapper: Cannot convert NaN to double");
-        }
-        if (is_inf()) [[unlikely]] {
-            throw std::runtime_error("MPFRWrapper: Cannot convert infinity to double");
-        }
+        if (!initialized_)
+            QIPRNG_UNLIKELY {
+                throw std::runtime_error(
+                    "MPFRWrapper: Attempting to convert uninitialized value to double");
+            }
+        if (is_nan())
+            QIPRNG_UNLIKELY {
+                throw std::runtime_error("MPFRWrapper: Cannot convert NaN to double");
+            }
+        if (is_inf())
+            QIPRNG_UNLIKELY {
+                throw std::runtime_error("MPFRWrapper: Cannot convert infinity to double");
+            }
         // Use safe conversion with extended precision intermediates
         return precision::safe_mpfr_to_double(value, true);
     }
 
     // Precision-aware conversion with tracking
     inline double to_double_extended() const {
-        if (!initialized_) [[unlikely]] {
-            throw std::runtime_error(
-                "MPFRWrapper: Attempting to convert uninitialized value to double");
-        }
-        if (is_nan()) [[unlikely]] {
-            throw std::runtime_error("MPFRWrapper: Cannot convert NaN to double");
-        }
-        if (is_inf()) [[unlikely]] {
-            throw std::runtime_error("MPFRWrapper: Cannot convert infinity to double");
-        }
+        if (!initialized_)
+            QIPRNG_UNLIKELY {
+                throw std::runtime_error(
+                    "MPFRWrapper: Attempting to convert uninitialized value to double");
+            }
+        if (is_nan())
+            QIPRNG_UNLIKELY {
+                throw std::runtime_error("MPFRWrapper: Cannot convert NaN to double");
+            }
+        if (is_inf())
+            QIPRNG_UNLIKELY {
+                throw std::runtime_error("MPFRWrapper: Cannot convert infinity to double");
+            }
         return precision::safe_mpfr_to_double(value, true);
     }
 

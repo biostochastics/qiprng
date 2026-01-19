@@ -20,7 +20,7 @@ Possible parameters include:
 \item{poisson_lambda}{Rate parameter for Poisson distribution}
 \item{gamma_shape, gamma_scale}{Parameters for gamma distribution}
 \item{beta_alpha, beta_beta}{Parameters for beta distribution}
-\item{use_crypto_mixing}{Logical: whether to apply cryptographic mixing}
+\item{use_crypto_mixing}{Logical: whether to apply ChaCha20 output mixing}
 \item{reseed_interval}{Integer: number of iterations between automatic reseeds}
 \item{use_threading}{Logical: whether to enable thread-local PRNG instances}
 \item{use_csv_discriminants}{Logical: whether to use custom discriminants from discriminants.csv}
@@ -71,11 +71,12 @@ OpenMP parallel filling can be enabled with \code{use_parallel_filling=TRUE}.
 }
 }
 
-\section{Security Features}{
+\section{ChaCha20 Output Mixing}{
 
 When \code{use_crypto_mixing=TRUE}, the generator applies ChaCha20 stream cipher
-for cryptographic mixing, providing unpredictability suitable for security
-applications. Multiple mixing strategies are available for ensemble generation.
+for output mixing, which can improve statistical quality and provide some
+resistance to state recovery. Note: This does not constitute a formally
+analyzed CSPRNG. Multiple mixing strategies are available for ensemble generation.
 }
 
 \examples{

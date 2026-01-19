@@ -22,6 +22,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>  // For posix_memalign/free on POSIX
+#include <limits>   // For std::numeric_limits
 #include <memory>
 
 // Platform-specific includes
@@ -159,13 +160,19 @@ inline void prefetch_ahead(const T* base, size_t current_idx, size_t array_size,
 // =============================================================================
 
 // Size of base fields in PackedQIState (before padding)
-// double(8) + 3*int32_t(12) + uint32_t(4) + uint64_t(8) = 32 bytes
-constexpr size_t PACKED_QI_BASE_SIZE =
-    sizeof(double) + 3 * sizeof(int32_t) + sizeof(uint32_t) + sizeof(uint64_t);
+// Due to alignment requirements (int64_t needs 8-byte alignment):
+// - double(8) at offset 0
+// - int64_t a(8) at offset 8
+// - int64_t b(8) at offset 16
+// - int64_t c(8) at offset 24
+// - uint32_t flags(4) at offset 32
+// - 4 bytes implicit padding for uint64_t alignment
+// - uint64_t iteration(8) at offset 40
+// Total: 48 bytes (with internal alignment padding)
+constexpr size_t PACKED_QI_BASE_SIZE = 48;
 
-// Ensure cache line is large enough for our base fields
-static_assert(CACHE_LINE_BYTES >= PACKED_QI_BASE_SIZE,
-              "CACHE_LINE_BYTES too small for PackedQIState base fields");
+// PackedQIState now spans 64 bytes (1 cache line) with explicit padding
+// This is still cache-optimal as access to all fields in one fetch
 
 /**
  * Packed QI state for fast-path operations
@@ -176,47 +183,69 @@ static_assert(CACHE_LINE_BYTES >= PACKED_QI_BASE_SIZE,
  *
  * Memory layout (CACHE_LINE_BYTES total = 1 cache line):
  * - value:    8 bytes (current x value)
- * - a, b, c:  12 bytes (coefficients, using int32_t for fast-path)
+ * - a, b, c:  24 bytes (coefficients, using int64_t to match QuadraticIrrational's long)
  * - flags:    4 bytes (state flags)
  * - iteration: 8 bytes (counter)
  * - padding:  remaining bytes to fill cache line
  *
- * Note: Coefficients use int32_t (not long) for fast-path. This is sufficient
- * for most practical QI parameters. Full precision uses MPFR separately.
+ * Note: Coefficients use int64_t to match QuadraticIrrational's long type,
+ * preventing silent truncation on 64-bit systems.
  *
  * Thread Safety: NOT thread-safe. Use one instance per thread.
  */
 struct alignas(CACHE_LINE_BYTES) PackedQIState {
-    double value;        // 8 bytes: current x_n value
-    int32_t a;           // 4 bytes: coefficient a
-    int32_t b;           // 4 bytes: coefficient b
-    int32_t c;           // 4 bytes: coefficient c
-    uint32_t flags;      // 4 bytes: state flags (fast_path enabled, etc.)
-    uint64_t iteration;  // 8 bytes: iteration counter
-    char padding[CACHE_LINE_BYTES - PACKED_QI_BASE_SIZE];  // Pad to cache line
+    double value;    // 8 bytes: current x_n value (offset 0)
+    int64_t a;       // 8 bytes: coefficient a (offset 8)
+    int64_t b;       // 8 bytes: coefficient b (offset 16)
+    int64_t c;       // 8 bytes: coefficient c (offset 24)
+    uint32_t flags;  // 4 bytes: state flags (offset 32)
+    // 4 bytes implicit padding here for uint64_t alignment
+    uint64_t iteration;  // 8 bytes: iteration counter (offset 40)
+    // Explicit padding: 64 - 48 = 16 bytes to reach cache line size
+    char padding[CACHE_LINE_BYTES - PACKED_QI_BASE_SIZE];  // 16 bytes (offset 48-63)
 
     // Flags
     static constexpr uint32_t FLAG_FAST_PATH = 0x01;
     static constexpr uint32_t FLAG_VALID = 0x02;
+    static constexpr uint32_t FLAG_OVERFLOW = 0x04;  // Set when overflow detected
+
+    // Coefficient limits for safe double conversion (2^53 - 1)
+    static constexpr int64_t MAX_SAFE_COEFFICIENT = (1LL << 53) - 1;
+    static constexpr int64_t MIN_SAFE_COEFFICIENT = -((1LL << 53) - 1);
 
     PackedQIState() : value(0.0), a(0), b(0), c(0), flags(0), iteration(0) {
         // Zero padding to prevent valgrind warnings
         std::fill(std::begin(padding), std::end(padding), 0);
     }
 
-    PackedQIState(double val, int32_t a_, int32_t b_, int32_t c_)
+    PackedQIState(double val, int64_t a_, int64_t b_, int64_t c_)
         : value(val), a(a_), b(b_), c(c_), flags(FLAG_FAST_PATH | FLAG_VALID), iteration(0) {
         std::fill(std::begin(padding), std::end(padding), 0);
+        // Validate coefficients are within safe range for double precision
+        if (a_ > MAX_SAFE_COEFFICIENT || a_ < MIN_SAFE_COEFFICIENT || b_ > MAX_SAFE_COEFFICIENT ||
+            b_ < MIN_SAFE_COEFFICIENT || c_ > MAX_SAFE_COEFFICIENT || c_ < MIN_SAFE_COEFFICIENT) {
+            flags &= ~FLAG_FAST_PATH;  // Disable fast path for large coefficients
+        }
     }
 
     bool is_valid() const noexcept { return flags & FLAG_VALID; }
     bool use_fast_path() const noexcept { return flags & FLAG_FAST_PATH; }
+    bool has_overflow() const noexcept { return flags & FLAG_OVERFLOW; }
 
     // Fast-path iteration: x_{n+1} = frac(a*x^2 + b*x + c)
+    // Returns NaN if overflow detected (caller should fall back to MPFR)
     double step_once() noexcept {
         double x = value;
         double result = std::fma(static_cast<double>(a), x * x,
                                  std::fma(static_cast<double>(b), x, static_cast<double>(c)));
+
+        // Check for numerical issues before proceeding
+        if (!std::isfinite(result)) {
+            flags |= FLAG_OVERFLOW;
+            flags &= ~FLAG_FAST_PATH;  // Disable fast path on overflow
+            return std::numeric_limits<double>::quiet_NaN();
+        }
+
         result = result - std::floor(result);
         if (result < 0.0)
             result += 1.0;
@@ -262,7 +291,7 @@ class CacheOptimizedBatchProcessor {
     ~CacheOptimizedBatchProcessor() = default;
 
     // Initialize a state from QI parameters
-    void init_state(size_t idx, double value, int32_t a, int32_t b, int32_t c) {
+    void init_state(size_t idx, double value, int64_t a, int64_t b, int64_t c) {
         if (idx < num_states_) {
             states_[idx] = PackedQIState(value, a, b, c);
         }

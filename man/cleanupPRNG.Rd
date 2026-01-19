@@ -12,7 +12,7 @@ Invisibly returns NULL
 \description{
 Cleans up the global PRNG instance in a thread-safe manner. This function safely
 releases all PRNG resources, including thread-local storage, memory buffers,
-and cryptographic state.
+and ChaCha20 mixer state.
 }
 \details{
 Thread safety: This function implements a two-phase cleanup process that first

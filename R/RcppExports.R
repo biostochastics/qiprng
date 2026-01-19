@@ -80,3 +80,7 @@ cpp_gaussian_copula <- function(n, correlation, marginal_params) {
 .shutdown_thread_pool_ <- function() {
     invisible(.Call(`_qiprng_shutdown_thread_pool_`))
 }
+
+.prepare_for_unload_ <- function() {
+    invisible(.Call(`_qiprng_prepare_for_unload_`))
+}

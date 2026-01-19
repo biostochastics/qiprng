@@ -53,9 +53,9 @@ void CryptoMixer::secure_random(unsigned char* buf, size_t len) {
         throw std::invalid_argument("CryptoMixer: Invalid buffer for secure random generation");
     }
 
-    // SECURITY FIX: Removed deterministic seeding path entirely
-    // CryptoMixer MUST only use cryptographically secure random from libsodium
-    // Deterministic seeding would completely break security guarantees
+    // CryptoMixer uses libsodium's secure random for key generation
+    // Note: This provides resistance to state recovery but does not constitute
+    // a formally analyzed CSPRNG construction
 
     if (!qiprng::sodium_initialized) {
         // Libsodium not initialized - this is a critical security error
@@ -72,8 +72,7 @@ CryptoMixer::CryptoMixer(bool adhoc_corrections, bool use_tie_breaking)
     : key_(crypto_stream_chacha20_KEYBYTES), nonce_(crypto_stream_chacha20_NONCEBYTES),
       adhoc_corrections_(adhoc_corrections), use_tie_breaking_(use_tie_breaking),
       initialized_(false) {
-    // SECURITY FIX: Removed all deterministic seeding
-    // CryptoMixer must only use secure random for cryptographic operations
+    // CryptoMixer uses libsodium's secure random for key generation
     if (!qiprng::sodium_initialized) {
         Rcpp::warning("CryptoMixer: Libsodium not initialized at construction. Crypto mixing may "
                       "be insecure or fail.");

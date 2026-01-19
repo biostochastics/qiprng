@@ -1,10 +1,10 @@
-# Excellent Discriminants Selection Module
-# Provides functions to select from the 370 excellent discriminants for production use
+# Curated Discriminants Selection Module
+# Provides functions to select from the curated discriminants for production use
 
-#' Load and filter excellent discriminants from analysis results
+#' Load and filter curated discriminants from analysis results
 #'
-#' Loads discriminant analysis results and filters for those rated as "Excellent"
-#' based on comprehensive statistical testing. These discriminants have passed
+#' Loads discriminant analysis results and filters for those that passed
+#' comprehensive statistical testing. These discriminants have passed
 #' all major randomness tests and are suitable for production use.
 #'
 #' @param results_file Path to the analysis results RDS file containing test results
@@ -225,7 +225,7 @@ get_recommended_discriminants <- function(n = 10,
 #' @param discriminant_params A single-row data frame from excellent discriminants
 #'   containing columns a, b, c, discriminant, and overall_score
 #' @param precision MPFR precision in bits for calculations (default: 256)
-#' @param use_crypto Enable cryptographic mixing with ChaCha20 (default: TRUE)
+#' @param use_crypto Enable ChaCha20 output mixing (default: TRUE)
 #'
 #' @return A list containing PRNG configuration:
 #'   \describe{
@@ -241,8 +241,8 @@ get_recommended_discriminants <- function(n = 10,
 #' The function creates a configuration optimized for production use:
 #' \itemize{
 #'   \item Parallel filling is disabled to avoid performance issues
-#'   \item Cryptographic mixing is enabled by default for enhanced security
-#'   \item The discriminant parameters are validated to be from excellent set
+#'   \item ChaCha20 output mixing is enabled by default for enhanced statistical quality
+#'   \item The discriminant parameters are validated to be from the curated set
 #' }
 #'
 #' The function also prints a summary of the configuration including the
@@ -284,7 +284,7 @@ create_excellent_prng_config <- function(discriminant_params, precision = 256, u
   cat("  Discriminant: Δ=", discriminant_params$discriminant, "\n")
   cat("  Quality Score:", round(discriminant_params$overall_score, 3), "\n")
   cat("  Precision:", precision, "bits\n")
-  cat("  Cryptographic mixing:", use_crypto, "\n")
+  cat("  ChaCha20 mixing:", use_crypto, "\n")
 
   return(config)
 }
@@ -306,9 +306,9 @@ create_excellent_prng_config <- function(discriminant_params, precision = 256, u
 #'
 #' @details
 #' This function:
-#' 1. Loads the excellent discriminants from the results file
+#' 1. Loads the curated discriminants from the results file
 #' 2. Selects the discriminant at the specified index (sorted by score)
-#' 3. Creates a PRNG configuration with cryptographic mixing enabled
+#' 3. Creates a PRNG configuration with ChaCha20 mixing enabled
 #' 4. Initializes the PRNG
 #' 5. Generates the requested random numbers
 #'

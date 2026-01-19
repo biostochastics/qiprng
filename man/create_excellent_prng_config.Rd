@@ -16,7 +16,7 @@ containing columns a, b, c, discriminant, and overall_score}
 
 \item{precision}{MPFR precision in bits for calculations (default: 256)}
 
-\item{use_crypto}{Enable cryptographic mixing with ChaCha20 (default: TRUE)}
+\item{use_crypto}{Enable ChaCha20 output mixing (default: TRUE)}
 }
 \value{
 A list containing PRNG configuration:
@@ -38,8 +38,8 @@ random number generation.
 The function creates a configuration optimized for production use:
 \itemize{
 \item Parallel filling is disabled to avoid performance issues
-\item Cryptographic mixing is enabled by default for enhanced security
-\item The discriminant parameters are validated to be from excellent set
+\item ChaCha20 output mixing is enabled by default for enhanced statistical quality
+\item The discriminant parameters are validated to be from the curated set
 }
 
 The function also prints a summary of the configuration including the

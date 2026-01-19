@@ -7,7 +7,7 @@
 \title{Quadratic Irrational PRNG Package}
 \description{
 Provides a high-quality, thread-safe pseudo-random number generator based on
-quadratic irrationals with optional cryptographic mixing.
+quadratic irrationals with optional ChaCha20 output mixing.
 }
 \details{
 The QIPRNG package implements a high-precision pseudo-random number generator
@@ -15,7 +15,7 @@ based on mathematical properties of quadratic irrational numbers. It features:
 
 \itemize{
 \item Multiple probability distributions (uniform, normal, exponential, etc.)
-\item Optional cryptographic mixing for enhanced security
+\item Optional ChaCha20 output mixing for enhanced statistical quality
 \item Deterministic/reproducible mode with seed support (v0.2.7)
 \item Thread-safe implementation with mutex protection and thread-local storage
 \item Configurable precision using MPFR
