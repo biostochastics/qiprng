@@ -116,7 +116,8 @@ void validatePRNGConfig(const PRNGConfig& cfg) {
     }
 
     // Prevent deterministic seed with ChaCha20 mixing (incompatible modes)
-    if (cfg.has_seed && cfg.use_crypto_mixing) {
+    // v0.7.3: Only enforce when deterministic mode is actually enabled
+    if (cfg.deterministic && cfg.has_seed && cfg.use_crypto_mixing) {
         throw std::runtime_error(
             "Configuration error: Using deterministic seed with ChaCha20 mixing is not "
             "supported. Either disable crypto mixing (use_crypto_mixing=FALSE) or remove "
@@ -1298,7 +1299,9 @@ void prepare_for_unload_() {
 
         // Step 10: Reset flags
         g_use_threading = false;
-        cleanup_in_progress.store(false, std::memory_order_release);
+        // v0.7.3: Keep cleanup marked as in progress to prevent any further cleanup
+        // entry during unload - don't reset to false as that would re-enable cleanup
+        cleanup_in_progress.store(true, std::memory_order_release);
 
         // Note: We intentionally do NOT call mark_shutdown_complete() here
         // because the library is about to be unloaded. Keeping the shutdown

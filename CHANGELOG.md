@@ -14,6 +14,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Replace predictable fallback RNG seeds** (HIGH): Changed hardcoded seed `12345` to `DeterministicSeedHelper::get_fallback_seed()` across all fallback RNG instances in `ziggurat_normal.cpp` (~20 locations). Fallback RNGs now use hardware entropy or high-resolution clock for seeding.
 - **Improved secure memory zeroing**: Added memory barrier (`std::atomic_thread_fence`) after volatile zeroing in `SecureBuffer::clear()` to ensure zeroing completes before subsequent operations.
 
+### Fixed
+
+- **Race condition with metrics_ptr** (MAJOR): Made `metrics_ptr` atomic in `multi_qi_optimized.cpp` to prevent data race when reading concurrently in `are_metrics_available()`.
+- **Null pointer during shutdown** (MAJOR): Changed `ensure_initialized()` to throw instead of silently returning during shutdown, preventing null dereferences in callers that assume `tl_data.qis` is valid.
+- **Cache size constant inconsistency** (MAJOR): Changed cache size in `multi_qi.cpp` from `cache::OPTIMAL_BATCH_SIZE` (~3072) to consistent `4096` to match `MultiQIOptimized` and preserve reproducibility.
+- **Loop optimization overhead** (MAJOR): Hoisted `cache::should_use_cache_optimization()` check outside the hot loop in `fill_thread_safe()` to avoid per-iteration overhead.
+- **Off-by-one precision threshold** (MAJOR): Changed `>` to `>=` in precision error threshold comparison in `precision_utils.hpp` to match documented semantics.
+- **PackedQIState::step_once() flag checking** (CRITICAL): Added flag validation at start of `step_once()` to return NaN when state is invalid, fast path is disabled, or overflow was detected.
+- **reseed() fast-path state corruption** (MAJOR): Added `ensure_mpfr_state()` call before setting new value in `reseed()` to flush pending fast-path state.
+- **Seed+crypto mixing validation** (MAJOR): Added `cfg.deterministic` check to seed+crypto mixing validation to only enforce restriction when deterministic mode is enabled.
+- **Cleanup flag race condition** (CRITICAL): Keep `cleanup_in_progress` flag set to `true` after `prepare_for_unload_()` to prevent re-entry during library unload.
+- **Timeout shutdown ignored** (MAJOR): Implemented proper timeout-aware shutdown in `ThreadPool` using `wait_for()` that returns `false` when timeout elapses.
+
 ### Changed
 
 - **Upgraded mixing constant** (MEDIUM): Replaced Java LCG constant `0x5DEECE66D` with SplitMix64's golden ratio constant `0x9e3779b97f4a7c15ULL` in `combine_mantissas()` for better avalanche properties.
@@ -23,9 +36,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Files Modified
 
 - `src/ziggurat_normal.cpp` - Fallback RNG seeding improvements
-- `src/multi_qi_optimized.cpp` - LCG constant upgrade and XOR precision fix
+- `src/multi_qi_optimized.cpp` - LCG constant upgrade, XOR precision fix, atomic metrics_ptr, shutdown handling
 - `src/crypto_mixer.cpp` - Timing side-channel documentation
 - `src/prng_common.hpp` - SecureBuffer memory barrier addition
+- `src/multi_qi.cpp` - Cache size consistency, loop optimization
+- `src/precision_utils.hpp` - Off-by-one threshold fix
+- `src/cache_optimized.hpp` - step_once() flag validation
+- `src/quadratic_irrational.cpp` - reseed() fast-path flush
+- `src/rcpp_exports.cpp` - Seed+crypto validation, cleanup flag fix
+- `src/thread_pool.hpp` - Timeout-aware shutdown implementation
 
 ## [0.7.2] - 2025-01-18
 

@@ -779,6 +779,9 @@ void QuadraticIrrational::reseed() {
     } else {
         // Without seed, reset to a deterministic initial state using value_
         // (state_ is not used in this class - value_ is the actual MPFR state)
+        // v0.7.3: Flush any pending fast-path state before overriding value_
+        // to prevent ensure_mpfr_state() from overwriting our new starting value
+        ensure_mpfr_state();
         mpfr_set_d(*value_->get(), 0.5, MPFR_RNDN);
         // Perform a step to refresh next_ and the fast path state
         step_once();

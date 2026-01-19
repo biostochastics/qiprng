@@ -110,9 +110,10 @@ inline double safe_mpfr_to_double(const mpfr_t& value, bool use_extended = true)
 
     // PRECISION LOSS MITIGATION: Warn and compensate when excessive precision is lost
     static const size_t PRECISION_WARNING_THRESHOLD = 100;  // Warn if losing > 100 bits
-    static const size_t PRECISION_ERROR_THRESHOLD = 256;    // Error if losing > 256 bits
+    static const size_t PRECISION_ERROR_THRESHOLD = 256;    // Error if losing >= 256 bits
 
-    if (bits_lost > PRECISION_ERROR_THRESHOLD) {
+    // v0.7.3: Use >= instead of > to match documented threshold semantics
+    if (bits_lost >= PRECISION_ERROR_THRESHOLD) {
         throw std::runtime_error(
             "Excessive precision loss: " + std::to_string(bits_lost) +
             " bits lost in MPFR to double conversion. Consider using lower MPFR precision.");

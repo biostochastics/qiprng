@@ -68,17 +68,17 @@ void MultiQIOptimized::reset_after_shutdown() {
 // Performance metrics - wrapped in struct with safe access
 namespace perf {
 
-// Use a pointer that can be checked for validity
-static Metrics* metrics_ptr = nullptr;
+// v0.7.3: Use atomic pointer to prevent data race when reading metrics_ptr concurrently
+static std::atomic<Metrics*> metrics_ptr{nullptr};
 static std::once_flag metrics_init_flag;
 static std::atomic<bool> metrics_destroyed{false};
 
 Metrics& get_global_metrics() {
     std::call_once(metrics_init_flag, []() {
         static Metrics static_metrics;
-        metrics_ptr = &static_metrics;
+        metrics_ptr.store(&static_metrics, std::memory_order_release);
     });
-    return *metrics_ptr;
+    return *metrics_ptr.load(std::memory_order_acquire);
 }
 
 void mark_metrics_destroyed() {
@@ -86,8 +86,10 @@ void mark_metrics_destroyed() {
 }
 
 bool are_metrics_available() {
+    // v0.7.3: Load atomic pointer with acquire semantics to prevent data race
+    Metrics* ptr = metrics_ptr.load(std::memory_order_acquire);
     return !metrics_destroyed.load(std::memory_order_acquire) &&
-           !g_shutdown_in_progress.load(std::memory_order_acquire) && metrics_ptr != nullptr;
+           !g_shutdown_in_progress.load(std::memory_order_acquire) && ptr != nullptr;
 }
 
 // Legacy global_metrics - now redirects to safe accessor
@@ -158,9 +160,10 @@ MultiQIOptimized::MultiQIOptimized(size_t num_qis, int mpfr_prec, uint64_t seed,
 
 // Ensure thread-local data is initialized
 void MultiQIOptimized::ensure_initialized() const {
-    // Don't initialize during shutdown
+    // v0.7.3: During shutdown, throw instead of silently returning to prevent
+    // null dereferences in callers that assume tl_data.qis is valid
     if (is_shutdown_in_progress()) {
-        return;
+        throw std::runtime_error("MultiQIOptimized used during shutdown");
     }
 
     if (!tl_data.initialized) {
@@ -250,6 +253,11 @@ double MultiQIOptimized::next() {
 
 // Mixed generation
 double MultiQIOptimized::next_mixed() {
+    // v0.7.3: Return safe fallback during shutdown to prevent crashes
+    if (is_shutdown_in_progress()) {
+        return 0.5;
+    }
+
     ensure_initialized();
 
     size_t mix_size = std::min(mixing_buffer_.size(), tl_data.qis->size());
@@ -318,6 +326,11 @@ void MultiQIOptimized::fill_parallel(double* buffer, size_t fill_size) {
 
 // Skip ahead
 void MultiQIOptimized::skip(uint64_t n) {
+    // v0.7.3: No-op during shutdown to prevent crashes
+    if (is_shutdown_in_progress()) {
+        return;
+    }
+
     ensure_initialized();
     for (auto& qi : *tl_data.qis) {
         qi->skip(n);

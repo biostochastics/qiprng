@@ -5,6 +5,22 @@
 * **Replace predictable fallback RNG seeds** (HIGH): Changed hardcoded seed `12345` to `DeterministicSeedHelper::get_fallback_seed()` across all fallback RNG instances in `ziggurat_normal.cpp` (~20 locations). Prevents predictable output when primary generator fails.
 * **Improved secure memory zeroing**: Added memory barrier after volatile zeroing in `SecureBuffer::clear()` to ensure zeroing completes before subsequent operations.
 
+## Critical Bug Fixes
+
+* **PackedQIState::step_once() flag checking** (CRITICAL): Added flag validation at start of `step_once()` to return NaN when state is invalid, fast path is disabled, or overflow was detected. Previously computed results even with bad state.
+* **Cleanup flag race condition** (CRITICAL): Keep `cleanup_in_progress` flag set to `true` after `prepare_for_unload_()` to prevent re-entry during library unload.
+
+## Major Bug Fixes
+
+* **Race condition with metrics_ptr**: Made `metrics_ptr` atomic to prevent data race when reading concurrently.
+* **Null pointer during shutdown**: Changed `ensure_initialized()` to throw instead of silently returning during shutdown.
+* **Cache size constant inconsistency**: Changed cache size from `OPTIMAL_BATCH_SIZE` (~3072) to consistent `4096` for reproducibility.
+* **Loop optimization overhead**: Hoisted cache optimization check outside hot loop to avoid per-iteration overhead.
+* **Off-by-one precision threshold**: Changed `>` to `>=` in precision error threshold comparison.
+* **reseed() fast-path state corruption**: Added `ensure_mpfr_state()` call before setting new value to flush pending state.
+* **Seed+crypto mixing validation**: Added `cfg.deterministic` check to only enforce restriction when deterministic mode is enabled.
+* **Timeout shutdown ignored**: Implemented proper timeout-aware shutdown using `wait_for()`.
+
 ## Changed
 
 * **Upgraded mixing constant** (MEDIUM): Replaced Java LCG constant `0x5DEECE66D` with SplitMix64's golden ratio constant `0x9e3779b97f4a7c15ULL` in `combine_mantissas()` for better statistical properties.

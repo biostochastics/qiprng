@@ -58,8 +58,8 @@ thread_local size_t tl_cache_pos = 0;
 // - Power of 2 for memory alignment and efficient indexing
 // - 4096 * 8 bytes = 32KB buffer, maximizes L1 cache usage
 // Increased from 256 to reduce mutex acquisition frequency by 16x
-// v0.7.1: Use cache-optimized constant from header
-const size_t CACHE_SIZE = cache::OPTIMAL_BATCH_SIZE;
+// v0.7.1: Keep cache size consistent with optimized implementation (32KB buffer)
+constexpr size_t CACHE_SIZE = 4096;
 
 // Enhanced constructor with mixing strategy
 MultiQI::MultiQI(const std::vector<std::tuple<long, long, long>>& abc_list, int mpfr_prec,
@@ -356,10 +356,12 @@ void MultiQI::fill_thread_safe(double* buffer, size_t fill_size) {
                 // v0.7.1: Cache-optimized round-robin with prefetching
                 constexpr size_t PREFETCH_DISTANCE = 32;  // 4 cache lines ahead
 
+                // v0.7.3: Hoist cache optimization check outside loop to avoid per-iteration
+                // overhead
+                bool use_cache_optimization = cache::should_use_cache_optimization(fill_size);
                 for (size_t i = 0; i < fill_size; i++) {
                     // v0.7.1: Prefetch future buffer write location
-                    if (cache::should_use_cache_optimization(fill_size) &&
-                        i + PREFETCH_DISTANCE < fill_size) {
+                    if (use_cache_optimization && i + PREFETCH_DISTANCE < fill_size) {
                         cache::prefetch_write(&buffer[i + PREFETCH_DISTANCE]);
                     }
 

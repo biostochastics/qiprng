@@ -235,6 +235,12 @@ struct alignas(CACHE_LINE_BYTES) PackedQIState {
     // Fast-path iteration: x_{n+1} = frac(a*x^2 + b*x + c)
     // Returns NaN if overflow detected (caller should fall back to MPFR)
     double step_once() noexcept {
+        // v0.7.3: Check flags before computing - return NaN if state is invalid,
+        // fast path is disabled, or overflow was previously detected
+        if (!is_valid() || !use_fast_path() || has_overflow()) {
+            return std::numeric_limits<double>::quiet_NaN();
+        }
+
         double x = value;
         double result = std::fma(static_cast<double>(a), x * x,
                                  std::fma(static_cast<double>(b), x, static_cast<double>(c)));
