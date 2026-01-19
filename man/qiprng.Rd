@@ -37,6 +37,7 @@ Key functions:
 \seealso{
 Useful links:
 \itemize{
+  \item \url{https://github.com/biostochastics/qiprng}
   \item Report bugs at \url{https://github.com/biostochastics/qiprng/issues}
 }
 

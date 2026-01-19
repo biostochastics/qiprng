@@ -2,43 +2,8 @@
 % Please edit documentation in R/bootstrap_framework.R
 \name{bootstrap_framework}
 \alias{bootstrap_framework}
-\alias{bootstrap_p_value}
 \alias{bootstrap-framework}
 \title{Bootstrap Framework for Statistical P-value Calculations}
-\usage{
-bootstrap_p_value(
-  data,
-  test_statistic,
-  observed_stat = NULL,
-  n_bootstraps = 10000,
-  alternative = "two.sided",
-  progress = TRUE,
-  seed = NULL
-)
-}
-\arguments{
-\item{data}{Numeric vector of observations}
-
-\item{test_statistic}{Function that computes the test statistic from data}
-
-\item{observed_stat}{The observed test statistic (if NULL, will be computed)}
-
-\item{n_bootstraps}{Number of bootstrap samples (default: 10000)}
-
-\item{alternative}{Character string specifying the alternative hypothesis:
-"two.sided", "less", or "greater" (default: "two.sided")}
-
-\item{progress}{Logical; show progress bar for long computations (default: TRUE)}
-
-\item{seed}{Random seed for reproducibility (default: NULL)}
-}
-\value{
-A list containing:
-\item{p.value}{The bootstrap p-value}
-\item{bootstrap_stats}{Vector of bootstrap test statistics}
-\item{observed_stat}{The observed test statistic}
-\item{n_bootstraps}{Number of bootstrap samples used}
-}
 \description{
 This module provides bootstrap-based methods for calculating p-values
 and performing hypothesis tests, especially for situations where
@@ -55,38 +20,4 @@ The framework includes:
 These methods are particularly useful for compression tests and other
 statistical tests where the null distribution is not well-defined.
 }
-\examples{
-\dontrun{
-# Test if mean differs from 0.5
-x <- runif(100)
-stat_func <- function(d) mean(d) - 0.5
-result <- bootstrap_p_value(x, stat_func)
-print(result$p.value)
-}
-
-}
-\keyword{Calculate}
-\keyword{Estimates}
-\keyword{This}
-\keyword{a}
-\keyword{bootstrap}
-\keyword{complex.}
-\keyword{distribution}
 \keyword{internal}
-\keyword{is}
-\keyword{method}
-\keyword{of}
-\keyword{or}
-\keyword{p-value}
-\keyword{p-values}
-\keyword{replacement.}
-\keyword{resampling}
-\keyword{statistic}
-\keyword{test}
-\keyword{the}
-\keyword{theoretical}
-\keyword{unknown}
-\keyword{useful}
-\keyword{using}
-\keyword{when}
-\keyword{with}

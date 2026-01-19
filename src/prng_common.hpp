@@ -5,6 +5,11 @@
 
 #include <mpfr.h>
 
+// v0.7.3: Include libsodium for secure memory zeroing (if available)
+#ifndef QIPRNG_NO_CRYPTO
+#    include <sodium.h>
+#endif
+
 #include <atomic>  // For std::atomic
 #include <chrono>  // For high_resolution_clock
 #include <cmath>   // For sqrt
@@ -21,9 +26,14 @@
 #include "precision_utils.hpp"  // For high-precision constants and safe conversions
 
 // C++20 QIPRNG_UNLIKELY attribute compatibility macro
-// Use empty macro for C++17 to avoid compiler warnings
+// Use [[unlikely]] attribute for C++20+ to hint branch prediction
+// Use empty for C++17 to maintain compatibility
 #if __cplusplus >= 202002L
-#    define QIPRNG_UNLIKELY QIPRNG_UNLIKELY
+#    define QIPRNG_UNLIKELY [[unlikely]]
+#elif defined(__GNUC__) || defined(__clang__)
+// GCC/Clang builtin for branch prediction (use in condition context)
+#    define QIPRNG_UNLIKELY
+// Note: For GCC/Clang, use __builtin_expect in conditions directly
 #else
 #    define QIPRNG_UNLIKELY
 #endif
@@ -39,16 +49,19 @@
 namespace qiprng {
 
 // v0.5.0: Memory pool for MPFR allocations to reduce overhead
+// v0.7.3: Added heap fallback when pool is exhausted to prevent nullptr dereferences
 template <typename T>
 class MemoryPool {
    private:
     struct Block {
         T data;
         bool in_use;
-        Block() : in_use(false) {}
+        bool is_heap_allocated;  // v0.7.3: Track if block was heap-allocated as fallback
+        Block() : in_use(false), is_heap_allocated(false) {}
     };
 
     std::vector<std::unique_ptr<Block>> blocks_;
+    std::vector<std::unique_ptr<Block>> heap_fallback_;  // v0.7.3: Track heap-allocated blocks
     std::mutex mutex_;
     size_t max_blocks_;
 
@@ -60,7 +73,7 @@ class MemoryPool {
     T* allocate() {
         std::lock_guard<std::mutex> lock(mutex_);
 
-        // Find a free block
+        // Find a free block in the pool
         for (auto& block : blocks_) {
             if (!block->in_use) {
                 block->in_use = true;
@@ -75,8 +88,14 @@ class MemoryPool {
             return &blocks_.back()->data;
         }
 
-        // Pool exhausted - fallback to regular allocation
-        return nullptr;
+        // v0.7.3: Pool exhausted - fallback to heap allocation instead of returning nullptr
+        // This prevents null pointer dereferences in callers
+        auto heap_block = std::make_unique<Block>();
+        heap_block->in_use = true;
+        heap_block->is_heap_allocated = true;
+        T* ptr = &heap_block->data;
+        heap_fallback_.push_back(std::move(heap_block));
+        return ptr;
     }
 
     void deallocate(T* ptr) {
@@ -85,9 +104,18 @@ class MemoryPool {
 
         std::lock_guard<std::mutex> lock(mutex_);
 
+        // Check pool blocks first
         for (auto& block : blocks_) {
             if (&block->data == ptr) {
                 block->in_use = false;
+                return;
+            }
+        }
+
+        // v0.7.3: Check heap fallback blocks and remove if found
+        for (auto it = heap_fallback_.begin(); it != heap_fallback_.end(); ++it) {
+            if (&(*it)->data == ptr) {
+                heap_fallback_.erase(it);
                 return;
             }
         }
@@ -106,6 +134,12 @@ class MemoryPool {
                 count++;
         }
         return count;
+    }
+
+    // v0.7.3: Get count of heap-allocated fallback blocks (for diagnostics)
+    size_t heap_fallback_count() const {
+        std::lock_guard<std::mutex> lock(const_cast<std::mutex&>(mutex_));
+        return heap_fallback_.size();
     }
 };
 
@@ -763,15 +797,21 @@ class SecureBuffer {
 
     void clear() {
         if (!data_.empty()) {
-            // Secure memory zeroing: Use volatile pointer to prevent compiler optimization
-            // Note: For maximum security with libsodium available, applications should use
-            // sodium_memzero() directly. This implementation provides a portable fallback.
+            // v0.7.3: Secure memory zeroing with libsodium support
+            // Uses sodium_memzero() when available for cryptographically secure wiping
+            // Falls back to volatile writes with memory barrier when libsodium not available
+#if !defined(QIPRNG_NO_CRYPTO) && defined(SODIUM_LIBRARY_VERSION_MAJOR)
+            // libsodium is available - use sodium_memzero for secure wiping
+            sodium_memzero(data_.data(), data_.size() * sizeof(T));
+#else
+            // Fallback: Use volatile pointer to prevent compiler optimization
             volatile T* ptr = data_.data();
             for (size_t i = 0; i < data_.size(); ++i) {
                 ptr[i] = T(0);
             }
             // Memory barrier to ensure zeroing completes before any subsequent operations
             std::atomic_thread_fence(std::memory_order_seq_cst);
+#endif
         }
         data_.clear();
     }

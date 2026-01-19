@@ -58,12 +58,47 @@
   }
 
   # CRITICAL: Call comprehensive C++ cleanup BEFORE unloading the library
-
   # This ensures all thread-local storage, MPFR pools, and static objects
   # are cleaned up in the correct order to prevent segfaults.
-  try(.prepare_for_unload_(), silent = TRUE)
+
+  # v0.7.3: Track cleanup success to conditionally unload library
+  # If cleanup fails, warn but still attempt unload to avoid leaving
+  # the package in an inconsistent state
+  cleanup_success <- FALSE
+  cleanup_error <- NULL
+
+  tryCatch(
+    {
+      .prepare_for_unload_()
+      cleanup_success <- TRUE
+    },
+    error = function(e) {
+      cleanup_error <<- e$message
+      # Log warning about cleanup failure
+      warning(
+        sprintf("qiprng: C++ cleanup failed during unload: %s. ",
+                cleanup_error),
+        "Library unload will proceed but may cause instability.",
+        call. = FALSE
+      )
+    }
+  )
 
   # Unload the shared library
-  # At this point, all C++ resources should be cleaned up
-  library.dynam.unload("qiprng", libpath)
+  # At this point, all C++ resources should be cleaned up (or we tried our best)
+  tryCatch(
+    {
+      library.dynam.unload("qiprng", libpath)
+    },
+    error = function(e) {
+      # If unload fails after cleanup failure, this is serious
+      if (!cleanup_success) {
+        warning(
+          sprintf("qiprng: Library unload failed after cleanup error: %s",
+                  e$message),
+          call. = FALSE
+        )
+      }
+    }
+  )
 }

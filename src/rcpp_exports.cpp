@@ -6,7 +6,8 @@
 #include "multi_qi.hpp"            // For ThreadLocalPRNG and thread-local variables
 #include "multi_qi_optimized.hpp"  // For MultiQIOptimized
 #include "prng_utils.hpp"
-#include "thread_pool.hpp"  // For shutdown_global_thread_pool
+#include "thread_manager.hpp"  // v0.7.3: For ThreadManager::cleanupAllThreads
+#include "thread_pool.hpp"     // For shutdown_global_thread_pool
 #include "ziggurat_normal.hpp"
 
 using namespace Rcpp;
@@ -1260,6 +1261,13 @@ void prepare_for_unload_() {
         // Step 4: Clean up EnhancedPRNG thread resources
         try {
             EnhancedPRNG::cleanupAllThreadResources();
+        } catch (...) {
+        }
+
+        // Step 4.5: v0.7.3: Clean up all registered thread resources via ThreadManager
+        // This invokes cleanup callbacks registered by any threads that used the PRNG
+        try {
+            ThreadManager::cleanupAllThreads();
         } catch (...) {
         }
 
