@@ -8,8 +8,9 @@
 #' Generate all visualizations
 #' @export
 generate_all_visualizations <- function(
-    suite, internal, external, multidim, performance,
-    output_dir, verbose = TRUE) {
+  suite, internal, external, multidim, performance,
+  output_dir, verbose = TRUE
+) {
   # Check for required packages
   required_packages <- c("ggplot2", "gridExtra", "viridis")
   missing_packages <- required_packages[!sapply(required_packages, requireNamespace, quietly = TRUE)]

@@ -187,16 +187,17 @@ run_all_internal_tests <- function(generators, sample_config, verbose = TRUE) {
 #' @param verbose Print progress messages
 #' @export
 compare_generators_comprehensive <- function(
-    generators = NULL,
-    mode = "standard",
-    external_packages = "all",
-    dimensions = c(2, 3),
-    output_dir = "comprehensive_comparison",
-    parallel = FALSE,
-    n_cores = NULL,
-    p_adjustment_method = "BH",
-    category_weights = NULL,
-    verbose = TRUE) {
+  generators = NULL,
+  mode = "standard",
+  external_packages = "all",
+  dimensions = c(2, 3),
+  output_dir = "comprehensive_comparison",
+  parallel = FALSE,
+  n_cores = NULL,
+  p_adjustment_method = "BH",
+  category_weights = NULL,
+  verbose = TRUE
+) {
   # Get sample size configuration
   sample_config <- get_sample_size_config(mode)
 
@@ -441,12 +442,13 @@ convert_to_unified_format <- function(suite, internal, external, multidim, perfo
 #' Run comprehensive generator comparison
 #' @export
 run_comprehensive_comparison <- function(
-    generators,
-    sample_size = 100000,
-    test_categories = NULL,
-    n_runs = 5,
-    parallel = TRUE,
-    progress = TRUE) {
+  generators,
+  sample_size = 100000,
+  test_categories = NULL,
+  n_runs = 5,
+  parallel = TRUE,
+  progress = TRUE
+) {
   # Initialize results structure
   results <- list(
     raw = list(),
@@ -753,8 +755,9 @@ normalize_performance_metrics <- function(results) {
 #' Generate comprehensive reports with visualizations
 #' @export
 generate_comprehensive_reports <- function(
-    suite, internal, external, multidim, performance,
-    output_dir, verbose = TRUE) {
+  suite, internal, external, multidim, performance,
+  output_dir, verbose = TRUE
+) {
   # 1. Generate standard reports
   if (verbose) cat("Generating standard reports...\n")
 

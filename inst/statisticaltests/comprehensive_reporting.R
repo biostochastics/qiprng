@@ -8,9 +8,10 @@
 #' Generate detailed analysis report
 #' @export
 generate_detailed_analysis <- function(
-    results,
-    sample_size,
-    confidence_level = 0.95) {
+  results,
+  sample_size,
+  confidence_level = 0.95
+) {
   analysis <- list()
 
   # Overall statistics
@@ -100,9 +101,10 @@ generate_recommendations <- function(analysis, use_cases = NULL) {
 #' Generate technical appendix
 #' @export
 generate_technical_appendix <- function(
-    results,
-    test_categories,
-    sample_config) {
+  results,
+  test_categories,
+  sample_config
+) {
   appendix <- list()
 
   # Test descriptions
@@ -137,13 +139,14 @@ generate_technical_appendix <- function(
 #' Generate HTML report
 #' @export
 generate_html_report <- function(
-    results,
-    analysis,
-    summary,
-    recommendations,
-    appendix,
-    viz_results,
-    output_file) {
+  results,
+  analysis,
+  summary,
+  recommendations,
+  appendix,
+  viz_results,
+  output_file
+) {
   # Start HTML document
   html <- paste0(
     "<!DOCTYPE html>
@@ -219,12 +222,13 @@ th { background-color: #f2f2f2; }
 #' Generate Markdown report
 #' @export
 generate_markdown_report <- function(
-    results,
-    analysis,
-    summary,
-    recommendations,
-    appendix,
-    output_file) {
+  results,
+  analysis,
+  summary,
+  recommendations,
+  appendix,
+  output_file
+) {
   md <- paste0(
     "# Comprehensive Random Number Generator Comparison\n\n",
     "*Report generated: ", Sys.Date(), "*\n\n"
