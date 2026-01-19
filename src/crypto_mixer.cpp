@@ -201,6 +201,11 @@ bool CryptoMixer::mix(unsigned char* data, size_t len) {
 
                 doubles[i] = mixed_val;
 
+                // NOTE: Timing side-channel consideration
+                // This branch introduces a minor timing difference when consecutive values
+                // are identical (extremely rare, ~2^-52 probability). This is an acceptable
+                // trade-off for statistical quality in PRNG use. For cryptographic applications
+                // where timing attacks are a concern, use ChaCha20 directly via libsodium.
                 if (use_tie_breaking_ && i > 0 && doubles[i] == prev_val) {
                     try {
                         // Use smaller epsilon to avoid underflow issues
@@ -249,6 +254,7 @@ bool CryptoMixer::mix(unsigned char* data, size_t len) {
                     doubles[i] = mixed_val;
                 }
 
+                // NOTE: Timing side-channel consideration (see comment in XOR mixing path above)
                 if (use_tie_breaking_ && i > 0 && doubles[i] == prev_val) {
                     try {
                         static thread_local std::uniform_real_distribution<double> tiny_dist(-1e-14,

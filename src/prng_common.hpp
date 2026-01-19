@@ -763,10 +763,15 @@ class SecureBuffer {
 
     void clear() {
         if (!data_.empty()) {
+            // Secure memory zeroing: Use volatile pointer to prevent compiler optimization
+            // Note: For maximum security with libsodium available, applications should use
+            // sodium_memzero() directly. This implementation provides a portable fallback.
             volatile T* ptr = data_.data();
             for (size_t i = 0; i < data_.size(); ++i) {
                 ptr[i] = T(0);
             }
+            // Memory barrier to ensure zeroing completes before any subsequent operations
+            std::atomic_thread_fence(std::memory_order_seq_cst);
         }
         data_.clear();
     }

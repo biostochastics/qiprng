@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-01-18
+
+### Security
+
+- **Replace predictable fallback RNG seeds** (HIGH): Changed hardcoded seed `12345` to `DeterministicSeedHelper::get_fallback_seed()` across all fallback RNG instances in `ziggurat_normal.cpp` (~20 locations). Fallback RNGs now use hardware entropy or high-resolution clock for seeding.
+- **Improved secure memory zeroing**: Added memory barrier (`std::atomic_thread_fence`) after volatile zeroing in `SecureBuffer::clear()` to ensure zeroing completes before subsequent operations.
+
+### Changed
+
+- **Upgraded mixing constant** (MEDIUM): Replaced Java LCG constant `0x5DEECE66D` with SplitMix64's golden ratio constant `0x9e3779b97f4a7c15ULL` in `combine_mantissas()` for better avalanche properties.
+- **Fixed XOR mixing precision loss** (LOW): Changed normalization divisor from `UINT64_MAX` to mantissa mask `0x000FFFFFFFFFFFFFULL` (52 bits) in `mix_xor()` to preserve full precision.
+- **Added timing side-channel documentation**: Documented the minor timing difference in tie-breaking logic as an acceptable trade-off for statistical PRNG use.
+
+### Files Modified
+
+- `src/ziggurat_normal.cpp` - Fallback RNG seeding improvements
+- `src/multi_qi_optimized.cpp` - LCG constant upgrade and XOR precision fix
+- `src/crypto_mixer.cpp` - Timing side-channel documentation
+- `src/prng_common.hpp` - SecureBuffer memory barrier addition
+
 ## [0.7.2] - 2025-01-18
 
 ### Added

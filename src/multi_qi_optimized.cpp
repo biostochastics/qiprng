@@ -358,7 +358,8 @@ double MultiQIOptimized::mix_xor(const std::vector<double>& values) const {
     for (double val : values) {
         result ^= extract_mantissa(val);
     }
-    return static_cast<double>(result) / static_cast<double>(UINT64_MAX);
+    // Use mantissa mask (52 bits) for proper scaling to preserve full precision
+    return static_cast<double>(result) / static_cast<double>(0x000FFFFFFFFFFFFFULL);
 }
 
 double MultiQIOptimized::mix_averaging(const std::vector<double>& values) const {
@@ -397,9 +398,10 @@ uint64_t MultiQIOptimized::extract_mantissa(double value) const {
     return bits & 0x000FFFFFFFFFFFFFULL;
 }
 
-// Combine mantissas
+// Combine mantissas using SplitMix64 constant for better statistical properties
 double MultiQIOptimized::combine_mantissas(uint64_t m1, uint64_t m2) const {
-    uint64_t combined = (m1 * 0x5DEECE66D + m2) & 0x000FFFFFFFFFFFFFULL;
+    // Use golden ratio-based constant from SplitMix64 (better avalanche than Java LCG)
+    uint64_t combined = (m1 * 0x9e3779b97f4a7c15ULL + m2) & 0x000FFFFFFFFFFFFFULL;
     combined |= 0x3FF0000000000000ULL;
     double result;
     std::memcpy(&result, &combined, sizeof(result));

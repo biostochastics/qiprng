@@ -1,3 +1,16 @@
+# qiprng 0.7.3
+
+## Security Hardening
+
+* **Replace predictable fallback RNG seeds** (HIGH): Changed hardcoded seed `12345` to `DeterministicSeedHelper::get_fallback_seed()` across all fallback RNG instances in `ziggurat_normal.cpp` (~20 locations). Prevents predictable output when primary generator fails.
+* **Improved secure memory zeroing**: Added memory barrier after volatile zeroing in `SecureBuffer::clear()` to ensure zeroing completes before subsequent operations.
+
+## Changed
+
+* **Upgraded mixing constant** (MEDIUM): Replaced Java LCG constant `0x5DEECE66D` with SplitMix64's golden ratio constant `0x9e3779b97f4a7c15ULL` in `combine_mantissas()` for better statistical properties.
+* **Fixed XOR mixing precision loss** (LOW): Changed normalization divisor from `UINT64_MAX` to mantissa mask (52 bits) in `mix_xor()` to preserve full precision.
+* **Added timing side-channel documentation**: Documented minor timing difference in tie-breaking logic as acceptable trade-off for statistical PRNG use.
+
 # qiprng 0.7.2
 
 ## Documentation
