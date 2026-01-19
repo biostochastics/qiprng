@@ -1,19 +1,6 @@
 # Advanced Statistical Tests for PRNG Quality Assessment
 # Additional sophisticated tests for randomness evaluation
-
-# Load entropy package with installation if needed
-suppressPackageStartupMessages({
-  # Set CRAN mirror if not already set
-  if (length(getOption("repos")) == 0 || getOption("repos")["CRAN"] == "@CRAN@") {
-    options(repos = c(CRAN = "https://cran.rstudio.com/"))
-  }
-
-  if (!require(entropy, quietly = TRUE)) {
-    cat("Installing entropy package...\n")
-    install.packages("entropy", quiet = TRUE)
-    library(entropy)
-  }
-})
+# Package imports (entropy) are handled via NAMESPACE (@importFrom entropy entropy)
 
 #' Shannon entropy test
 #'

@@ -1,11 +1,6 @@
 # Discriminant Analysis Report Generation
 # Generates comprehensive reports from discriminant testing results
 
-library(ggplot2)
-library(gridExtra)
-library(knitr)
-library(DT)
-
 # Suppress NOTE for global variables in ggplot aes()
 utils::globalVariables(c(
   "a", "b", "c", "discriminant", "overall_score",

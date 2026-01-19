@@ -1,23 +1,8 @@
-# Technical Documentation for the Quadratic Irrational PRNG v0.6.6
+# Technical Documentation for the Quadratic Irrational PRNG v0.7.3
 
 **Attribution Note**: The mathematical foundation and core algorithm design presented in this document is based on the work of Vincent Granville (2022), specifically his research on random number generators using quadratic irrationals. While Granville provided the original Python implementation, this document describes an R/C++ implementation developed primarily for educational and research purposes. Note: The original work has not been peer-reviewed in cryptographic literature.
 
 **Reference**: Granville, V. (2022). Synthetic Data and Generative AI 1st Edition. <https://mltechniques.com/2022/12/13/military-grade-fast-random-number-generator-based-on-quadratic-irrationals/>
-
-## Version 0.5.0 Enhancements
-
-### Matrix Jump-Ahead with O(log n) Complexity
-
-The v0.5.0 implementation includes an optimized jump-ahead algorithm using matrix exponentiation:
-
-```cpp
-// Matrix representation of the quadratic map
-[ x_{n+1} ]   [ a  b  c ] [ x_n^2 ]
-[ x_n     ] = [ 1  0  0 ] [ x_n   ]
-[ 1       ]   [ 0  0  1 ] [ 1     ]
-```
-
-Using binary exponentiation, we can compute M^n in O(log n) operations, enabling efficient parallel stream generation.
 
 ### Advanced Mixing Strategies
 
@@ -31,17 +16,36 @@ Five mixing strategies combine outputs from multiple QI generators:
 
 ### SIMD Vectorization
 
-Hardware-optimized operations using:
+Hardware-optimized operations for the **double-precision backend** (not MPFR arithmetic):
 
 - **AVX2/AVX512**: 4-8 doubles per operation on x86
 - **ARM NEON**: 2 doubles per operation on Apple Silicon
 - **Automatic fallback**: Scalar operations when SIMD unavailable
 
+**Note**: SIMD acceleration applies to mixing operations, batch transforms, and the optional double-precision computation path. The MPFR arbitrary-precision backend uses scalar operations and does not benefit from SIMD vectorization.
+
+### Jump-Ahead and Parallel Stream Generation
+
+1. **Parameter splitting**: Independent (a, b, c) triplets per stream (primary approach)
+2. **Stream leapfrogging**: Deterministic subsequence partitioning
+3. **Crypto counter-mode**: O(1) random access via ChaCha20 mixing
+
+**Important note**: The 3×3 matrix representation shown below is valid for single-step evaluation but does **not** provide O(log n) jump-ahead for the nonlinear quadratic map (see Section 4 for detailed analysis):
+
+```cpp
+// Single-step evaluation (NOT iterable via M^n)
+[ x_{n+1} ]   [ a  b  c ] [ x_n^2 ]
+[ x_n     ] = [ 1  0  0 ] [ x_n   ]
+[ 1       ]   [ 0  0  1 ] [ 1     ]
+```
+
+For parallel applications, parameter splitting combined with crypto mixing provides the recommended approach.
+
 ## 1. Mathematical Foundation: The Quadratic Map
 
 ### 1.1 Basic Principle
 
-The core algorithm, as described by Granville (2024), is based on a quadratic recurrence relation of the form:
+The core algorithm, as described by Granville (2022), is based on a quadratic recurrence relation of the form:
 
 ```
 x_{n+1} = (a*x_n^2 + b*x_n + c) mod 1
@@ -63,20 +67,27 @@ The discriminant of the quadratic equation is defined as:
 Δ = b² - 4ac
 ```
 
-**Why the discriminant must be positive:**
+**What Δ > 0 guarantees:**
 
-1. **Mathematical reasons**: A positive discriminant ensures that the quadratic equation `ax² + bx + c = 0` has two distinct real roots. This is essential because:
+If Δ > 0, then the polynomial q(x) = ax² + bx + c has two distinct real roots, hence the parabola crosses the real axis twice. This is a standard result from the quadratic formula.
 
-   - When Δ > 0, the quadratic map has two fixed points in the real domain
-   - These fixed points create a bounded region where chaotic behavior occurs
-   - The sequence will "bounce" unpredictably between these boundaries
+**What Δ > 0 does NOT guarantee:**
 
-2. **Randomness quality**: When the discriminant is positive, the sequence exhibits sensitive dependence on initial conditions (the "butterfly effect"), a hallmark of chaotic systems that produces high-quality randomness.
+The positive discriminant condition is a convenient parameter-screening heuristic that prevents degenerate polynomial shapes and correlates empirically with better orbit behavior for our parameter families. However, it is **not** a universal theorem guaranteeing:
 
-3. **Sequence behavior**:
-   - Negative discriminant: The sequence would converge to a predictable pattern
-   - Zero discriminant: The sequence would gravitate toward a single fixed point
-   - Only a positive discriminant creates the necessary "stretching and folding" dynamic for chaos
+- Absence of fixed points or short cycles on [0,1)
+- Topological mixing or chaos for f(x) = {q(x)}
+- An invariant distribution equal to uniform on [0,1)
+
+**Why we use this requirement:**
+
+1. **Empirical correlation**: Parameters with Δ > 0 empirically exhibit better statistical properties in our testing framework.
+
+2. **Geometric interpretation**: When Δ > 0, the quadratic map has richer geometric behavior due to the parabola's interaction with the unit interval.
+
+3. **Historical precedent**: This constraint follows Granville's original formulation and has been validated through extensive empirical testing.
+
+**Important caveat**: The combination of a > 0, c < 0, and Δ > 0 does not mathematically rule out fixed points (see Section 9.4 and Appendix A for detailed analysis).
 
 ### 1.3 Orbit Structure
 
@@ -95,9 +106,11 @@ The sequence generated by this recurrence relation creates what mathematicians c
 
 **Reasoning**:
 
-- Controls the "stretching" factor of the map
-- If negative, would invert the parabola and destroy the chaotic properties
-- If zero, would degenerate into a linear map with poor randomness
+- Controls the curvature and "stretching" factor of the quadratic map
+- Positive values produce upward-opening parabolas that empirically correlate with richer folding behavior under mod-1 projection
+- If zero, would degenerate into a linear map with reduced complexity
+
+**Note**: This constraint is part of an empirical parameter family that tends to produce better statistical properties in our testing. Negative `a` does not automatically eliminate complex dynamics, but changes the geometry in ways our parameter search has not explored.
 
 ### 2.2 Parameter `c`
 
@@ -105,25 +118,35 @@ The sequence generated by this recurrence relation creates what mathematicians c
 
 **Reasoning**:
 
-- Together with `a > 0`, ensures the parabola crosses the x-axis in the right places
-- Creates the correct topology for the chaotic attractor
-- Ensures the mapping stays within [0,1] after taking the fractional part
+- Together with `a > 0`, produces polynomial shapes that empirically exhibit better orbit behavior in our parameter families
+- The mod-1 operation always maps results into [0,1) regardless of parameter signs
+
+**Note**: The `c < 0` constraint correlates with "better behavior" in our searched families but does not enforce any topological guarantee. The fractional part operation handles range normalization independent of parameter values.
 
 ### 2.3 Discriminant: `b² - 4ac > 0`
 
 **Reasoning**:
 
-- As explained above, ensures two real fixed points
-- Creates the mathematical foundation for chaotic behavior
-- Prevents the sequence from falling into simple patterns
+- Ensures two distinct real roots for the polynomial q(x) = ax² + bx + c in ℝ, which correlates with stronger curvature/folding patterns before mod-1 projection
+- Correlates empirically with better statistical properties for our parameter families
+- Prevents degenerate polynomial shapes (single/no real roots) that tend to produce poor orbits
+
+**Important limitations** (see Appendix A for formal analysis):
+
+- Δ > 0 alone does **not** guarantee chaos, uniformity, or absence of fixed points
+- Under mod-1 projection, these ℝ-geometric features do not translate into guaranteed mixing
+- The chaotic behavior depends on the specific parameter values, not just the discriminant sign
+- Empirical testing remains necessary to validate statistical quality for each parameter set
+
+We restrict to a > 0, c < 0, and Δ > 0 as an empirical parameter family that tends to produce richer folding behavior under the mod-1 projection in our testing. These constraints are **not sufficient** to guarantee chaos, mixing, or the absence of short cycles.
 
 ### 2.4 Parameter Selection Guidelines
 
 For optimal randomness properties:
 
 1. **Coprime values**: Ideally, parameters `a`, `b`, and `c` should be coprime (no common divisors)
-2. **Moderate values**: While any valid values will work mathematically, moderate values (e.g., 1-10) are more numerically stable
-3. **High precision**: Higher MPFR precision increases the period length and quality of randomness
+2. **Moderate values**: While any valid values work mathematically, moderate values (e.g., 1-10) tend to produce better orbit structure quality and avoid extremely large intermediate values in double-precision backends
+3. **High precision**: Higher MPFR precision increases the effective state space, extending the period before finite-precision cycling occurs
 
 ## 3. MultiQI Implementation (v0.5.0 Enhanced)
 
@@ -160,10 +183,10 @@ Version 0.5.0 introduces configurable mixing strategies for combining multiple Q
 
 Each mixing strategy provides different theoretical advantages:
 
-- **Period extension**: Effective period up to LCM of individual periods
+- **Period extension**: Mixing multiple streams can increase the effective cycle length in practice and empirically reduces detectable structure. However, no general closed-form period guarantee (such as LCM) is asserted for nonlinear mixed constructions under finite precision
 - **Entropy amplification**: Multiple sources increase unpredictability
-- **Bias reduction**: Averaging reduces systematic biases
-- **Correlation breaking**: XOR destroys linear correlations
+- **Bias reduction**: Averaging reduces systematic biases (note: averaging itself produces a triangular, not uniform, distribution—see Section 7.2.2)
+- **Correlation breaking**: XOR destroys linear correlations when at least one operand is uniform
 
 ### 3.2 Parameter Diversification
 
@@ -225,31 +248,19 @@ The implementation supports using custom discriminants from a CSV file:
 
 By default the package uses a curated set of 370 discriminants that passed comprehensive statistical testing.
 
-## 4. Matrix Jump-Ahead Algorithm (v0.5.0)
+## 4. Jump-Ahead Strategies (v0.5.0+)
 
-### 4.1 Mathematical Foundation
+### 4.1 The Nonlinearity Challenge
 
-The quadratic map can be represented in matrix form. Given the recurrence:
+Given the quadratic recurrence:
 
 ```
 x_{n+1} = (a·x_n² + b·x_n + c) mod 1
 ```
 
-**Key Insight**: While a single quadratic map is nonlinear, we can encode the transformation using a lifted state vector that tracks the polynomial coefficients. The core algebraic fact is:
+A natural question is whether matrix exponentiation can provide O(log n) jump-ahead, as it does for linear congruential generators.
 
-> The set of quadratic polynomials under composition forms a semigroup that can be represented via matrix multiplication on their coefficient vectors in a suitable basis.
-
-For a quadratic map f(x) = ax² + bx + c, its n-fold composition f∘ⁿ(x) is a polynomial of degree 2ⁿ. By lifting to a higher-dimensional state that tracks monomials (or using projective coordinates), we can express:
-
-```
-v_{n+1} = M · v_n
-```
-
-where vₙ encodes the current polynomial's coefficients (or a lifted state) and M is a fixed matrix.
-
-### 4.2 State Vector Representation
-
-The implementation uses a state vector that tracks the relevant polynomial terms:
+**Critical observation**: The 3×3 matrix representation
 
 ```
 [ x_{n+1}  ]   [ a  b  c ] [ x_n²  ]
@@ -257,44 +268,71 @@ The implementation uses a state vector that tracks the relevant polynomial terms
 [ 1        ]   [ 0  0  1 ] [ 1     ]
 ```
 
-Once we have a representation v_{n+1} = M · v_n, then:
+is **correct for one step** as an evaluation trick, but it does **not** imply that Mⁿ performs an n-step jump.
+
+**Why Mⁿ does not encode iteration**: Let v_n := (x_n², x_n, 1)ᵀ. Even if we write x_{n+1} = [a b c]v_n, there is no fixed 3×3 matrix M such that v_{n+1} = M·v_n for all x_n, because:
 
 ```
-v_n = M^n · v_0
+x_{n+1}² = (ax_n² + bx_n + c)²
 ```
 
-### 4.3 Binary Exponentiation
+is a **degree-4 polynomial** in x_n, hence cannot be expressed as a linear combination of (x_n², x_n, 1) with constant coefficients.
 
-To jump ahead by n steps, we compute Mⁿ using binary exponentiation (repeated squaring):
+**Proof**: If v_{n+1} = M·v_n held with constant M, the first component of v_{n+1} would be linear in x_n², x_n, 1—i.e., at most quadratic in x_n. But x_{n+1}² is quartic in x_n unless a = 0 (degenerate case). Contradiction. ∎
 
-```
-M^n = M^(b_k · 2^k + ... + b_1 · 2 + b_0)
-    = M^(b_k · 2^k) · ... · M^(b_1 · 2) · M^b_0
-```
+### 4.2 True Jump-Ahead for Nonlinear Maps
 
-**Complexity Analysis**:
+For nonlinear maps, computing f∘ⁿ(x) requires either:
 
-- **Naive iteration**: O(n) applications of the map
-- **Binary exponentiation**: O(log n) matrix multiplications
+1. **Sequential iteration**: Apply f exactly n times (O(n) complexity)
+2. **Function composition**: Compose f with itself symbolically (degree doubles each step, impractical for large n)
+3. **Approximation methods**: Various numerical techniques with bounded accuracy
 
-This enables efficient jump-ahead for astronomically large n (e.g., 10¹⁸ steps).
+### 4.3 Practical Jump-Ahead Alternatives
 
-### 4.4 Mathematical Validity
+The implementation provides several practical approaches for parallel stream generation:
 
-The "matrix exponentiation ⇒ jump ahead in O(log n)" claim is mathematically sound provided:
+#### 4.3.1 Stream Splitting / Leapfrogging
 
-1. The chosen matrix representation correctly encodes composition of the map
-2. Modular reduction (mod 1) is applied only at the final evaluation stage
-3. All linear algebra is performed over reals (or MPFR with sufficient precision)
+Thread i uses x_{i+m·t} for stride m:
 
-### 4.5 MPFR Precision Preservation
+- Requires sequential generation to establish starting points
+- Guarantees deterministic partitioning
+- Each stream is a mathematically well-defined subsequence
 
-All matrix operations use MPFR arithmetic to maintain full precision:
+#### 4.3.2 Parameter Splitting
 
-- Matrix multiplication preserves exact values
-- Modular reduction maintains fractional precision
-- No accuracy loss even for astronomical jumps (10¹⁸ steps)
-- The linear algebra itself operates over MPFR reals, not modular arithmetic
+Use independent discriminants/parameter triplets per stream:
+
+- Different (a, b, c) values produce statistically independent sequences
+- No need for jump-ahead computation
+- This is the current primary approach for parallel generation
+
+#### 4.3.3 Crypto Counter-Mode Enhancement
+
+Generate C_n from ChaCha20(counter=n), then output (x_n + C_n) mod 1:
+
+- Provides O(1) random access for the crypto component
+- Preserves uniformity by the modular addition theorem (see Section 7.2.1)
+- The QI component provides additional entropy even with sequential generation
+
+### 4.4 Implementation Notes
+
+The package implements practical jump-ahead using a combination of:
+
+1. **MPFR-based iteration**: Direct computation with high precision for moderate jumps
+2. **Parameter diversification**: Multiple independent QI generators for parallel streams
+3. **ChaCha20 mixing**: Counter-mode operation provides addressable random access when uniformity is the primary goal
+
+### 4.5 Complexity Summary
+
+| Method | Complexity | Practical Use |
+|--------|------------|---------------|
+| Sequential iteration | O(n) | Small to moderate jumps |
+| Parameter splitting | O(1) setup | Parallel stream generation |
+| Crypto counter-mode | O(1) per sample | Random access with uniformity guarantee |
+
+For most parallel applications, parameter splitting combined with crypto mixing provides the best balance of correctness, performance, and statistical quality.
 
 ## 5. CFE Period Detection (v0.5.0)
 
@@ -354,7 +392,7 @@ The package implements the Gauss-Legendre algorithm for O(L) period detection:
 - **Time complexity**: O(L) where L is the period length
 - **Space complexity**: O(L) to store the period
 - **Practical performance**: Periods typically < 1000 for discriminants < 10⁶
-- **Theoretical bound**: L = O(√D log D) for discriminant D
+- **Asymptotic bound**: Known results in algebraic number theory establish L = O(√D log D) for discriminant D (see, e.g., results related to the Brauer-Siegel theorem and class number bounds). This is an asymptotic heuristic; individual discriminants may have shorter or longer periods.
 
 ## 6. Dynamic QI Generation (v0.5.0)
 
@@ -414,8 +452,10 @@ x_mixed = (x_original + crypto_uniform) mod 1
 Where:
 
 - `x_original` is the raw value from the quadratic irrational generator
-- `crypto_uniform` is a cryptographically secure random value in [0,1)
+- `crypto_uniform` is a cryptographically uniform value in [0,1), derived from ChaCha20 bytes
 - The result is taken modulo 1 to keep it in [0,1)
+
+**Implementation note**: ChaCha20 provides a uniform bitstream. When mapped to IEEE-754 doubles using 53 random bits for the mantissa (divided by 2^53), the result is uniform over the representable grid of 2^53 values in [0,1). This is "exactly uniform" in the discrete sense, not continuous measure-theoretic uniform, but the distinction is immaterial for all practical purposes.
 
 **Theorem (Crypto Mixing Preserves Uniformity)**: If U ~ Unif[0,1) and C ~ Unif[0,1) are independent, then (U + C) mod 1 ~ Unif[0,1).
 
@@ -448,7 +488,7 @@ P(V ∈ A) = ∫₀¹ P((U + c) mod 1 ∈ A) dc = ∫₀¹ |A| dc = |A|
 
 But P(V ∈ A) = |A| is exactly the defining property of Unif[0,1). ∎
 
-**Corollary**: Even if X_original is only approximately uniform, the mixing operation pushes the distribution closer to uniform, since the ChaCha20-derived component C is exactly uniform.
+**Corollary**: Even if X_original is only approximately uniform, the mixing operation produces a uniform output (on the representable grid), since the ChaCha20-derived component C is cryptographically uniform.
 
 **Benefits**:
 
@@ -494,23 +534,27 @@ The ChaCha20 output mixing integrates with the core generator in several ways:
    - Keys are properly zeroed when no longer needed using sodium_memzero
    - Side-channel mitigation techniques are employed
 
-### 7.4 Tie-Breaking Mechanism
+### 7.4 Tie-Breaking Mechanism (Optional)
 
-The implementation includes a tie-breaking mechanism to handle the rare case of duplicate consecutive values:
+The implementation includes an optional tie-breaking mechanism to handle duplicate consecutive values:
 
 1. **Detection**:
    - Checks if the current output exactly equals the previous output
-   - Such exact duplications are extremely rare but possible
+   - Such exact duplications are rare but statistically expected in any random sequence
 
 2. **Resolution**:
    - Adds a tiny random epsilon value to break the tie
-   - The epsilon is small enough not to affect the distribution
-   - Ensures consecutive identical values never occur
+   - Ensures consecutive identical values never occur when enabled
 
-3. **Benefits**:
-   - Prevents potential issues in applications that expect unique values
-   - Provides additional entropy in edge cases
-   - Maintains the overall statistical properties
+3. **Important Limitations**:
+   - **Distribution artifacts**: Introduces a state-dependent perturbation that may create subtle biases in ULP (unit in last place) space
+   - **Reproducibility impact**: Unless epsilon is derived deterministically, strict reproducibility is lost
+   - **Statistically unnecessary**: True random sequences do produce duplicate values; consecutive duplicates are rare but valid
+
+4. **Recommendation**:
+   - For most applications, duplicates should be allowed (the mathematically correct behavior)
+   - Only enable tie-breaking if your downstream application has a hard requirement for unique consecutive values
+   - If enabled, be aware this is a nonstandard modification that may affect certain statistical tests
 
 ## 8. Distribution Transformations
 
@@ -609,21 +653,20 @@ with x ∈ [0,1). For given integers a > 0, b, c < 0, nothing prevents some inte
 
 The package provides two approaches to thread safety:
 
-1. **Global Mutex Protection**:
-   - When `use_threading = FALSE` (default)
-   - A global mutex protects access to the PRNG state
-   - Ensures only one thread can access the PRNG at a time
-   - Guarantees sequence reproducibility but may limit parallelism
+1. **Single-Thread Mode** (`use_threading = FALSE`, default):
+   - Optimized for single-threaded use with no synchronization overhead
+   - If called from multiple threads without external synchronization, behavior is undefined
+   - Guarantees sequence reproducibility in single-threaded contexts
 
-2. **Thread-Local Instances**:
-   - When `use_threading = TRUE`
-   - Each thread gets its own independent PRNG instance
+2. **Multi-Thread Mode** (`use_threading = TRUE`):
+   - Each thread gets its own independent PRNG instance via thread-local storage
    - No mutex contention, allowing full parallelism
-   - Different random sequences in each thread
+   - Different random sequences in each thread (seeded independently)
+   - Use this mode when generating random numbers from multiple threads concurrently
 
 ### 10.2 Mathematical Implications of Threading
 
-Using thread-local PRNG instances has important mathematical implications:
+Using thread-local PRNG instances (multi-thread mode) has important mathematical implications:
 
 1. **Independence**:
    - Sequences generated in different threads are statistically independent
@@ -631,13 +674,13 @@ Using thread-local PRNG instances has important mathematical implications:
    - Reduces potential for pattern emergence in parallel applications
 
 2. **Reproducibility**:
-   - With global mutex: sequence is reproducible regardless of threading
-   - With thread-local instances: each thread's sequence is reproducible but different
+   - Single-thread mode: sequence is fully reproducible given the same seed
+   - Multi-thread mode: each thread's sequence is reproducible given its seed, but the global interleaving depends on thread scheduling
    - Important consideration for scientific computing and simulation
 
 3. **Performance vs. Determinism**:
-   - Thread-local instances offer better performance but less predictability
-   - Global mutex offers deterministic results but may be slower in highly threaded applications
+   - Multi-thread mode offers better performance for concurrent workloads
+   - Single-thread mode offers fully deterministic results
    - Choice depends on application requirements
 
 ## 11. Secure Memory Management
@@ -1123,3 +1166,300 @@ The Kolmogorov-Smirnov test compares the empirical CDF of the {Sₖ} to the theo
 - **High p-value**: Spectral characteristics consistent with white noise
 - **Low p-value**: Presence of periodic patterns or non-random structure
 - **Peak-to-mean ratio**: Additional diagnostic showing the strength of any dominant frequency
+
+---
+
+## Appendix A — Mathematical Hardening / Proof Notes
+
+This appendix provides rigorous mathematical foundations for the QI PRNG, clarifying what is provable versus empirical, and correcting some claims that appeared in earlier documentation.
+
+### A.0 Notation and Model (Formal)
+
+Define the state space as the circle group:
+
+```
+𝕋 := ℝ/ℤ ≅ [0,1)
+```
+
+with addition mod 1.
+
+Let:
+
+```
+f(x) := {ax² + bx + c} ∈ [0,1)
+```
+
+where {y} := y - ⌊y⌋ is the fractional part and a, b, c ∈ ℤ with a > 0.
+
+The PRNG state evolves by:
+
+```
+x_{n+1} = f(x_n),    x_0 ∈ [0,1)
+```
+
+This is a deterministic dynamical system on 𝕋. The generator outputs x_n (or transforms thereof).
+
+**Important modeling distinction**: Mathematically, x_n ∈ 𝕋 is a real point; computationally, x_n is represented with finite precision (e.g., MPFR with p bits), which turns the process into a finite-state machine with eventual periodicity.
+
+### A.1 What the Discriminant Requirement Does—and Does Not Do
+
+**Proposition A.1 (Meaning of Δ > 0)**
+
+If Δ > 0, then the polynomial q(x) = ax² + bx + c has two distinct real roots, hence the parabola crosses the real axis twice.
+
+*Proof.* Standard quadratic formula. ∎
+
+**What this doesn't imply:**
+
+Δ > 0 does **not** by itself imply:
+
+- Absence of fixed points or cycles on [0,1)
+- Topological mixing or chaos for f(x) = {q(x)}
+- An invariant distribution equal to uniform on [0,1)
+
+In fact, fixed points can exist regardless of Δ (see A.2).
+
+**Recommended interpretation:**
+
+Δ > 0 is a convenient parameter-screening heuristic that prevents degenerate polynomial shapes and correlates empirically with better orbit behavior for our parameter families, but it is not a universal theorem guaranteeing chaos or uniformity.
+
+### A.2 Fixed Points and Short Cycles Exist (In Principle)
+
+**Proposition A.2 (Fixed Point Condition)**
+
+A point x ∈ [0,1) is a fixed point of f(x) = {ax² + bx + c} iff there exists k ∈ ℤ such that:
+
+```
+ax² + bx + c = x + k
+⟺ ax² + (b-1)x + (c-k) = 0
+```
+
+*Proof.* f(x) = x means {ax² + bx + c} = x, i.e., ax² + bx + c = x + k for some integer k. Rearrange. ∎
+
+**Corollary A.3 (How Many Fixed Points Can Exist)**
+
+For each integer k, the quadratic equation above has at most two real roots; therefore the map can have at most finitely many fixed points in [0,1), because only finitely many integers k can satisfy the range constraint:
+
+```
+k ∈ [min_{x∈[0,1]} (ax² + bx + c - x), max_{x∈[0,1]} (ax² + bx + c - x)]
+```
+
+**Practical meaning:** You cannot claim "constraints a > 0, c < 0, Δ > 0 rule out fixed points." They don't.
+
+**Stronger, defensible implementation claim:**
+
+Even though fixed points may exist, for a continuously chosen seed x_0, the probability of landing exactly on a fixed point is zero (it's a finite set). However:
+
+- Under finite precision, "landing exactly" becomes possible, and short cycles are common in finite-state machines
+- Therefore, reseed/mixing is not optional if you want "never get stuck" behavior
+
+### A.3 Finite Precision Implies Eventual Periodicity (Hard Theorem)
+
+Let the implementation store x_n with p bits of precision and round each update into that representation.
+
+**Proposition A.4 (Eventual Periodicity Under Finite Precision)**
+
+If the internal state is stored in a finite set 𝒮 (e.g., all representable p-bit values in [0,1)), and the update is deterministic x_{n+1} = F(x_n), then the sequence is eventually periodic, with preperiod length < |𝒮| and period length ≤ |𝒮|.
+
+*Proof.* Pigeonhole principle on the sequence of states. ∎
+
+**Engineering consequence:**
+
+The claim "period is astronomically long / never repeats" is only defensible as:
+
+> "With typical p (≥ 53 bits) and our parameter families, empirically observed periods are extremely long relative to practical sample sizes; reseeding + cryptographic mixing makes the effective cycle length cryptographically large."
+
+### A.4 When Do We Get Provable Statistical Mixing / Invariant Densities?
+
+**Definition A.5 (Piecewise Expanding Interval/Circle Map)**
+
+A map f : [0,1] → [0,1] is piecewise C² and uniformly expanding if there exists a finite partition into intervals on which f is C², and:
+
+```
+inf |f'(x)| ≥ λ > 1    (away from finitely many cut points)
+```
+
+**Theorem A.6 (Lasota–Yorke, Existence of ACIM)**
+
+For a piecewise C², uniformly expanding map of the interval, there exists an absolutely continuous invariant measure (ACIM); under mild extra conditions it is unique and the system is mixing with exponential decay of correlations.
+
+**How it applies here (carefully):**
+
+The map x ↦ {ax² + bx + c} is piecewise smooth on [0,1), but it has a critical point where:
+
+```
+f'(x) = 2ax + b = 0    at    x* = -b/(2a)
+```
+
+So it is **not** uniformly expanding everywhere.
+
+**Therefore:** You cannot claim a blanket theorem "this map is chaotic/uniform."
+
+**What you can claim:**
+
+> For parameter families where the induced mod-1 map behaves as a piecewise expanding unimodal map away from a negligible neighborhood of the critical point, one expects an ACIM and rapid mixing; our discriminant screening and empirical tests are designed to identify those parameters.
+
+### A.5 Cryptographic Modular-Addition Mixing: Uniformity Is Provable
+
+**Theorem A.7 (Haar Invariance on the Circle)**
+
+Let U be any 𝕋-valued random variable, and let C ~ Unif(𝕋) be independent. Then:
+
+```
+V := (U + C) mod 1 ~ Unif(𝕋)
+```
+
+*Proof.* Uniform on 𝕋 is Haar measure. Convolution with Haar returns Haar: for any measurable A ⊂ 𝕋,
+
+```
+ℙ(V ∈ A) = ∫_𝕋 ℙ(U ∈ A - c) dc = ∫_𝕋 μ(A) dc = μ(A)
+```
+
+∎
+
+**Very strong corollary (important for security posture):**
+
+If your "crypto_uniform" is truly uniform and independent (e.g., ChaCha20 from libsodium), then the final output is uniform regardless of the statistical imperfections of U.
+
+This is the cleanest "hard guarantee" in the entire system.
+
+### A.6 XOR Mixing: If One Operand Is Uniform, Output Is Uniform (Hard Theorem)
+
+If you XOR mantissas, you can give a short discrete proof.
+
+**Theorem A.8 (XOR with a Uniform Mask)**
+
+Let A ∈ {0,1}^w be any bitstring-valued random variable, and let B ~ Unif({0,1}^w) be independent. Then:
+
+```
+A ⊕ B ~ Unif({0,1}^w)
+```
+
+*Proof.* For any y ∈ {0,1}^w,
+
+```
+ℙ(A ⊕ B = y) = Σ_x ℙ(A = x)ℙ(B = x ⊕ y) = Σ_x ℙ(A = x) · 2^{-w} = 2^{-w}
+```
+
+∎
+
+**Takeaway:**
+
+If any one of your combined streams is cryptographically uniform (or very close), XOR mixing makes the result uniform at the mantissa level.
+
+### A.7 Averaging Does Not Preserve Uniformity (Hard Correction)
+
+**Proposition A.9 (Mean of Two Uniforms Is Triangular)**
+
+If U, C ~ iid Unif[0,1), then W = (U + C)/2 has density:
+
+```
+f_W(x) = { 4x,      0 ≤ x ≤ 1/2
+         { 4(1-x),  1/2 < x ≤ 1
+```
+
+So "averaging" is a distribution transform, not a uniform-preserving mixer.
+
+### A.8 Multi-Stream Modular Addition Reduces Bias via Fourier Damping
+
+When combining multiple independent streams with addition mod 1, you can quantify "correlation breaking."
+
+Let X, Y ∈ 𝕋 be independent. Let φ_X(k) := 𝔼[e^{2πikX}] be the k-th Fourier coefficient.
+
+**Proposition A.10 (Convolution Multiplies Fourier Coefficients)**
+
+If Z = (X + Y) mod 1, then:
+
+```
+φ_Z(k) = φ_X(k) · φ_Y(k)    ∀k ∈ ℤ
+```
+
+*Proof.*
+
+```
+φ_Z(k) = 𝔼[e^{2πik(X+Y)}] = 𝔼[e^{2πikX}]𝔼[e^{2πikY}]
+```
+
+by independence. ∎
+
+**Interpretation:**
+
+Non-uniformity shows up as nonzero φ_X(k) for k ≠ 0. Repeated modular-add mixing drives these toward zero multiplicatively, i.e., bias decays geometrically if the streams have |φ(k)| < 1.
+
+This gives a real "math story" behind entropy combining beyond vibes.
+
+### A.9 The 3×3 Matrix Jump-Ahead Is Not Correct as Stated (Must Harden)
+
+The identity:
+
+```
+[x_{n+1}]   [a b c] [x_n²]
+[x_n    ] = [1 0 0] [x_n ]
+[1      ]   [0 0 1] [1   ]
+```
+
+is true for one step as an evaluation trick, but it does **not** imply that M^n performs an n-step jump.
+
+**Proposition A.11 (Why M^n Does Not Encode Iteration)**
+
+Let v_n := (x_n², x_n, 1)^T. Even if you write x_{n+1} = [a b c]v_n, there is no fixed 3×3 matrix M such that v_{n+1} = M·v_n for all x_n, because:
+
+```
+x_{n+1}² = (ax_n² + bx_n + c)²
+```
+
+is a degree-4 polynomial in x_n, hence cannot be expressed as a linear combination of (x_n², x_n, 1) with constant coefficients.
+
+*Proof.* If v_{n+1} = M·v_n held with constant M, the first component of v_{n+1} would be linear in x_n², x_n, 1—i.e., at most quadratic in x_n. But x_{n+1}² is quartic in x_n unless a = 0 (degenerate). Contradiction. ∎
+
+**Correct alternatives for jump-ahead:**
+
+- **Stream splitting / leapfrogging**: Thread i uses x_{i+mt} for stride m (requires sequential generation but guarantees deterministic partitioning)
+- **Parameter splitting**: Independent discriminants/parameter triplets per stream (our current approach)
+- **Crypto counter-mode**: Generate C_n from ChaCha20(counter=n), then output (x_n + C_n) mod 1. This gives O(1) random access in n for the crypto component and preserves uniformity by Theorem A.7.
+
+### A.10 Continued Fraction Periodicity: Proof Reference
+
+**Lagrange's Theorem**: Quadratic irrationals have eventually periodic simple continued fraction expansions.
+
+A slightly sharper "finite-state" argument for the Gauss–Legendre algorithm:
+
+**Proposition A.12 (Finite State Space Implies Repetition)**
+
+In the Gauss–Legendre recursion:
+
+```
+P_{n+1} = a_n Q_n - P_n
+Q_{n+1} = (D - P_{n+1}²) / Q_n
+```
+
+one can show 0 ≤ P_n < √D and 0 < Q_n ≤ √D for reduced forms; hence there are only finitely many admissible integer pairs (P_n, Q_n), so some pair repeats and the continued fraction becomes periodic.
+
+### A.11 "Military-grade" and "Cryptographic" Claims: How to Harden Safely
+
+Granville's original write-up popularized the idea and includes empirical comparisons. But cryptographic security is a much stronger claim than "passes statistical tests."
+
+**A safe, mathematically honest statement:**
+
+> Without cryptographic mixing, this generator should be treated as a high-quality statistical PRNG (chaotic map on 𝕋 with empirically screened parameters). With ChaCha20-based independent uniform mixing, the final output is provably uniform on [0,1) (Theorem A.7), and unpredictability reduces to the security of the underlying cryptographic stream.
+
+This avoids overclaiming "QI core is cryptographically secure" (which would require actual cryptanalysis assumptions).
+
+---
+
+## Summary: Math Guarantees
+
+### Guarantees (Provable)
+
+1. **Finite precision implies eventual periodicity** (Proposition A.4)
+2. **Modular-add crypto mixing yields exact uniformity on [0,1)** if crypto stream is uniform + independent (Theorem A.7)
+3. **XOR mixing yields exact uniform mantissas** if any one operand is uniform + independent (Theorem A.8)
+4. **CFE periodicity for quadratic irrationals** (Lagrange's theorem; A.10)
+5. **Fourier damping**: Multi-stream modular addition reduces bias geometrically (Proposition A.10)
+
+### Non-Guarantees (Must Be Empirical / Parameter-Dependent)
+
+1. **Δ > 0 does not imply chaos, uniformity, or absence of fixed points** (A.1–A.2)
+2. **The 3×3 matrix form does not provide true O(log n) jump-ahead** (A.9)
+3. **"Chaotic-looking" does not equal "cryptographically secure"** without crypto mixing (A.11)
+4. **Fixed points may exist** for specific parameter combinations (A.2)

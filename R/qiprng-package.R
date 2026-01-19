@@ -31,4 +31,5 @@
 #' @docType package
 #' @name qiprng
 #' @author Sergey Kornilov
+#' @importFrom rlang %||%
 "_PACKAGE"

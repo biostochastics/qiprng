@@ -84,3 +84,4 @@ cpp_gaussian_copula <- function(n, correlation, marginal_params) {
 .prepare_for_unload_ <- function() {
     invisible(.Call(`_qiprng_prepare_for_unload_`))
 }
+

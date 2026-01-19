@@ -4,12 +4,15 @@
 \alias{modifyList}
 \title{Helper function to modify lists}
 \usage{
-modifyList(x, val)
+modifyList(x, val, keep.null = FALSE)
 }
 \arguments{
 \item{x}{Base list}
 
 \item{val}{List of modifications}
+
+\item{keep.null}{If TRUE, NULL values in val are preserved. If FALSE (default),
+NULL values remove the corresponding element from x.}
 }
 \value{
 Modified list

@@ -29,9 +29,10 @@ Imports:
     R6,
     stringr,
     R.utils,
-    cli
+    rlang,
+    cli,
+    gridExtra
 Suggests:
-    gridExtra,
     scales,
     knitr,
     reshape2,
@@ -41,8 +42,6 @@ Suggests:
     styler,
     testthat (>= 3.1.0),
     CryptRndTest,
-    refTools,
-    ggradar,
     random,
     quarto,
     viridis,

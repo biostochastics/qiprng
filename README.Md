@@ -40,10 +40,10 @@ SIMD vectorization with AVX2/NEON support and enhanced OpenMP parallelization wi
 thread-local caching, SIMD integration, and optimized buffer management for improved
 performance on modern multi-core systems.
 
-Advanced jump-ahead capabilities enable efficient parallel simulations with multiple
-algorithm options including MPFR-based high-precision matrix operations, fast modular
-arithmetic using Mersenne primes, and direct continued fraction manipulation, all with
-automatic overflow prevention for jumps of arbitrary size. An optional output mixing
+Multiple strategies support parallel stream generation: parameter splitting (independent
+discriminants per stream), stream leapfrogging, and crypto counter-mode mixing. The
+package provides MPFR-based high-precision iteration for sequential jump-ahead with
+automatic overflow prevention. An optional output mixing
 layer uses ChaCha20 stream cipher with XOR mixing for preserving uniformity or modular
 addition for enhanced entropy. Thread safety is guaranteed through proper synchronization
 primitives and thread-local resources, while deterministic mode with seed support enables
@@ -369,27 +369,34 @@ createPRNG(cfg)
 
 # Available strategies:
 # round_robin: Cycles through QIs sequentially (fastest)
-# xor_mix: XOR combines outputs for bit diffusion
-# averaging: Averages multiple QI outputs
-# modular_add: Modular addition of outputs
+# xor_mix: XOR combines outputs for bit diffusion (preserves uniformity)
+# averaging: Averages multiple QI outputs (note: produces triangular, not uniform distribution)
+# modular_add: Modular addition of outputs (preserves uniformity)
 # cascade_mix: Cascaded mixing for maximum entropy
 ```
 
-### Jump-Ahead Functionality
+### Jump-Ahead and Parallel Streams
 
 ```r
-# Efficiently skip ahead in the sequence
+# For parallel applications, the recommended approach is parameter splitting:
+# Different (a, b, c) triplets produce statistically independent sequences
+cfg <- list(
+  a = c(2, 3, 5),          # Multiple QI coefficients
+  b = c(7, 11, 13),
+  c = c(-3, -5, -7),
+  mixing_strategy = "modular_add"
+)
+createPRNG(cfg)
+
+# Sequential jump-ahead is also available for moderate distances:
 createPRNG()
 initial <- generatePRNG(5)
-
-# Jump ahead 1 billion steps - O(log n) complexity
-jumpAheadPRNG(1000000000)
+jumpAheadPRNG(10000)  # Direct iteration with MPFR precision
 after_jump <- generatePRNG(5)
 
-# Uses matrix exponentiation with MPFR arithmetic for:
-# - O(log n) time complexity
-# - Astronomical jump distances
-# - Full precision preservation
+# Note: Unlike linear congruential generators, the nonlinear quadratic
+# map does not admit O(log n) matrix-based jump-ahead. See MATH.md
+# Appendix A.9 for the mathematical proof.
 ```
 
 ## Statistical Testing
@@ -424,14 +431,24 @@ To reproduce the NIST validation:
 ## Mathematical Foundation
 
 The generator implements the quadratic irrational recurrence relation
-x_{n+1} = (a·x_n² + b·x_n + c) mod 1, where the coefficients satisfy a > 0, c < 0, and
-the discriminant b² - 4ac is a non-perfect square. This formulation, based on ergodic
-theory of quadratic maps, ensures excellent statistical properties and long periods. The
-jump-ahead functionality uses matrix exponentiation with MPFR arithmetic to achieve
-O(log n) complexity, enabling efficient advancement by astronomical distances (10^18+ steps)
-for parallel stream generation.
+x_{n+1} = (a·x_n² + b·x_n + c) mod 1, where the coefficients are constrained to
+a > 0, c < 0, and Δ = b² - 4ac > 0. These constraints define an empirical parameter
+family that tends to produce richer folding behavior under mod-1 projection. With
+properly validated parameters, this deterministic dynamical system on [0,1) produces
+sequences with excellent statistical properties. Each parameter set is validated
+through empirical testing.
 
-For detailed mathematical theory and proofs, see [MATH.md](MATH.md).
+**Key mathematical guarantees** (see [MATH.md](MATH.md) Appendix A for proofs):
+
+- Modular-addition mixing with ChaCha20 yields *provably uniform* output (Haar invariance)
+- XOR mixing with a uniform operand produces uniform mantissas
+- Multi-stream modular addition reduces bias geometrically (Fourier damping)
+- CFE periodicity for quadratic irrationals follows from Lagrange's theorem
+
+**Important caveats**: The discriminant condition Δ > 0 is a screening heuristic, not
+a mathematical guarantee of chaos or uniformity. The generator's statistical quality
+depends on empirical validation of specific parameter sets. For rigorous analysis,
+see [MATH.md](MATH.md).
 
 ## Performance Considerations
 

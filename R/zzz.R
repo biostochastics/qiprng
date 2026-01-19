@@ -74,8 +74,10 @@
       cleanup_error <<- e$message
       # Log warning about cleanup failure
       warning(
-        sprintf("qiprng: C++ cleanup failed during unload: %s. ",
-                cleanup_error),
+        sprintf(
+          "qiprng: C++ cleanup failed during unload: %s. ",
+          cleanup_error
+        ),
         "Library unload will proceed but may cause instability.",
         call. = FALSE
       )
@@ -92,8 +94,10 @@
       # If unload fails after cleanup failure, this is serious
       if (!cleanup_success) {
         warning(
-          sprintf("qiprng: Library unload failed after cleanup error: %s",
-                  e$message),
+          sprintf(
+            "qiprng: Library unload failed after cleanup error: %s",
+            e$message
+          ),
           call. = FALSE
         )
       }

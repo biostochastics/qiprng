@@ -2,47 +2,9 @@
 # Comprehensive statistical analysis of random numbers generated using different discriminants
 # Incorporates advanced tests for cryptographic-quality randomness assessment
 
-# library(qiprng) # Not needed - functions are available within package
-library(moments)
-library(nortest)
-
-# Ensure rlang for safe null-coalescing and define helper if needed
-# This provides `%||%`, used for safely handling potentially NULL results from tests.
-if (!requireNamespace("rlang", quietly = TRUE)) {
-  install.packages("rlang", quiet = TRUE)
-}
-library(rlang)
-
-if (!exists("%||%")) {
-  `%||%` <- function(x, y) if (is.null(x) || length(x) == 0) y else x
-}
-
-# Load additional packages for enhanced testing
-suppressPackageStartupMessages({
-  # Set CRAN mirror if not already set
-  if (length(getOption("repos")) == 0 || getOption("repos")["CRAN"] == "@CRAN@") {
-    options(repos = c(CRAN = "https://cran.rstudio.com/"))
-  }
-
-  if (!require(randtests, quietly = TRUE)) {
-    cat("Installing randtests package...\n")
-    install.packages("randtests", quiet = TRUE)
-    library(randtests)
-  }
-
-  if (!require(tseries, quietly = TRUE)) {
-    cat("Installing tseries package...\n")
-    install.packages("tseries", quiet = TRUE)
-    library(tseries)
-  }
-
-  # CryptRndTest not currently used
-  # if (!require(CryptRndTest, quietly = TRUE)) {
-  #   cat("Installing CryptRndTest package...\n")
-  #   install.packages("CryptRndTest", quiet = TRUE)
-  #   library(CryptRndTest)
-  # }
-})
+# Package imports are handled via NAMESPACE (roxygen2 @import/@importFrom tags)
+# Required packages: moments, nortest, randtests, rlang, tseries (Suggests)
+# The %||% operator is imported from rlang via qiprng-package.R
 
 #' Load discriminants from CSV file
 #'
@@ -1023,15 +985,16 @@ run_discriminant_analysis <- function(discriminants_file = "discriminants.csv",
       )
 
       # Load required libraries on each worker
+      # Note: library() calls are appropriate here since workers are separate R sessions
       clusterEvalQ(cl, {
-        # library(qiprng) # Not needed - functions are available within package
-        library(moments)
-        library(nortest)
         suppressPackageStartupMessages({
-          if (require(randtests, quietly = TRUE)) library(randtests)
-          if (require(tseries, quietly = TRUE)) library(tseries)
-          if (require(rlang, quietly = TRUE)) library(rlang)
-          if (require(R.utils, quietly = TRUE)) library(R.utils)
+          library(moments)
+          library(nortest)
+          # Optional packages (in Suggests or soft dependencies)
+          if (requireNamespace("randtests", quietly = TRUE)) library(randtests)
+          if (requireNamespace("tseries", quietly = TRUE)) library(tseries)
+          if (requireNamespace("rlang", quietly = TRUE)) library(rlang)
+          if (requireNamespace("R.utils", quietly = TRUE)) library(R.utils)
         })
       })
 

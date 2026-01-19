@@ -6,262 +6,259 @@
 using namespace Rcpp;
 
 #ifdef RCPP_USE_GLOBAL_ROSTREAM
-Rcpp::Rostream<true>& Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // cpp_levy_stable
 Rcpp::NumericVector cpp_levy_stable(int n, double alpha, double beta, double mu, double sigma);
-RcppExport SEXP _qiprng_cpp_levy_stable(SEXP nSEXP, SEXP alphaSEXP, SEXP betaSEXP, SEXP muSEXP,
-                                        SEXP sigmaSEXP) {
-    BEGIN_RCPP
+RcppExport SEXP _qiprng_cpp_levy_stable(SEXP nSEXP, SEXP alphaSEXP, SEXP betaSEXP, SEXP muSEXP, SEXP sigmaSEXP) {
+BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter<int>::type n(nSEXP);
-    Rcpp::traits::input_parameter<double>::type alpha(alphaSEXP);
-    Rcpp::traits::input_parameter<double>::type beta(betaSEXP);
-    Rcpp::traits::input_parameter<double>::type mu(muSEXP);
-    Rcpp::traits::input_parameter<double>::type sigma(sigmaSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< double >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< double >::type sigma(sigmaSEXP);
     rcpp_result_gen = Rcpp::wrap(cpp_levy_stable(n, alpha, beta, mu, sigma));
     return rcpp_result_gen;
-    END_RCPP
+END_RCPP
 }
 // cpp_pareto
 Rcpp::NumericVector cpp_pareto(int n, double xm, double alpha);
 RcppExport SEXP _qiprng_cpp_pareto(SEXP nSEXP, SEXP xmSEXP, SEXP alphaSEXP) {
-    BEGIN_RCPP
+BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter<int>::type n(nSEXP);
-    Rcpp::traits::input_parameter<double>::type xm(xmSEXP);
-    Rcpp::traits::input_parameter<double>::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< double >::type xm(xmSEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
     rcpp_result_gen = Rcpp::wrap(cpp_pareto(n, xm, alpha));
     return rcpp_result_gen;
-    END_RCPP
+END_RCPP
 }
 // cpp_cauchy
 Rcpp::NumericVector cpp_cauchy(int n, double location, double scale);
 RcppExport SEXP _qiprng_cpp_cauchy(SEXP nSEXP, SEXP locationSEXP, SEXP scaleSEXP) {
-    BEGIN_RCPP
+BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter<int>::type n(nSEXP);
-    Rcpp::traits::input_parameter<double>::type location(locationSEXP);
-    Rcpp::traits::input_parameter<double>::type scale(scaleSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< double >::type location(locationSEXP);
+    Rcpp::traits::input_parameter< double >::type scale(scaleSEXP);
     rcpp_result_gen = Rcpp::wrap(cpp_cauchy(n, location, scale));
     return rcpp_result_gen;
-    END_RCPP
+END_RCPP
 }
 // cpp_multivariate_normal
-Rcpp::NumericMatrix cpp_multivariate_normal(int n, Rcpp::NumericVector mean,
-                                            Rcpp::NumericMatrix covariance);
+Rcpp::NumericMatrix cpp_multivariate_normal(int n, Rcpp::NumericVector mean, Rcpp::NumericMatrix covariance);
 RcppExport SEXP _qiprng_cpp_multivariate_normal(SEXP nSEXP, SEXP meanSEXP, SEXP covarianceSEXP) {
-    BEGIN_RCPP
+BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter<int>::type n(nSEXP);
-    Rcpp::traits::input_parameter<Rcpp::NumericVector>::type mean(meanSEXP);
-    Rcpp::traits::input_parameter<Rcpp::NumericMatrix>::type covariance(covarianceSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type mean(meanSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type covariance(covarianceSEXP);
     rcpp_result_gen = Rcpp::wrap(cpp_multivariate_normal(n, mean, covariance));
     return rcpp_result_gen;
-    END_RCPP
+END_RCPP
 }
 // cpp_gaussian_copula
-Rcpp::NumericMatrix cpp_gaussian_copula(int n, Rcpp::NumericMatrix correlation,
-                                        Rcpp::List marginal_params);
-RcppExport SEXP _qiprng_cpp_gaussian_copula(SEXP nSEXP, SEXP correlationSEXP,
-                                            SEXP marginal_paramsSEXP) {
-    BEGIN_RCPP
+Rcpp::NumericMatrix cpp_gaussian_copula(int n, Rcpp::NumericMatrix correlation, Rcpp::List marginal_params);
+RcppExport SEXP _qiprng_cpp_gaussian_copula(SEXP nSEXP, SEXP correlationSEXP, SEXP marginal_paramsSEXP) {
+BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter<int>::type n(nSEXP);
-    Rcpp::traits::input_parameter<Rcpp::NumericMatrix>::type correlation(correlationSEXP);
-    Rcpp::traits::input_parameter<Rcpp::List>::type marginal_params(marginal_paramsSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type correlation(correlationSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type marginal_params(marginal_paramsSEXP);
     rcpp_result_gen = Rcpp::wrap(cpp_gaussian_copula(n, correlation, marginal_params));
     return rcpp_result_gen;
-    END_RCPP
+END_RCPP
 }
 // initialize_libsodium_
 void initialize_libsodium_();
 RcppExport SEXP _qiprng_initialize_libsodium_() {
-    BEGIN_RCPP
+BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     initialize_libsodium_();
     return R_NilValue;
-    END_RCPP
+END_RCPP
 }
 // createPRNG_
 void createPRNG_(Rcpp::List rcfg);
 RcppExport SEXP _qiprng_createPRNG_(SEXP rcfgSEXP) {
-    BEGIN_RCPP
+BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter<Rcpp::List>::type rcfg(rcfgSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type rcfg(rcfgSEXP);
     createPRNG_(rcfg);
     return R_NilValue;
-    END_RCPP
+END_RCPP
 }
 // updatePRNG_
 void updatePRNG_(Rcpp::List rcfg);
 RcppExport SEXP _qiprng_updatePRNG_(SEXP rcfgSEXP) {
-    BEGIN_RCPP
+BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter<Rcpp::List>::type rcfg(rcfgSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type rcfg(rcfgSEXP);
     updatePRNG_(rcfg);
     return R_NilValue;
-    END_RCPP
+END_RCPP
 }
 // getPRNGConfig_
 Rcpp::List getPRNGConfig_();
 RcppExport SEXP _qiprng_getPRNGConfig_() {
-    BEGIN_RCPP
+BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     rcpp_result_gen = Rcpp::wrap(getPRNGConfig_());
     return rcpp_result_gen;
-    END_RCPP
+END_RCPP
 }
 // dumpPRNGConfig_
 void dumpPRNGConfig_();
 RcppExport SEXP _qiprng_dumpPRNGConfig_() {
-    BEGIN_RCPP
+BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     dumpPRNGConfig_();
     return R_NilValue;
-    END_RCPP
+END_RCPP
 }
 // generatePRNG_
 Rcpp::NumericVector generatePRNG_(int n);
 RcppExport SEXP _qiprng_generatePRNG_(SEXP nSEXP) {
-    BEGIN_RCPP
+BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter<int>::type n(nSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
     rcpp_result_gen = Rcpp::wrap(generatePRNG_(n));
     return rcpp_result_gen;
-    END_RCPP
+END_RCPP
 }
 // reseedPRNG_
 void reseedPRNG_();
 RcppExport SEXP _qiprng_reseedPRNG_() {
-    BEGIN_RCPP
+BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     reseedPRNG_();
     return R_NilValue;
-    END_RCPP
+END_RCPP
 }
 // cleanup_prng_
 void cleanup_prng_();
 RcppExport SEXP _qiprng_cleanup_prng_() {
-    BEGIN_RCPP
+BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     cleanup_prng_();
     return R_NilValue;
-    END_RCPP
+END_RCPP
 }
 // skipPRNG_
 void skipPRNG_(int n);
 RcppExport SEXP _qiprng_skipPRNG_(SEXP nSEXP) {
-    BEGIN_RCPP
+BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter<int>::type n(nSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
     skipPRNG_(n);
     return R_NilValue;
-    END_RCPP
+END_RCPP
 }
 // jumpAheadPRNG_
 void jumpAheadPRNG_(double n);
 RcppExport SEXP _qiprng_jumpAheadPRNG_(SEXP nSEXP) {
-    BEGIN_RCPP
+BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter<double>::type n(nSEXP);
+    Rcpp::traits::input_parameter< double >::type n(nSEXP);
     jumpAheadPRNG_(n);
     return R_NilValue;
-    END_RCPP
+END_RCPP
 }
 // suppress_mpfr_warnings_
 bool suppress_mpfr_warnings_();
 RcppExport SEXP _qiprng_suppress_mpfr_warnings_() {
-    BEGIN_RCPP
+BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     rcpp_result_gen = Rcpp::wrap(suppress_mpfr_warnings_());
     return rcpp_result_gen;
-    END_RCPP
+END_RCPP
 }
 // set_mpfr_warnings_
 void set_mpfr_warnings_(bool show_warnings);
 RcppExport SEXP _qiprng_set_mpfr_warnings_(SEXP show_warningsSEXP) {
-    BEGIN_RCPP
+BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter<bool>::type show_warnings(show_warningsSEXP);
+    Rcpp::traits::input_parameter< bool >::type show_warnings(show_warningsSEXP);
     set_mpfr_warnings_(show_warnings);
     return R_NilValue;
-    END_RCPP
+END_RCPP
 }
 // cleanupPRNG_ThreadSafe_
 bool cleanupPRNG_ThreadSafe_();
 RcppExport SEXP _qiprng_cleanupPRNG_ThreadSafe_() {
-    BEGIN_RCPP
+BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     rcpp_result_gen = Rcpp::wrap(cleanupPRNG_ThreadSafe_());
     return rcpp_result_gen;
-    END_RCPP
+END_RCPP
 }
 // cleanupPRNG_Final_
 bool cleanupPRNG_Final_();
 RcppExport SEXP _qiprng_cleanupPRNG_Final_() {
-    BEGIN_RCPP
+BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     rcpp_result_gen = Rcpp::wrap(cleanupPRNG_Final_());
     return rcpp_result_gen;
-    END_RCPP
+END_RCPP
 }
 // shutdown_thread_pool_
 void shutdown_thread_pool_();
 RcppExport SEXP _qiprng_shutdown_thread_pool_() {
-    BEGIN_RCPP
+BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     shutdown_thread_pool_();
     return R_NilValue;
-    END_RCPP
+END_RCPP
 }
 // prepare_for_unload_
 void prepare_for_unload_();
 RcppExport SEXP _qiprng_prepare_for_unload_() {
-    BEGIN_RCPP
+BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     prepare_for_unload_();
     return R_NilValue;
-    END_RCPP
+END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_qiprng_cpp_levy_stable", (DL_FUNC)&_qiprng_cpp_levy_stable, 5},
-    {"_qiprng_cpp_pareto", (DL_FUNC)&_qiprng_cpp_pareto, 3},
-    {"_qiprng_cpp_cauchy", (DL_FUNC)&_qiprng_cpp_cauchy, 3},
-    {"_qiprng_cpp_multivariate_normal", (DL_FUNC)&_qiprng_cpp_multivariate_normal, 3},
-    {"_qiprng_cpp_gaussian_copula", (DL_FUNC)&_qiprng_cpp_gaussian_copula, 3},
-    {"_qiprng_initialize_libsodium_", (DL_FUNC)&_qiprng_initialize_libsodium_, 0},
-    {"_qiprng_createPRNG_", (DL_FUNC)&_qiprng_createPRNG_, 1},
-    {"_qiprng_updatePRNG_", (DL_FUNC)&_qiprng_updatePRNG_, 1},
-    {"_qiprng_getPRNGConfig_", (DL_FUNC)&_qiprng_getPRNGConfig_, 0},
-    {"_qiprng_dumpPRNGConfig_", (DL_FUNC)&_qiprng_dumpPRNGConfig_, 0},
-    {"_qiprng_generatePRNG_", (DL_FUNC)&_qiprng_generatePRNG_, 1},
-    {"_qiprng_reseedPRNG_", (DL_FUNC)&_qiprng_reseedPRNG_, 0},
-    {"_qiprng_cleanup_prng_", (DL_FUNC)&_qiprng_cleanup_prng_, 0},
-    {"_qiprng_skipPRNG_", (DL_FUNC)&_qiprng_skipPRNG_, 1},
-    {"_qiprng_jumpAheadPRNG_", (DL_FUNC)&_qiprng_jumpAheadPRNG_, 1},
-    {"_qiprng_suppress_mpfr_warnings_", (DL_FUNC)&_qiprng_suppress_mpfr_warnings_, 0},
-    {"_qiprng_set_mpfr_warnings_", (DL_FUNC)&_qiprng_set_mpfr_warnings_, 1},
-    {"_qiprng_cleanupPRNG_ThreadSafe_", (DL_FUNC)&_qiprng_cleanupPRNG_ThreadSafe_, 0},
-    {"_qiprng_cleanupPRNG_Final_", (DL_FUNC)&_qiprng_cleanupPRNG_Final_, 0},
-    {"_qiprng_shutdown_thread_pool_", (DL_FUNC)&_qiprng_shutdown_thread_pool_, 0},
-    {"_qiprng_prepare_for_unload_", (DL_FUNC)&_qiprng_prepare_for_unload_, 0},
-    {NULL, NULL, 0}};
+    {"_qiprng_cpp_levy_stable", (DL_FUNC) &_qiprng_cpp_levy_stable, 5},
+    {"_qiprng_cpp_pareto", (DL_FUNC) &_qiprng_cpp_pareto, 3},
+    {"_qiprng_cpp_cauchy", (DL_FUNC) &_qiprng_cpp_cauchy, 3},
+    {"_qiprng_cpp_multivariate_normal", (DL_FUNC) &_qiprng_cpp_multivariate_normal, 3},
+    {"_qiprng_cpp_gaussian_copula", (DL_FUNC) &_qiprng_cpp_gaussian_copula, 3},
+    {"_qiprng_initialize_libsodium_", (DL_FUNC) &_qiprng_initialize_libsodium_, 0},
+    {"_qiprng_createPRNG_", (DL_FUNC) &_qiprng_createPRNG_, 1},
+    {"_qiprng_updatePRNG_", (DL_FUNC) &_qiprng_updatePRNG_, 1},
+    {"_qiprng_getPRNGConfig_", (DL_FUNC) &_qiprng_getPRNGConfig_, 0},
+    {"_qiprng_dumpPRNGConfig_", (DL_FUNC) &_qiprng_dumpPRNGConfig_, 0},
+    {"_qiprng_generatePRNG_", (DL_FUNC) &_qiprng_generatePRNG_, 1},
+    {"_qiprng_reseedPRNG_", (DL_FUNC) &_qiprng_reseedPRNG_, 0},
+    {"_qiprng_cleanup_prng_", (DL_FUNC) &_qiprng_cleanup_prng_, 0},
+    {"_qiprng_skipPRNG_", (DL_FUNC) &_qiprng_skipPRNG_, 1},
+    {"_qiprng_jumpAheadPRNG_", (DL_FUNC) &_qiprng_jumpAheadPRNG_, 1},
+    {"_qiprng_suppress_mpfr_warnings_", (DL_FUNC) &_qiprng_suppress_mpfr_warnings_, 0},
+    {"_qiprng_set_mpfr_warnings_", (DL_FUNC) &_qiprng_set_mpfr_warnings_, 1},
+    {"_qiprng_cleanupPRNG_ThreadSafe_", (DL_FUNC) &_qiprng_cleanupPRNG_ThreadSafe_, 0},
+    {"_qiprng_cleanupPRNG_Final_", (DL_FUNC) &_qiprng_cleanupPRNG_Final_, 0},
+    {"_qiprng_shutdown_thread_pool_", (DL_FUNC) &_qiprng_shutdown_thread_pool_, 0},
+    {"_qiprng_prepare_for_unload_", (DL_FUNC) &_qiprng_prepare_for_unload_, 0},
+    {NULL, NULL, 0}
+};
 
-RcppExport void R_init_qiprng(DllInfo* dll) {
+RcppExport void R_init_qiprng(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

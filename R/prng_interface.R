@@ -30,6 +30,9 @@ NULL
 #'     \item{use_parallel_filling}{Logical: whether to use parallel buffer filling}
 #'     \item{mixing_strategy}{String: entropy mixing strategy for multi-QI ensemble (v0.5.0).
 #'           Options: "round_robin" (default), "xor_mix", "averaging", "modular_add", "cascade_mix"}
+#'     \item{use_tie_breaking}{Logical: whether to add tiny random epsilon to break consecutive
+#'           identical values. Disabled by default as duplicates are statistically valid. Only
+#'           enable if your application requires unique consecutive values. See MATH.md section 7.4.}
 #'     \item{debug}{Logical: whether to enable debugging output}
 #'   }
 #' @export
@@ -60,6 +63,7 @@ default_config <- list(
   quality_threshold = 0.010, # Maximum autocorrelation threshold for discriminant selection
   use_parallel_filling = FALSE,
   mixing_strategy = "round_robin",
+  use_tie_breaking = FALSE, # Disabled by default per MATH.md section 7.4 recommendation
   debug = FALSE,
   seed = NULL, # NULL means use random initialization
   deterministic = FALSE # Force deterministic mode
@@ -227,6 +231,9 @@ validate_config <- function(config) {
 #'     \item{use_parallel_filling}{Logical: whether to use parallel buffer filling}
 #'     \item{mixing_strategy}{String: entropy mixing strategy for multi-QI ensemble (v0.5.0).
 #'           Options: "round_robin" (default), "xor_mix", "averaging", "modular_add", "cascade_mix"}
+#'     \item{use_tie_breaking}{Logical: whether to add tiny random epsilon to break consecutive
+#'           identical values. Disabled by default (FALSE) as duplicates are statistically valid.
+#'           Only enable if your application requires unique consecutive values.}
 #'     \item{debug}{Logical: whether to enable debugging output}
 #'     \item{seed}{Numeric seed for reproducible sequences (0 to 2^53-1).
 #'           When provided, all random initialization is replaced with

@@ -74,8 +74,8 @@ load_excellent_discriminants <- function(results_file = "discriminant_analysis_r
 
   # Filter for excellent discriminants
   excellent <- summary_data[summary_data$quality_rating == "Excellent" &
-                              !is.na(summary_data$overall_score) &
-                              summary_data$overall_score >= min_score, ]
+    !is.na(summary_data$overall_score) &
+    summary_data$overall_score >= min_score, ]
 
   # Sort by overall score (descending)
   excellent <- excellent[order(excellent$overall_score, decreasing = TRUE), ]

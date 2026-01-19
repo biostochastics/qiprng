@@ -29,6 +29,9 @@ Possible parameters include:
 \item{use_parallel_filling}{Logical: whether to use parallel buffer filling}
 \item{mixing_strategy}{String: entropy mixing strategy for multi-QI ensemble (v0.5.0).
 Options: "round_robin" (default), "xor_mix", "averaging", "modular_add", "cascade_mix"}
+\item{use_tie_breaking}{Logical: whether to add tiny random epsilon to break consecutive
+identical values. Disabled by default (FALSE) as duplicates are statistically valid.
+Only enable if your application requires unique consecutive values.}
 \item{debug}{Logical: whether to enable debugging output}
 \item{seed}{Numeric seed for reproducible sequences (0 to 2^53-1).
 When provided, all random initialization is replaced with

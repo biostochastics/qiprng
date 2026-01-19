@@ -16,9 +16,9 @@ source_test_file <- function(relative_path) {
 
   # Fallback to development paths (when running tests from source)
   dev_paths <- c(
-    file.path("inst", relative_path),           # From package root
+    file.path("inst", relative_path), # From package root
     file.path("..", "..", "inst", relative_path), # From tests/testthat
-    file.path("../../inst", relative_path)      # Alternative path format
+    file.path("../../inst", relative_path) # Alternative path format
   )
 
   for (dev_path in dev_paths) {

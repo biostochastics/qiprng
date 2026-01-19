@@ -73,7 +73,7 @@ struct PRNGConfig {
     // NOTE: Defaults aligned with R interface (R/prng_interface.R default_config)
     bool use_crypto_mixing = true;  // Default to true for cryptographic security
     bool adhoc_corrections = false;
-    bool use_tie_breaking = true;
+    bool use_tie_breaking = false;  // Disabled by default per MATH.md 7.4: duplicates are valid
     unsigned long reseed_interval = 1000;
 
     // Discriminant options

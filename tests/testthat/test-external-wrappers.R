@@ -10,7 +10,6 @@ if (file.exists(ext_wrappers_file)) {
 }
 
 test_that("external wrapper functions handle package availability correctly", {
-
   # Test error handling when packages are not available
   if (!requireNamespace("CryptRndTest", quietly = TRUE)) {
     expect_error(

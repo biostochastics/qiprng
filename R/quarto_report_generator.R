@@ -1,7 +1,6 @@
 # Quarto Report Generation Module
 # Enhanced reporting with validation and iteration capabilities
-
-library(quarto)
+# Note: quarto is a Suggested dependency - functions use quarto:: namespace prefix
 
 #' Generate and render comprehensive Quarto report
 #'

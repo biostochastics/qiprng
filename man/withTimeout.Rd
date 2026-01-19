@@ -7,7 +7,7 @@
 withTimeout(expr, timeout)
 }
 \arguments{
-\item{expr}{Expression to evaluate}
+\item{expr}{Expression to run}
 
 \item{timeout}{Timeout in seconds}
 }
@@ -15,6 +15,6 @@ withTimeout(expr, timeout)
 Result of the expression, or throws an error on timeout
 }
 \description{
-Evaluates an expression with a specified timeout, returning an error
+Runs an expression with a specified timeout, returning an error
 if the expression takes longer than the specified time.
 }
