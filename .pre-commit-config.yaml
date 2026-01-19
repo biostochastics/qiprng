@@ -100,10 +100,10 @@ repos:
         pass_filenames: false
         types: [c++]
 
-      # Verify security enforcement
-      - id: verify-security
-        name: Verify security enforcement
-        entry: bash -c 'grep -q "SECURITY ERROR" src/rcpp_exports.cpp && echo "Security enforcement verified" || (echo "Security enforcement missing!" && exit 1)'
+      # Verify seed/crypto mixing incompatibility check exists
+      - id: verify-seed-crypto-check
+        name: Verify seed+crypto mixing check
+        entry: bash -c 'grep -q "deterministic seed with ChaCha20 mixing" src/rcpp_exports.cpp && echo "Seed/crypto check verified" || (echo "Seed/crypto incompatibility check missing!" && exit 1)'
         language: system
         pass_filenames: false
         types: [c++]
