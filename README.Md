@@ -2,7 +2,7 @@
 
 <img src="images/qiprng_logo.png" alt="QIPRNG Logo" width="300"/>
 
-[![Version](https://img.shields.io/badge/Version-0.7.1-blue)](https://github.com/biostochastics/qiprng)
+[![Version](https://img.shields.io/badge/Version-0.7.3-blue)](https://github.com/biostochastics/qiprng)
 [![ThreadSafe](https://img.shields.io/badge/Thread%20Safe-Yes-brightgreen)](https://github.com/biostochastics/qiprng)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen)](https://github.com/biostochastics/qiprng)
@@ -25,57 +25,10 @@ x <- generatePRNG(10000)
 hist(x, breaks = 50, main = "qiprng uniform distribution", col = "skyblue")
 ```
 
-## What's New
+## Version History
 
-### Version 0.7.1 - Double-Precision Fast Path Hardening
-
-This release hardens the double-precision fast path implementation based on a comprehensive code review:
-
-- **Type Safety**: Fixed `PackedQIState` coefficient truncation by upgrading from `int32_t` to `int64_t`
-- **Overflow Protection**: Added `isfinite()` checks and coefficient range validation to prevent silent numerical failures
-- **State Synchronization**: Fixed stale MPFR state when falling back from fast path; MPFR now properly synced before fallback
-- **Drift Correction**: Added periodic MPFR re-sync every 1M fast path iterations to correct accumulated floating-point drift
-- **Coefficient Validation**: Fast path automatically disabled when coefficients exceed double precision safe range (|coeff| > 2^53-1)
-
-### Version 0.7.0 - Critical Thread Safety & Build Fixes
-
-This release addresses critical thread safety issues and improves cross-platform build support:
-
-- **Thread Safety**: Fixed ThreadPool shutdown race condition, static destruction ordering, and OpenMP TLS cleanup issues
-- **Build Portability**: Improved configure script with platform-aware pkg-config discovery for macOS, Linux, and various package managers
-- **Validation Suite**: Fixed paths for installed packages using `system.file()`, exported `withTimeout` function
-- **Algorithm Fixes**: Corrected CFE period bounds to `O(sqrt(D) * log(D))`, improved fallback entropy, fixed MPFRWrapper swap
-- **Config Alignment**: Synchronized R and C++ default configuration values
-
-### Version 0.6.6 - Mathematical Documentation Improvements
-
-This release adds rigorous mathematical proofs and corrects documentation errors:
-
-- **Bug Fixes**: Corrected false claim about square-free discriminants; fixed overstated fixed-point avoidance claim
-- **Proofs Added**: Gap test (geometric distribution), spectral test (Exp(1) ordinates), crypto mixing uniformity, CFE periodicity
-- **Documentation**: Complete section renumbering and clarified matrix jump-ahead foundation
-
-### Version 0.6.5 - Deterministic Mode Enhancements
-
-This release fixes critical issues with deterministic mode to ensure perfect reproducibility:
-
-- **Fixed Deterministic Seeding**: Resolved thread-local RNG initialization to properly reset between PRNG creations
-- **Thread Counter Reset**: Added proper reset of MultiQIOptimized thread counter for consistent thread IDs
-- **Fallback RNG Determinism**: Replaced all non-deterministic fallback RNGs with deterministic alternatives
-- **Complete Test Coverage**: All 23 deterministic mode tests now pass with identical sequences for same seeds
-
-### Version 0.6.4 - Performance Optimizations
-
-This release includes significant architectural improvements focused on eliminating
-concurrency bottlenecks:
-
-- **Lock-Free Architecture**: Implemented thread-local PRNG instances with zero mutex contention
-- **Cache Optimization**: Increased cache size to 4096 samples for better L1 cache utilization
-- **Golden Ratio Seeding**: Thread-specific seeds using golden ratio prime (0x9E3779B97F4A7C15)
-- **Cache-Line Alignment**: 64-byte aligned data structures to prevent false sharing
-- **Optimized Mixing Strategies**: Enhanced CASCADE_MIX performance through mantissa extraction
-
-For complete version history, see [CHANGELOG.md](CHANGELOG.md).
+For recent changes, see [NEWS.md](NEWS.md). For complete version history with
+detailed technical notes, see [CHANGELOG.md](CHANGELOG.md).
 
 ## Key Features
 
@@ -629,7 +582,7 @@ If you use this package in your research, please cite:
   title = {qiprng: Quadratic Irrational Pseudo-Random Number Generator for R},
   author = {Sergey Kornilov},
   year = {2025},
-  note = {R package version 0.7.2},
+  note = {R package version 0.7.3},
   url = {https://github.com/biostochastics/qiprng}
 }
 ```
